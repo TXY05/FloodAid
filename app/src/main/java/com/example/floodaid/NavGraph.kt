@@ -4,11 +4,12 @@ import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import com.example.floodaid.models.Screen
 import com.example.floodaid.screen.*
 
 @Composable
 fun NavGraph(navController: NavHostController) {
-    NavHost(navController = navController, startDestination = Screen.Dashboard.route) {
+    NavHost(navController = navController, startDestination = Screen.Forum.route) {
         composable(route = Screen.Dashboard.route) {
             Dashboard(navController = navController)
         }

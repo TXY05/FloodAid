@@ -9,7 +9,7 @@ import androidx.navigation.NavDestination
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
-import com.example.floodaid.screen.Screen
+import com.example.floodaid.models.Screen
 
 @Composable
 fun BottomBar(navController: NavHostController) {

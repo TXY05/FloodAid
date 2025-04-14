@@ -1,4 +1,4 @@
-package com.example.floodaid.screen
+package com.example.floodaid.models
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
