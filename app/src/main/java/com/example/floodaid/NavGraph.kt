@@ -1,6 +1,7 @@
 package com.example.floodaid
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.key
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -9,7 +10,7 @@ import com.example.floodaid.screen.*
 
 @Composable
 fun NavGraph(navController: NavHostController) {
-    NavHost(navController = navController, startDestination = Screen.Dashboard.route) {
+    NavHost(navController = navController, startDestination = Screen.Map.route) {
         composable(route = Screen.Dashboard.route) {
             Dashboard(navController = navController)
         }
@@ -21,8 +22,13 @@ fun NavGraph(navController: NavHostController) {
             Forum(navController = navController)
         }
 
+//        composable(route = Screen.Map.route) {
+//            Map(navController = navController)
+//        }
         composable(route = Screen.Map.route) {
-            Map(navController = navController)
+            key("persistent_map") {
+                Map(navController = navController)
+            }
         }
 
         composable(route = Screen.Notification.route) {

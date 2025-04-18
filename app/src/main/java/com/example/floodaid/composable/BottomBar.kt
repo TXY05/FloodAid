@@ -61,12 +61,19 @@ fun RowScope.AddItem(
         onClick = {
             if (currentDestination?.route != screen.route) {
                 navController.navigate(screen.route) {
-                    popUpTo(Screen.Dashboard.route) {
-                        saveState = true
+                    launchSingleTop = true           // Don't recreate if it's already at the top
+                    restoreState = true              // Restore the previous state (saver kicks in)
+                    popUpTo(navController.graph.startDestinationId) {
+                        saveState = true             // Save the current state
                     }
-                    launchSingleTop = true
-                    restoreState = true
                 }
+//                navController.navigate(screen.route) {
+//                    popUpTo(Screen.Dashboard.route) {
+//                        saveState = true
+//                    }
+//                    launchSingleTop = true
+//                    restoreState = true
+//                }
             }
         }
 

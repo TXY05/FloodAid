@@ -25,8 +25,19 @@ import androidx.navigation.compose.rememberNavController
 import com.example.floodaid.screen.Dashboard
 import com.example.floodaid.screen.*
 import com.example.floodaid.ui.theme.FloodAidTheme
+import com.google.android.gms.maps.SupportMapFragment
+import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import com.google.android.gms.maps.CameraUpdateFactory
+import com.google.android.gms.maps.GoogleMap
+import com.google.android.gms.maps.GoogleMapOptions
+import com.google.android.gms.maps.OnMapReadyCallback
+import com.google.android.gms.maps.model.LatLng
 
-class MainActivity : ComponentActivity() {
+//class MainActivity : AppCompatActivity(), OnMapReadyCallback{
+//class MainActivity : ComponentActivity() {
+class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
