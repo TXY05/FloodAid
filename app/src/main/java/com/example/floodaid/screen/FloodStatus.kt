@@ -1,5 +1,6 @@
 package com.example.floodaid.screen
 
+import BottomBar
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -141,11 +142,11 @@ fun FloodStatus(navController: NavHostController) {
         }
     }
 }
-
-@Composable
-fun BottomBar(navController: NavHostController) {
-    TODO("Not yet implemented")
-}
+//
+//@Composable
+//fun BottomBar(navController: NavHostController) {
+//    TODO("Not yet implemented")
+//}
 
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
