@@ -4,6 +4,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Details
 import androidx.compose.material.icons.filled.Forum
+import androidx.compose.material.icons.filled.HealthAndSafety
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Person
@@ -59,7 +60,7 @@ sealed class Screen(
     data object Volunteer : Screen(
         route = "volunteer",
         title = "Volunteer",
-        icon = Icons.Default.Home
+        icon = Icons.Default.HealthAndSafety
     )
 
 }

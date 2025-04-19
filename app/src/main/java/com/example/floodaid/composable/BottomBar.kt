@@ -20,7 +20,7 @@ fun BottomBar(navController: NavHostController) {
         Screen.Forum,
         Screen.FloodStatus,
         Screen.Map,
-        Screen.Profile,
+        Screen.Volunteer,
     )
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
