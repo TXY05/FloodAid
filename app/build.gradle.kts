@@ -6,6 +6,7 @@ plugins {
 
     //id("com.android.application")
     id("com.google.gms.google-services")
+    id("com.google.devtools.ksp") version "2.1.0-1.0.29"
 }
 
 android {
@@ -72,4 +73,12 @@ dependencies {
     implementation(libs.google.firebase.analytics)
     implementation(libs.google.map)
     implementation(libs.androidx.appcompat)
+
+    implementation(libs.androidx.room.runtime)
+    ksp("androidx.room:room-compiler:${rootProject.extra["room_version"]}")
+    implementation(libs.androidx.room.ktx)
+
+    implementation ("androidx.lifecycle:lifecycle-viewmodel-ktx:2.7.0")
+    implementation ("androidx.lifecycle:lifecycle-livedata-ktx:2.7.0")
+    implementation ("com.google.code.gson:gson:2.10.1")
 }

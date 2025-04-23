@@ -44,7 +44,8 @@ fun NavGraph(navController: NavHostController) {
         }
 
         composable(route = Screen.Volunteer.route) {
-            Volunteer(navController = navController)
+//            Volunteer(navController = navController)
+            Profile(navController = navController)
         }
     }
 }
