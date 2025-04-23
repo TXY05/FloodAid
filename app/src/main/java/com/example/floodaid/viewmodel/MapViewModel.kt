@@ -4,7 +4,7 @@ import android.app.Application
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.floodaid.roomDatabase.MapDatabase
+import com.example.floodaid.roomDatabase.room_Database
 import com.example.floodaid.roomDatabase.District
 import com.google.android.gms.maps.MapView
 import com.google.android.gms.maps.model.CameraPosition
@@ -12,7 +12,7 @@ import com.example.floodaid.roomDatabase.State as StateEntity
 import kotlinx.coroutines.launch
 
 class MapViewModel(application: Application) : AndroidViewModel(application) {
-    private val database = MapDatabase.getInstance(application)
+    private val database = room_Database.getInstance(application)
     private val repository = MapRepository(database.MapDao())
 
     var states = mutableStateOf(listOf<StateEntity>())
