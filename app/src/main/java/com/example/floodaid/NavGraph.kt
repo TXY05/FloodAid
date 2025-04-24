@@ -10,7 +10,7 @@ import com.example.floodaid.screen.*
 
 @Composable
 fun NavGraph(navController: NavHostController) {
-    NavHost(navController = navController, startDestination = Screen.Map.route) {
+    NavHost(navController = navController, startDestination = Screen.Dashboard.route) {
         composable(route = Screen.Dashboard.route) {
             Dashboard(navController = navController)
         }
