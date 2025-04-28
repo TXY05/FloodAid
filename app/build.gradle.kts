@@ -81,4 +81,5 @@ dependencies {
     implementation ("androidx.lifecycle:lifecycle-viewmodel-ktx:2.7.0")
     implementation ("androidx.lifecycle:lifecycle-livedata-ktx:2.7.0")
     implementation ("com.google.code.gson:gson:2.10.1")
+    implementation ("com.google.android.gms:play-services-location:21.0.1")
 }

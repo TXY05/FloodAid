@@ -1,5 +1,7 @@
 package com.example.floodaid
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -27,6 +29,8 @@ import com.example.floodaid.screen.*
 import com.example.floodaid.ui.theme.FloodAidTheme
 import com.google.android.gms.maps.SupportMapFragment
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.google.android.gms.maps.CameraUpdateFactory
@@ -47,6 +51,39 @@ class MainActivity : AppCompatActivity() {
                 NavGraph(navController)
             }
         }
+    }
+
+    private fun requestLocationPermission() {
+        if (ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
+                REQUEST_CODE_LOCATION
+            )
+        }
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == REQUEST_CODE_LOCATION && grantResults.isNotEmpty()) {
+            if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                // Permission granted - reload ViewModel
+            } else {
+                // Handle permission denial (show a message?)
+            }
+        }
+    }
+
+    companion object {
+        private const val REQUEST_CODE_LOCATION = 1001
     }
 }
 

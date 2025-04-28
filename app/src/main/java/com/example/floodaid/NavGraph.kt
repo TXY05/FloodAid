@@ -7,6 +7,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.example.floodaid.models.Screen
 import com.example.floodaid.screen.*
+import com.example.floodaid.screen.map_UI.Map
 
 @Composable
 fun NavGraph(navController: NavHostController) {
