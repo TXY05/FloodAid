@@ -1,6 +1,7 @@
 package com.example.floodaid.screen
 
 import BottomBar
+import android.annotation.SuppressLint
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -15,34 +16,45 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 
+@SuppressLint("MutableCollectionMutableState")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FloodStatus(navController: NavHostController) {
-    val floodData = listOf(
-        "Kuala Lumpur" to "Flooded",
-        "Gombak" to "Safe",
-        "Hulu Langat" to "Safe",
-        "Hulu Selangor" to "Safe",
-        "Klang" to "Safe",
-        "Kuala Langat" to "Safe",
-        "Petaling" to "Safe",
-        "Sabak Bernam" to "Flooded",
-        "Sepang" to "Flooded"
+    
+    val locations = listOf(
+        "Gombak",
+        "Hulu Langat",
+        "Hulu Selangor",
+        "Klang",
+        "Kuala Langat",
+        "Petaling",
+        "Sabak Bernam",
+        "Sepang"
     )
 
+    var floodData by remember {
+        mutableStateOf(
+            locations.map { it to "Safe" }.toMutableList().apply {
+                this[this.indexOfFirst { it.first == "Sabak Bernam" }] = "Sabak Bernam" to "Flooded"
+                this[this.indexOfFirst { it.first == "Sepang" }] = "Sepang" to "Flooded"
+            }
+        )
+    }
+
     var selectedLocation by remember { mutableStateOf<String?>(null) }
+    var showDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         bottomBar = { BottomBar(navController = navController) }
     ) { innerPadding ->
         if (selectedLocation == null) {
-            // Flood Status List
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -62,34 +74,8 @@ fun FloodStatus(navController: NavHostController) {
                     modifier = Modifier.padding(bottom = 16.dp)
                 )
 
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Spacer(modifier = Modifier.width(16.dp))
-                    Box(
-                        modifier = Modifier
-                            .size(16.dp)
-                            .background(Color.Red, shape = CircleShape)
-                    )
-                    Text(
-                        text = " Flooded",
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.padding(start = 8.dp)
-                    )
-                    Spacer(modifier = Modifier.width(16.dp))
-                    Box(
-                        modifier = Modifier
-                            .size(16.dp)
-                            .background(Color.Green, shape = CircleShape)
-                    )
-                    Text(
-                        text = " Safe",
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.padding(start = 8.dp)
-                    )
+                Button(onClick = { showDialog = true }) {
+                    Text("Update Flood Status")
                 }
 
                 LazyColumn(
@@ -136,18 +122,100 @@ fun FloodStatus(navController: NavHostController) {
                 }
             }
         } else {
-            // Flood Status Detail
+            val currentStatus = floodData.firstOrNull { it.first == selectedLocation }?.second ?: "Unknown"
             FloodStatusDetail(
                 location = selectedLocation!!,
+                currentStatus = currentStatus,
                 onBack = { selectedLocation = null }
+            )
+        }
+
+        if (showDialog) {
+            AddFloodStatusDialog(
+                floodData = floodData,
+                onDismiss = { showDialog = false },
+                onSave = { location, status ->
+                    floodData = floodData.map {
+                        if (it.first == location) location to status else it
+                    }.toMutableList()
+                    showDialog = false
+                }
             )
         }
     }
 }
 
+@Composable
+fun AddFloodStatusDialog(
+    floodData: List<Pair<String, String>>,
+    onDismiss: () -> Unit,
+    onSave: (String, String) -> Unit
+) {
+    val locations = floodData.map { it.first }
+    var selectedLocation by remember { mutableStateOf(locations.first()) }
+    var status by remember { mutableStateOf("Safe") }
+    var isDropdownExpanded by remember { mutableStateOf(false) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Update Flood Status") },
+        text = {
+            Column {
+                Text("Select Location:")
+                Box {
+                    Button(onClick = { isDropdownExpanded = true }) {
+                        Text(selectedLocation)
+                    }
+                    DropdownMenu(
+                        expanded = isDropdownExpanded,
+                        onDismissRequest = { isDropdownExpanded = false }
+                    ) {
+                        locations.forEach { location ->
+                            DropdownMenuItem(
+                                onClick = {
+                                    selectedLocation = location
+                                    isDropdownExpanded = false
+                                },
+                                text = { Text(location) }
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text("Select Status:")
+                Row {
+                    listOf("Safe", "Flooded").forEach { option ->
+                        Button(
+                            onClick = { status = option },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (status == option) Color.Gray else Color.LightGray
+                            )
+                        ) {
+                            Text(option)
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(onClick = { onSave(selectedLocation, status) }) {
+                Text("Save")
+            }
+        },
+        dismissButton = {
+            Button(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun FloodStatusDetail(location: String, onBack: () -> Unit) {
+fun FloodStatusDetail(location: String, currentStatus: String, onBack: () -> Unit) {
     val history = listOf(
         "17/3/2025 - Safe",
         "16/3/2025 - Safe",
@@ -180,9 +248,9 @@ fun FloodStatusDetail(location: String, onBack: () -> Unit) {
                 .fillMaxSize()
         ) {
             Text(
-                text = "Current Status: Prepare for Flood",
+                text = "Current Status: $currentStatus",
                 fontWeight = FontWeight.Bold,
-                color = Color.Red,
+                color = if (currentStatus == "Flooded") Color.Red else Color.Green,
                 style = MaterialTheme.typography.titleLarge,
                 modifier = Modifier.padding(bottom = 24.dp)
             )
@@ -220,8 +288,6 @@ fun FloodStatusDetail(location: String, onBack: () -> Unit) {
     }
 }
 
-
-
 @Preview(showBackground = true)
 @Composable
 fun FloodStatusPreview() {
@@ -231,5 +297,5 @@ fun FloodStatusPreview() {
 @Preview(showBackground = true)
 @Composable
 fun FloodStatusDetailPreview() {
-    FloodStatusDetail(location = "Kuala Lumpur", onBack = {})
+    FloodStatusDetail(location = "Gombak", currentStatus = "Safe", onBack = {})
 }
