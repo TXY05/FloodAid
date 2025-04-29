@@ -16,45 +16,23 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
+import com.example.floodaid.viewmodel.FloodStatusViewModel
 
 @SuppressLint("MutableCollectionMutableState")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun FloodStatus(navController: NavHostController) {
-    
-    val locations = listOf(
-        "Gombak",
-        "Hulu Langat",
-        "Hulu Selangor",
-        "Klang",
-        "Kuala Langat",
-        "Petaling",
-        "Sabak Bernam",
-        "Sepang"
-    )
-
-    var floodData by remember {
-        mutableStateOf(
-            locations.map { it to "Safe" }.toMutableList().apply {
-                this[this.indexOfFirst { it.first == "Sabak Bernam" }] = "Sabak Bernam" to "Flooded"
-                this[this.indexOfFirst { it.first == "Sepang" }] = "Sepang" to "Flooded"
-            }
-        )
-    }
-
-    var selectedLocation by remember { mutableStateOf<String?>(null) }
-    var showDialog by remember { mutableStateOf(false) }
+fun FloodStatus(navController: NavHostController, viewModel: FloodStatusViewModel = androidx.lifecycle.viewmodel.compose.viewModel()) {
+    val uiState by viewModel.uiState.collectAsState()
 
     Scaffold(
         bottomBar = { BottomBar(navController = navController) }
     ) { innerPadding ->
-        if (selectedLocation == null) {
+        if (uiState.selectedLocation == null) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -63,7 +41,7 @@ fun FloodStatus(navController: NavHostController) {
                 verticalArrangement = Arrangement.Top
             ) {
                 Text(
-                    text = "Klang's Valley Flood Status",
+                    text = "Klang Valley Flood Status",
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(vertical = 16.dp)
@@ -74,7 +52,7 @@ fun FloodStatus(navController: NavHostController) {
                     modifier = Modifier.padding(bottom = 16.dp)
                 )
 
-                Button(onClick = { showDialog = true }) {
+                Button(onClick = { viewModel.showDialog() }) {
                     Text("Update Flood Status")
                 }
 
@@ -83,14 +61,14 @@ fun FloodStatus(navController: NavHostController) {
                         .fillMaxSize()
                         .padding(16.dp)
                 ) {
-                    items(floodData) { (location, status) ->
+                    items(uiState.floodData) { locationStatus ->
                         Card(
                             shape = RoundedCornerShape(12.dp),
                             elevation = CardDefaults.cardElevation(6.dp),
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(vertical = 8.dp)
-                                .clickable { selectedLocation = location }
+                                .clickable { viewModel.selectLocation(locationStatus.location) }
                         ) {
                             Row(
                                 modifier = Modifier
@@ -99,7 +77,7 @@ fun FloodStatus(navController: NavHostController) {
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = location,
+                                    text = locationStatus.location,
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.SemiBold,
                                     modifier = Modifier.weight(1f)
@@ -108,7 +86,7 @@ fun FloodStatus(navController: NavHostController) {
                                     modifier = Modifier
                                         .size(20.dp)
                                         .background(
-                                            color = when (status) {
+                                            color = when (locationStatus.status) {
                                                 "Flooded" -> Color.Red
                                                 "Safe" -> Color.Green
                                                 else -> Color.Gray
@@ -122,23 +100,20 @@ fun FloodStatus(navController: NavHostController) {
                 }
             }
         } else {
-            val currentStatus = floodData.firstOrNull { it.first == selectedLocation }?.second ?: "Unknown"
+            val currentStatus = uiState.floodData.firstOrNull { it.location == uiState.selectedLocation }?.status ?: "Unknown"
             FloodStatusDetail(
-                location = selectedLocation!!,
+                location = uiState.selectedLocation!!,
                 currentStatus = currentStatus,
-                onBack = { selectedLocation = null }
+                onBack = { viewModel.clearSelectedLocation() }
             )
         }
 
-        if (showDialog) {
+        if (uiState.showDialog) {
             AddFloodStatusDialog(
-                floodData = floodData,
-                onDismiss = { showDialog = false },
+                floodData = uiState.floodData.map { it.location to it.status },
+                onDismiss = { viewModel.dismissDialog() },
                 onSave = { location, status ->
-                    floodData = floodData.map {
-                        if (it.first == location) location to status else it
-                    }.toMutableList()
-                    showDialog = false
+                    viewModel.updateFloodStatus(location, status)
                 }
             )
         }
