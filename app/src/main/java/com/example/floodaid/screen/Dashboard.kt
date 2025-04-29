@@ -2,7 +2,6 @@ package com.example.floodaid.screen
 
 import BottomBar
 import android.annotation.SuppressLint
-import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -22,22 +21,26 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
-import com.example.floodaid.composable.TopBar
 import com.example.floodaid.ui.theme.FloodAidTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -58,7 +61,7 @@ fun Dashboard(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DashboardScreen(navController: NavController, userName: String = "User") {
+fun DashboardScreen(navController: NavController) {
     Scaffold(
         topBar = {
             TopAppBar(title = { Text("Dashboard") })
@@ -99,29 +102,80 @@ fun DashboardScreen(navController: NavController, userName: String = "User") {
 }
 
 @Composable
-fun FloodStatusHeader() {
+fun FloodStatusHeader(status: String = "Safe") {
+    val (showLegendDialog, setShowLegendDialog) = remember { mutableStateOf(false) }
+
+    val (iconColor, textColor, message) = when (status) {
+        "Flooded" -> Triple(Color.Red, Color.Red, "Flooded Area Detected")
+        "Safe" -> Triple(Color(0xFF4CAF50), Color(0xFF4CAF50), "Safe")
+        else -> Triple(Color.Gray, Color.Gray, "Unknown Status")
+    }
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(16.dp),
+            .padding(16.dp)
+            .clickable { setShowLegendDialog(true) }, // Open dialog on click
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Replace with Image if you have a vector or drawable asset
         Icon(
             imageVector = Icons.Default.Warning,
-            contentDescription = "Flood Warning Icon",
-            tint = Color(0xFFF57C00),
+            contentDescription = "Flood Status Icon",
+            tint = iconColor,
             modifier = Modifier.size(80.dp)
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = "Prepare for Flood",
-            color = Color(0xFFF57C00),
+            text = message,
+            color = textColor,
             fontWeight = FontWeight.Bold,
             style = MaterialTheme.typography.titleMedium
         )
     }
+
+    if (showLegendDialog) {
+        AlertDialog(
+            onDismissRequest = { setShowLegendDialog(false) },
+            title = { Text("Flood Status Information") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    LegendItem(color = Color(0xFFE53935), label = "Flooded", logo = Icons.Default.Warning)
+                    LegendItem(color = Color(0xFF4CAF50), label = "Safe", logo = Icons.Default.CheckCircle)
+                }
+            },
+            confirmButton = {
+                Button(onClick = { setShowLegendDialog(false) }) {
+                    Text("Close")
+                }
+            }
+        )
+    }
 }
+
+@Composable
+fun LegendItem(color: Color, label: String, logo: ImageVector) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.padding(8.dp)
+    ) {
+        Icon(
+            imageVector = logo,
+            contentDescription = "$label Logo",
+            modifier = Modifier.size(24.dp),
+            tint = color
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Box(
+            modifier = Modifier
+                .size(16.dp)
+                .clip(CircleShape)
+                .background(color)
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(text = label, style = MaterialTheme.typography.bodyMedium)
+    }
+}
+
 
 @Composable
 fun DashboardGrid(navController: NavController) {
