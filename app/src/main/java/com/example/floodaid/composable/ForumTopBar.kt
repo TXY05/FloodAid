@@ -23,7 +23,7 @@ fun ForumTopBar(
 
     TopAppBar(
         modifier = modifier
-            .clip(RoundedCornerShape(16.dp)),
+            .clip(RoundedCornerShape(32.dp)),
         scrollBehavior = scrollBehavior,
         colors = TopAppBarDefaults.topAppBarColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant

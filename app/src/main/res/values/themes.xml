@@ -2,10 +2,11 @@
 <resources>
 
 <!--    <style name="Theme.FloodAid" parent="android:Theme.Material.Light.NoActionBar" />-->
-    <style name="Theme.FloodAid" parent="Theme.AppCompat.Light.DarkActionBar">
+    <style name="Theme.FloodAid" parent="Theme.AppCompat.Light.NoActionBar">
         <!-- Customize your theme here. -->
         <item name="colorPrimary">@color/colorPrimary</item>
         <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
         <item name="colorAccent">@color/colorAccent</item>
+
     </style>
 </resources>

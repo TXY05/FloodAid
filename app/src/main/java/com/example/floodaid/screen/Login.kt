@@ -1,12 +1,11 @@
 package com.example.floodaid.screen
 
+import android.R.attr.enabled
 import android.widget.Toast
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -43,48 +42,57 @@ import com.example.floodaid.viewmodel.AuthState
 import com.example.floodaid.viewmodel.AuthViewModel
 import com.example.jetpackcomposeauthui.components.CButton
 import com.example.jetpackcomposeauthui.components.CTextField
+import com.example.jetpackcomposeauthui.components.DontHaveAccountRow
 
 @Composable
-fun Signup(
+fun Login(
     navController: NavHostController,
     authViewModel: AuthViewModel,
 ) {
-    var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf("") }
 
     val authState = authViewModel.authState.observeAsState()
     val context = LocalContext.current
 
     LaunchedEffect(authState.value) {
         when (authState.value) {
-            is AuthState.Authenticated -> navController.navigate(Screen.Dashboard.route) {
-                popUpTo(Screen.Signup.route) { inclusive = true }
+            is AuthState.Authenticated -> {
+                navController.navigate(Screen.Dashboard.route) {
+                    popUpTo(Screen.Login.route) { inclusive = true }
+                }
             }
-
-            is AuthState.Error -> Toast.makeText(
-                context, (authState.value as AuthState.Error).message, Toast.LENGTH_SHORT
-            ).show()
+            is AuthState.Error -> {
+                Toast.makeText(
+                    context,
+                    (authState.value as AuthState.Error).message,
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
 
             else -> Unit
         }
     }
 
-
     Surface(
-        color = Color(0xFF253334), modifier = Modifier.fillMaxSize()
+        color = Color(0xFF253334),
+        modifier = Modifier.fillMaxSize()
     ) {
 
 
-        Box(modifier = Modifier
-            .fillMaxSize()
-            .padding(WindowInsets.statusBars.asPaddingValues())) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(WindowInsets.statusBars.asPaddingValues())
+        ) {
             /// Background Image
             Image(
                 painter = painterResource(
                     id = R.drawable.loginbackground
                 ),
                 contentDescription = null,
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .fillMaxSize(),
                 contentScale = ContentScale.Crop
 
             )
@@ -113,7 +121,7 @@ fun Signup(
                     )
 
                     Text(
-                        text = "Sign Up",
+                        text = "Sign In",
                         style = TextStyle(
                             fontSize = 28.sp,
                             fontFamily = AlegreyaFontFamily,
@@ -125,8 +133,9 @@ fun Signup(
                             .padding(bottom = 10.dp)
                     )
 
+
                     Text(
-                        "New here?  Create an account.",
+                        "Welcome back. Please sign in to continue.",
                         style = TextStyle(
                             fontSize = 20.sp,
                             fontFamily = AlegreyaSansFontFamily,
@@ -138,7 +147,7 @@ fun Signup(
                     )
 
 
-
+                    // Text Field
                     CTextField(
                         hint = "Email Address",
                         value = email,
@@ -150,47 +159,32 @@ fun Signup(
                         onValueChange = { newValue -> password = newValue },
                     )
                 }
+
                 Column(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     CButton(
-                        text = "Sign Up", onClick = {
-                            authViewModel.signupFunction(email, password)
+                        text = "Sign In",
+                        onClick = {
+                            authViewModel.loginFunction(email, password)
                         }, enabled = authState.value != AuthState.Loading
                     )
-
-                    Row(
-                        modifier = Modifier.padding(top = 12.dp, bottom = 52.dp)
-                    ) {
-                        Text(
-                            "Already have an account?  ", style = TextStyle(
-                                fontSize = 18.sp,
-                                fontFamily = AlegreyaSansFontFamily,
-                                color = Color.White
-                            )
-                        )
-
-                        Text(
-                            "Sign In", style = TextStyle(
-                                fontSize = 18.sp,
-                                fontFamily = AlegreyaSansFontFamily,
-                                fontWeight = FontWeight(800),
-                                color = Color.White
-                            ), modifier = Modifier.clickable {
-                                navController.navigate(Screen.Login.route) {
-                                    popUpTo(Screen.Welcome.route) {
-                                        saveState = false
-                                    }
+                    DontHaveAccountRow(
+                        onSignupTap = {
+                            navController.navigate(Screen.Signup.route) {
+                                popUpTo(Screen.Welcome.route) {
+                                    saveState = false
                                 }
-                            })
+                            }
+                        }
+                    )
 
 
-                    }
                 }
+
             }
+
         }
-
     }
-
 }

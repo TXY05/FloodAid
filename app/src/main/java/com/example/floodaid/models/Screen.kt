@@ -13,7 +13,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 sealed class Screen(
     val route: String,
     val title: String,
-    val icon: ImageVector,
+    val icon: ImageVector?,
 ) {
     data object Dashboard : Screen(
         route = "dashboard",
@@ -54,7 +54,7 @@ sealed class Screen(
     data object Signup : Screen(
         route = "signup",
         title = "Signup",
-        icon = Icons.Default.AccountCircle
+        icon = null
     )
 
     data object Volunteer : Screen(
@@ -62,5 +62,24 @@ sealed class Screen(
         title = "Volunteer",
         icon = Icons.Default.HealthAndSafety
     )
+
+    data object Welcome : Screen(
+        route = "welcome",
+        title = "Welcome",
+        icon = null
+    )
+
+    data object Login : Screen(
+        route = "login",
+        title = "Login",
+        icon = null
+    )
+
+    data object WelcomeLoading : Screen(
+        route = "welcomeloading",
+        title = "WelcomeLoading",
+        icon = null
+    )
+
 
 }

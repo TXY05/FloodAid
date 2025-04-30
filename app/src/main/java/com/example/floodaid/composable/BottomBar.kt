@@ -45,32 +45,31 @@ fun RowScope.AddItem(
     currentDestination: NavDestination?,
     navController: NavHostController,
 ) {
-    NavigationBarItem(
-        label = {
-            Text(text = screen.title)
-        },
-        icon = {
-            Icon(
-                imageVector = screen.icon,
-                contentDescription = "Navigation Icon"
-            )
-        },
-        selected = currentDestination?.hierarchy?.any {
-            it.route == screen.route
-        } == true,
-        onClick = {
-            if (currentDestination?.route != screen.route) {
-                navController.navigate(screen.route) {
-                    popUpTo(Screen.Dashboard.route) {
-                        saveState = true
+    if (screen.icon != null) {
+        NavigationBarItem(
+            label = {
+                Text(text = screen.title)
+            },
+            icon = {
+                Icon(
+                    imageVector = screen.icon,
+                    contentDescription = "Navigation Icon"
+                )
+            },
+            selected = currentDestination?.hierarchy?.any {
+                it.route == screen.route
+            } == true,
+            onClick = {
+                if (currentDestination?.route != screen.route) {
+                    navController.navigate(screen.route) {
+                        popUpTo(Screen.Dashboard.route) {
+                            saveState = true
+                        }
+                        launchSingleTop = true
+                        restoreState = true
                     }
-                    launchSingleTop = true
-                    restoreState = true
                 }
             }
-        }
-
-
-        ,
-    )
+        )
+    }
 }

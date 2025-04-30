@@ -36,7 +36,7 @@ import androidx.compose.runtime.getValue
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.model.PolygonOptions
 import com.google.android.gms.maps.model.Polygon
-import com.example.floodaid.utils.DistanceCalculator
+//import com.example.floodaid.utils.DistanceCalculator
 import com.google.android.gms.maps.model.Marker
 import com.google.android.gms.maps.model.MarkerOptions
 

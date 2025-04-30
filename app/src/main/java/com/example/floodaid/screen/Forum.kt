@@ -1,7 +1,9 @@
 package com.example.floodaid.screen
 
 import BottomBar
+import android.Manifest
 import android.annotation.SuppressLint
+import android.content.pm.PackageManager
 import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -21,19 +23,24 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.example.floodaid.composable.ForumTopBar
 import com.example.floodaid.models.ForumComment
 import com.example.floodaid.models.ForumPost
 import com.example.floodaid.viewmodel.ForumViewModel
+import com.google.android.gms.location.LocationServices
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 
@@ -41,6 +48,8 @@ import com.google.firebase.firestore.Query
 @Composable
 fun Forum(
     navController: NavHostController,
+    state: ForumPostState,
+    onEvent: (ForumEvent) -> Unit,
 ) {
 
     Scaffold(
@@ -86,7 +95,7 @@ fun ForumContent(paddingValues: PaddingValues) {
             Box(
                 modifier = Modifier
                     .padding(horizontal = 16.dp)
-                    .height(200.dp)
+                    .height(400.dp)
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(20.dp))
                     .background(MaterialTheme.colorScheme.primary),
@@ -178,7 +187,7 @@ fun PostListScreen(
     viewModel: ForumViewModel = viewModel(),
     onPostClick: (String) -> Unit, // Navigate to comments screen
 ) {
-    val posts = viewModel.posts
+    //val posts = viewModel.posts
 
     Column(
         modifier = Modifier
@@ -206,3 +215,4 @@ fun PostListScreen(
         }
     }
 }
+

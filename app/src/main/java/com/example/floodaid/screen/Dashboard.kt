@@ -42,12 +42,14 @@ import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import com.example.floodaid.ui.theme.FloodAidTheme
+import com.example.floodaid.viewmodel.AuthViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
 fun Dashboard(
     navController: NavHostController = rememberNavController(),
+    authViewModel: AuthViewModel
 ) {
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(
         state = rememberTopAppBarState()
@@ -55,13 +57,13 @@ fun Dashboard(
     Scaffold(
         bottomBar = { BottomBar(navController = navController) }
     ) {
-        DashboardScreen(navController = navController)
+        DashboardScreen(navController = navController,authViewModel)
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DashboardScreen(navController: NavController) {
+fun DashboardScreen(navController: NavController,authViewModel: AuthViewModel) {
     Scaffold(
         topBar = {
             TopAppBar(title = { Text("Dashboard") })
@@ -95,6 +97,17 @@ fun DashboardScreen(navController: NavController) {
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         DashboardGrid(navController)
+                        Button(
+                            onClick = {
+                                authViewModel.signoutFunction()
+                                navController.navigate("welcome")
+                            },
+
+                            enabled = true,
+                            shape = MaterialTheme.shapes.medium,
+                        ){
+                            Text(text = "Logout")
+                        }
                     }
             }
         }
@@ -239,6 +252,6 @@ fun FeatureCard(title: String, onClick: () -> Unit) {
 @Composable
 fun DashboardPreview() {
     FloodAidTheme { // Apply the theme here
-        Dashboard(navController = rememberNavController())
+        //Dashboard(navController = rememberNavController())
     }
 }
