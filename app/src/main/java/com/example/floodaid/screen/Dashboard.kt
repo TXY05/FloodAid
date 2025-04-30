@@ -25,6 +25,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Forum
+import androidx.compose.material.icons.filled.Map
+import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -189,14 +192,13 @@ fun LegendItem(color: Color, label: String, logo: ImageVector) {
     }
 }
 
-
 @Composable
 fun DashboardGrid(navController: NavController) {
     val features = listOf(
-        "Shelter Map" to "map",
-        "Flood Status" to "floodStatus",
-        "Forum" to "forum",
-        "Volunteer" to "volunteer",
+        Triple("Shelter Map", "map", Icons.Default.Map),
+        Triple("Flood Status", "floodStatus", Icons.Default.Warning),
+        Triple("Forum", "forum", Icons.Default.Forum),
+        Triple("Volunteer", "volunteer", Icons.Default.People)
     )
 
     LazyVerticalGrid(
@@ -208,13 +210,13 @@ fun DashboardGrid(navController: NavController) {
         horizontalArrangement = Arrangement.spacedBy(16.dp),
         userScrollEnabled = false
     ) {
-        items(features) { (title, route) ->
+        items(features) { (title, route, icon) ->
             AnimatedVisibility(
                 visible = true,
                 enter = fadeIn() + expandVertically(),
                 exit = fadeOut() + shrinkVertically()
             ) {
-                FeatureCard(title = title) {
+                FeatureCard(title = title, icon = icon) {
                     navController.navigate(route)
                 }
             }
@@ -222,9 +224,8 @@ fun DashboardGrid(navController: NavController) {
     }
 }
 
-
 @Composable
-fun FeatureCard(title: String, onClick: () -> Unit) {
+fun FeatureCard(title: String, icon: ImageVector, onClick: () -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -236,15 +237,24 @@ fun FeatureCard(title: String, onClick: () -> Unit) {
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
     ) {
-        Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = "$title Icon",
+                modifier = Modifier.size(48.dp),
+                tint = MaterialTheme.colorScheme.primary
+            )
+            Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = title,
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.SemiBold
             )
-
         }
-
     }
 }
 
