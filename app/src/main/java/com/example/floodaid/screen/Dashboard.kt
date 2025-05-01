@@ -26,8 +26,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Forum
+import androidx.compose.material.icons.filled.HealthAndSafety
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.People
+import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -195,10 +197,10 @@ fun LegendItem(color: Color, label: String, logo: ImageVector) {
 @Composable
 fun DashboardGrid(navController: NavController) {
     val features = listOf(
-        Triple("Shelter Map", "map", Icons.Default.Map),
-        Triple("Flood Status", "floodStatus", Icons.Default.Warning),
-        Triple("Forum", "forum", Icons.Default.Forum),
-        Triple("Volunteer", "volunteer", Icons.Default.People)
+        Triple("Shelter Map", "map", Pair(Icons.Default.Place, Color(66, 165, 245))),
+        Triple("Flood Status", "floodStatus", Pair(Icons.Default.Warning, Color(239, 83, 80))),
+        Triple("Forum", "forum", Pair(Icons.Default.Forum, Color(98, 76, 199))),
+        Triple("Volunteer", "volunteer", Pair(Icons.Default.HealthAndSafety, Color(88, 189, 133))),
     )
 
     LazyVerticalGrid(
@@ -210,13 +212,14 @@ fun DashboardGrid(navController: NavController) {
         horizontalArrangement = Arrangement.spacedBy(16.dp),
         userScrollEnabled = false
     ) {
-        items(features) { (title, route, icon) ->
+        items(features) { (title, route, iconWithColor) ->
+            val (icon, color) = iconWithColor
             AnimatedVisibility(
                 visible = true,
                 enter = fadeIn() + expandVertically(),
                 exit = fadeOut() + shrinkVertically()
             ) {
-                FeatureCard(title = title, icon = icon) {
+                FeatureCard(title = title, icon = icon, color = color) {
                     navController.navigate(route)
                 }
             }
@@ -225,7 +228,7 @@ fun DashboardGrid(navController: NavController) {
 }
 
 @Composable
-fun FeatureCard(title: String, icon: ImageVector, onClick: () -> Unit) {
+fun FeatureCard(title: String, icon: ImageVector, color: Color, onClick: () -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -246,7 +249,7 @@ fun FeatureCard(title: String, icon: ImageVector, onClick: () -> Unit) {
                 imageVector = icon,
                 contentDescription = "$title Icon",
                 modifier = Modifier.size(48.dp),
-                tint = MaterialTheme.colorScheme.primary
+                tint = color
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
@@ -262,6 +265,6 @@ fun FeatureCard(title: String, icon: ImageVector, onClick: () -> Unit) {
 @Composable
 fun DashboardPreview() {
     FloodAidTheme { // Apply the theme here
-        //Dashboard(navController = rememberNavController())
+        // Dashboard(navController = rememberNavController(), authViewModel = AuthViewModel())
     }
 }
