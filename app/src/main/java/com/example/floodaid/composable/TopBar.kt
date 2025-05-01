@@ -1,6 +1,7 @@
 package com.example.floodaid.composable
 
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -18,7 +19,8 @@ fun TopBar(
     scrollBehavior: TopAppBarScrollBehavior,
 ) {
     TopAppBar(
-        modifier = modifier,
+        modifier = modifier
+            .statusBarsPadding(),
         scrollBehavior = scrollBehavior,
         colors = TopAppBarDefaults.topAppBarColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(0.6f)
