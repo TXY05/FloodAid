@@ -1,21 +1,17 @@
-package com.example.floodaid.screen
+package com.example.floodaid.screen.volunteer
 
 import BottomBar
 import android.annotation.SuppressLint
 import android.widget.CalendarView
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
@@ -58,7 +54,6 @@ fun Volunteer(
     Scaffold(
         modifier = Modifier
             .nestedScroll(scrollBehavior.nestedScrollConnection),
-//            .padding(WindowInsets.systemBars.asPaddingValues()),
         topBar = { TopBar(scrollBehavior = scrollBehavior) },
         bottomBar = { BottomBar(navController = navController) }
     ) { innerPadding ->
@@ -87,7 +82,7 @@ fun Volunteer(
 //            }
 //        }
 
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)

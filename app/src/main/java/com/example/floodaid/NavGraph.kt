@@ -8,6 +8,7 @@ import androidx.navigation.compose.composable
 import com.example.floodaid.models.Screen
 import com.example.floodaid.screen.*
 import com.example.floodaid.screen.map_UI.Map
+import com.example.floodaid.screen.volunteer.Volunteer
 import com.example.floodaid.viewmodel.AuthViewModel
 
 @Composable
