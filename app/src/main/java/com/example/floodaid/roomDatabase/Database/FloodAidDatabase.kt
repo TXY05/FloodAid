@@ -14,7 +14,8 @@ import com.example.floodaid.roomDatabase.Entities.State
 
 @Database(
     entities = [State::class, District::class, Shelter::class, FloodMarker::class],
-    version = 1
+    version = 2, // Increment this number by 1
+    exportSchema = true
 )
 @TypeConverters(Converter::class)
 abstract class FloodAidDatabase : RoomDatabase() {
@@ -31,7 +32,9 @@ abstract class FloodAidDatabase : RoomDatabase() {
                     context.applicationContext,
                     FloodAidDatabase::class.java,
                     "flood_aid_database"
-                ).build()
+                )
+                    .fallbackToDestructiveMigration()
+                    .build()
                 INSTANCE = instance
                 instance
             }
