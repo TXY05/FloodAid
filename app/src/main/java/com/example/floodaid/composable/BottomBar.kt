@@ -45,7 +45,7 @@ fun RowScope.AddItem(
     currentDestination: NavDestination?,
     navController: NavHostController,
 ) {
-    if (screen.icon != null) {
+    if (screen.icon != null && screen.title != null) {
         NavigationBarItem(
             label = {
                 Text(text = screen.title)

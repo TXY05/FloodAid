@@ -1,4 +1,4 @@
-package com.example.floodaid.screen
+package com.example.floodaid.screen.login
 
 import android.annotation.SuppressLint
 import android.widget.Toast
@@ -42,29 +42,24 @@ import com.example.floodaid.ui.theme.AlegreyaSansFontFamily
 import com.example.floodaid.viewmodel.AuthState
 import com.example.floodaid.viewmodel.AuthViewModel
 import com.example.jetpackcomposeauthui.components.DontHaveAccountRow
-import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
-fun WelcomeLoading(
+fun Welcome(
     navController: NavHostController,
-    modifier: Modifier = Modifier,
     authViewModel: AuthViewModel
 ) {
     val authState = authViewModel.authState.observeAsState()
     val context = LocalContext.current
 
     LaunchedEffect(authState.value) {
-        delay(2000)
         when (authState.value) {
             is AuthState.Authenticated -> navController.navigate(Screen.Dashboard.route)
 
             is AuthState.Error -> Toast.makeText(
                 context, (authState.value as AuthState.Error).message, Toast.LENGTH_SHORT
             ).show()
-
-            is AuthState.Unauthenticated -> navController.navigate(Screen.Welcome.route)
 
             else -> Unit
         }
@@ -90,15 +85,74 @@ fun WelcomeLoading(
                 .padding(horizontal = 24.dp)
         ) {
 
+            Spacer(modifier = Modifier.weight(1f))
+
             Image(
                 painter = painterResource(id = R.drawable.logo),
                 contentDescription = null,
                 modifier = Modifier
-                    .width(480.dp)
-                    .height(360.dp),
+                    .width(320.dp)
+                    .height(240.dp),
                 contentScale = ContentScale.Fit
             )
+            Text(
+                "WELCOME",
+                textAlign = TextAlign.Center,
+                fontSize = 55.sp,
+                fontFamily = AlegreyaFontFamily,
+                fontWeight = FontWeight(500),
+                color = Color.White
+            )
 
+            Text(
+                "Stay safe. Stay connected.\n" +
+                        "FloodAid is here for you.",
+                textAlign = TextAlign.Center,
+                fontSize = 22.sp,
+                fontFamily = AlegreyaSansFontFamily,
+                fontWeight = FontWeight(500),
+                color = Color.White
+            )
+            Spacer(modifier = Modifier.weight(4f))
+
+            Button(
+                onClick = {
+                    navController.navigate("login"){
+                        popUpTo("welcome") {
+                            inclusive = false
+                        }
+                    }
+                },
+                shape = MaterialTheme.shapes.large,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp)
+            ) {
+                Text(
+                    "Sign In With Email",
+                    style = TextStyle(
+                        fontSize = 22.sp,
+                        fontFamily = AlegreyaSansFontFamily,
+                        fontWeight = FontWeight(500),
+                        color = Color.White
+                    )
+                )
+
+
+            }
+
+            DontHaveAccountRow(
+                onSignupTap = {
+                    navController.navigate("signup"){
+                        popUpTo("welcome") {
+                            inclusive = false
+                        }
+                    }
+                }
+            )
         }
     }
 }

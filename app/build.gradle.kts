@@ -41,6 +41,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
@@ -89,4 +90,11 @@ dependencies {
 
     //Splash Screen
     implementation(libs.androidx.core.splashscreen)
+
+    implementation(libs.coil3.coil.compose)
+    implementation(libs.play.services.auth)
+    implementation(libs.googleid)
+    implementation(libs.credentials)
+    implementation(libs.androidx.credentials.play.services.auth)
+
 }

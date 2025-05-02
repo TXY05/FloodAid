@@ -105,7 +105,7 @@ fun DashboardScreen(navController: NavController,authViewModel: AuthViewModel) {
                         Button(
                             onClick = {
                                 authViewModel.signoutFunction()
-                                navController.navigate("welcome")
+                                navController.navigate("welcomeloading")
                             },
 
                             enabled = true,

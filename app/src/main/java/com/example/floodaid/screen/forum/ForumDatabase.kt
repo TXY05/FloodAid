@@ -1,8 +1,8 @@
-package com.example.floodaid.screen
+package com.example.floodaid.screen.forum
 
 import androidx.room.Database
 import androidx.room.RoomDatabase
-import com.example.floodaid.ForumDao
+import com.example.floodaid.screen.forum.ForumDao
 import com.example.floodaid.models.ForumPost
 
 

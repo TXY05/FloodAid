@@ -1,7 +1,6 @@
 package com.example.floodaid.models
 
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Details
 import androidx.compose.material.icons.filled.Forum
 import androidx.compose.material.icons.filled.HealthAndSafety
@@ -12,7 +11,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 
 sealed class Screen(
     val route: String,
-    val title: String,
+    val title: String?,
     val icon: ImageVector?,
 ) {
     data object Dashboard : Screen(
@@ -53,7 +52,7 @@ sealed class Screen(
 
     data object Signup : Screen(
         route = "signup",
-        title = "Signup",
+        title = null,
         icon = null
     )
 
@@ -65,21 +64,25 @@ sealed class Screen(
 
     data object Welcome : Screen(
         route = "welcome",
-        title = "Welcome",
+        title = null,
         icon = null
     )
 
     data object Login : Screen(
         route = "login",
-        title = "Login",
+        title = null,
         icon = null
     )
 
     data object WelcomeLoading : Screen(
         route = "welcomeloading",
-        title = "WelcomeLoading",
+        title = null,
         icon = null
     )
 
-
+    data object RegisterProfile : Screen(
+        route = "registerprofile",
+        title = null,
+        icon = null
+    )
 }

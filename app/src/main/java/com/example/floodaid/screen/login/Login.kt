@@ -1,18 +1,22 @@
-package com.example.floodaid.screen
+package com.example.floodaid.screen.login
 
-import android.R.attr.enabled
 import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -115,17 +119,16 @@ fun Login(
                         painter = painterResource(id = R.drawable.logo),
                         contentDescription = null,
                         modifier = Modifier
-                            .padding(top = 54.dp)
+                            .padding(top = 10.dp)
                             .height(150.dp)
                             .align(Alignment.CenterHorizontally)
                     )
 
                     Text(
-                        text = "Sign In",
+                        text = "Hey there,",
                         style = TextStyle(
-                            fontSize = 28.sp,
-                            fontFamily = AlegreyaFontFamily,
-                            fontWeight = FontWeight(500),
+                            fontSize = 20.sp,
+                            fontFamily = AlegreyaSansFontFamily,
                             color = Color.White
                         ),
                         modifier = Modifier
@@ -135,11 +138,12 @@ fun Login(
 
 
                     Text(
-                        "Welcome back. Please sign in to continue.",
+                        "Welcome Back",
                         style = TextStyle(
-                            fontSize = 20.sp,
-                            fontFamily = AlegreyaSansFontFamily,
-                            color = Color(0xB2FFFFFF)
+                            fontSize = 28.sp,
+                            fontFamily = AlegreyaFontFamily,
+                            fontWeight = FontWeight(500),
+                            color = Color.White
                         ),
                         modifier = Modifier
                             .align(Alignment.CenterHorizontally)
@@ -170,6 +174,39 @@ fun Login(
                             authViewModel.loginFunction(email, password)
                         }, enabled = authState.value != AuthState.Loading
                     )
+
+                    LoginDivider(text = "or")
+
+                    OutlinedButton(
+                        onClick = {
+                            authViewModel.signInWithGoogle()
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color.White
+                        ),
+                        modifier = Modifier
+                            .height(52.dp)
+                            .fillMaxWidth()
+                    ) {
+                        Image(
+                            painter = painterResource(R.drawable.google_icon),
+                            contentDescription = null,
+                            modifier = Modifier.size(36.dp)
+                        )
+
+                        Spacer(modifier = Modifier.width(16.dp))
+
+                        Text(
+                            text = "Sign-in with Google",
+                            style = TextStyle(
+                                fontSize = 20.sp,
+                                fontFamily = AlegreyaSansFontFamily,
+                                fontWeight = FontWeight(500),
+                                color = Color.Black
+                            )
+                        )
+                    }
+
                     DontHaveAccountRow(
                         onSignupTap = {
                             navController.navigate(Screen.Signup.route) {

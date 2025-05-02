@@ -1,4 +1,4 @@
-package com.example.floodaid.screen
+package com.example.floodaid.screen.forum
 
 import com.example.floodaid.models.ForumPost
 

@@ -2,11 +2,11 @@ package com.example.floodaid.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.floodaid.ForumDao
+import com.example.floodaid.screen.forum.ForumDao
 import com.example.floodaid.models.ForumPost
-import com.example.floodaid.screen.ForumEvent
-import com.example.floodaid.screen.ForumPostState
-import com.example.floodaid.screen.ForumSortType
+import com.example.floodaid.screen.forum.ForumEvent
+import com.example.floodaid.screen.forum.ForumPostState
+import com.example.floodaid.screen.forum.ForumSortType
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow

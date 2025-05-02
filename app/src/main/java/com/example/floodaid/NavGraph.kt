@@ -7,6 +7,14 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.example.floodaid.models.Screen
 import com.example.floodaid.screen.*
+import com.example.floodaid.screen.forum.Forum
+import com.example.floodaid.screen.forum.ForumEvent
+import com.example.floodaid.screen.forum.ForumPostState
+import com.example.floodaid.screen.login.Login
+import com.example.floodaid.screen.login.RegisterProfile
+import com.example.floodaid.screen.login.Signup
+import com.example.floodaid.screen.login.Welcome
+import com.example.floodaid.screen.login.WelcomeLoading
 import com.example.floodaid.screen.map_UI.Map
 import com.example.floodaid.screen.volunteer.Volunteer
 import com.example.floodaid.viewmodel.AuthViewModel
@@ -73,7 +81,7 @@ fun NavGraph(
         composable(route = Screen.Login.route) {
             Login(
                 navController = navController,
-                authViewModel = authViewModel
+                authViewModel = authViewModel,
             )
         }
 
@@ -84,5 +92,10 @@ fun NavGraph(
             )
         }
 
+        composable(route = Screen.RegisterProfile.route) {
+            RegisterProfile(
+                navController = navController,
+            )
+        }
     }
 }

@@ -1,4 +1,4 @@
-package com.example.floodaid
+package com.example.floodaid.screen.forum
 
 import androidx.room.Dao
 import androidx.room.Delete

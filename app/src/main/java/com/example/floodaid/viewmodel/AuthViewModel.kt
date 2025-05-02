@@ -1,72 +1,63 @@
 package com.example.floodaid.viewmodel
 
-import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
-import com.google.firebase.auth.FirebaseAuth
+import androidx.lifecycle.viewModelScope
+import com.example.floodaid.screen.login.AuthRepository
+import kotlinx.coroutines.launch
 
-class AuthViewModel : ViewModel() {
-    private val auth: FirebaseAuth = FirebaseAuth.getInstance()
+class AuthViewModel(private val authRepository: AuthRepository) : ViewModel() {
     private val _authState = MutableLiveData<AuthState>()
-    val authState : LiveData<AuthState> = _authState
+    val authState: LiveData<AuthState> = _authState
 
     init {
         checkAuthStatus()
     }
 
-    fun checkAuthStatus(){
-        if(auth.currentUser==null){
-            _authState.value= AuthState.Unauthenticated
-        }else{
-            _authState.value= AuthState.Authenticated
-        }
+    fun checkAuthStatus() {
+        // Check if the user is logged in or not (this can also be moved to the repository)
+        val isAuthenticated = authRepository.auth.currentUser != null
+        _authState.value = if (isAuthenticated) AuthState.Authenticated else AuthState.Unauthenticated
     }
 
-
-    fun loginFunction(email:String,password: String){
-
-        if(email.isEmpty()||password.isEmpty()){
-            _authState.value= AuthState.Error("Email or Password Can't Be Empty")
+    fun loginFunction(email: String, password: String) {
+        if (email.isEmpty() || password.isEmpty()) {
+            _authState.value = AuthState.Error("Email or Password Can't Be Empty")
             return
         }
 
-        _authState.value= AuthState.Loading
-        auth.signInWithEmailAndPassword(email,password)
-            .addOnCompleteListener { task->
-                if(task.isSuccessful){
-                    _authState.value= AuthState.Authenticated
-                }else{
-                    _authState.value= AuthState.Error(task.exception?.message?:"Something Went Wrong")
-                }
-            }
+        _authState.value = AuthState.Loading
+        authRepository.signInWithEmail(email, password) { authState ->
+            _authState.value = authState
+        }
     }
 
-    fun signupFunction(email:String,password: String){
-
-        if(email.isEmpty()||password.isEmpty()){
-            _authState.value= AuthState.Error("Email or Password Can't Be Empty")
+    fun signupFunction(email: String, password: String) {
+        if (email.isEmpty() || password.isEmpty()) {
+            _authState.value = AuthState.Error("Email or Password Can't Be Empty")
             return
         }
 
-        _authState.value= AuthState.Loading
-        auth.createUserWithEmailAndPassword(email,password)
-            .addOnCompleteListener { task->
-                if(task.isSuccessful){
-                    _authState.value= AuthState.Authenticated
-                    Log.d("AuthViewModel", "Signup successful: ${auth.currentUser?.uid}")
-                }else{
-                    _authState.value= AuthState.Error(task.exception?.message?:"Something Went Wrong")
-                    Log.e("AuthViewModel", "Signup failed", task.exception)
-                }
+        _authState.value = AuthState.Loading
+        authRepository.signUpWithEmail(email, password) { authState ->
+            _authState.value = authState
+        }
+    }
+
+    fun signoutFunction() {
+        authRepository.auth.signOut()
+        _authState.value = AuthState.Unauthenticated
+    }
+
+    fun signInWithGoogle() {
+        _authState.value = AuthState.Loading
+        viewModelScope.launch {
+            authRepository.signInWithGoogle { authState ->
+                _authState.value = authState
             }
+        }
     }
-
-    fun signoutFunction(){
-        auth.signOut()
-        _authState.value= AuthState.Unauthenticated
-    }
-
 }
 
 sealed class AuthState {
