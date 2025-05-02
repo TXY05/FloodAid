@@ -22,7 +22,10 @@ interface MapDao {
     suspend fun getAllStates(): List<State>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertAllStates(states: List<State>)
+    suspend fun insertState(states: State): Long
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAllStates(states: List<State>): List<Long>
 
     @Query("DELETE FROM State")
     suspend fun deleteAllStates()

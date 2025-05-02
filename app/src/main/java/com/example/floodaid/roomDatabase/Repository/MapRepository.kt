@@ -8,7 +8,11 @@ import com.example.floodaid.roomDatabase.Entities.State
 
 class MapRepository(private val dao: MapDao) {
     // State operations
-    suspend fun getAllStates() = dao.getAllStates()
+    suspend fun getAllStates(): List<State> {
+        return dao.getAllStates().distinctBy { it.id } // or distinctBy { it.name }
+    }
+//    suspend fun getAllStates() = dao.getAllStates()
+    suspend fun insertState(states: State) = dao.insertState(states)
     suspend fun insertAllStates(states: List<State>) = dao.insertAllStates(states)
     suspend fun deleteAllStates() = dao.deleteAllStates()
 

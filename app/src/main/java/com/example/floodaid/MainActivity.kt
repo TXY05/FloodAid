@@ -1,26 +1,40 @@
 package com.example.floodaid
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.os.Bundle
+import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.appcompat.app.AlertDialog
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.compose.rememberNavController
+import com.example.floodaid.screen.Dashboard
+import com.example.floodaid.screen.*
 import com.example.floodaid.ui.theme.FloodAidTheme
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.room.Room
 import com.example.floodaid.viewmodel.ForumViewModel
 import kotlin.getValue
+import com.google.android.gms.maps.SupportMapFragment
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import com.example.floodaid.utils.GeocodingHelper
+import com.example.floodaid.viewmodel.AuthViewModel
+import com.google.firebase.auth.FirebaseAuth
 import com.example.floodaid.screen.forum.ForumDatabase
 import com.example.floodaid.screen.login.AuthRepository
 import com.example.floodaid.screen.login.AuthViewModelFactory
-import com.example.floodaid.viewmodel.AuthViewModel
-import com.google.firebase.auth.FirebaseAuth
+
+private const val LOCATION_PERMISSION_REQUEST_CODE = 1001
 
 //class MainActivity : AppCompatActivity(), OnMapReadyCallback{
 @Suppress("UNCHECKED_CAST")
@@ -54,6 +68,8 @@ class MainActivity : AppCompatActivity() {
         setContent {
             val navController = rememberNavController()
             val state by viewModel.state.collectAsState()
+            val authViewModel: AuthViewModel by viewModels()
+
 
             FloodAidTheme {
                 NavGraph(
@@ -64,6 +80,47 @@ class MainActivity : AppCompatActivity() {
                 )
             }
         }
+    }
+
+    private fun checkLocationPermission() {
+        when {
+            ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED -> {
+                // Permission already granted
+            }
+            ActivityCompat.shouldShowRequestPermissionRationale(
+                this,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) -> {
+                // Explain why you need permission
+                showPermissionRationale()
+            }
+            else -> {
+                ActivityCompat.requestPermissions(
+                    this,
+                    arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
+                    LOCATION_PERMISSION_REQUEST_CODE
+                )
+            }
+        }
+    }
+
+    private fun showPermissionRationale() {
+        AlertDialog.Builder(this)
+            .setTitle("Location Permission Needed")
+            .setMessage("This app needs location permission to calculate distances to shelters")
+            .setPositiveButton("Grant") { _, _ ->
+                ActivityCompat.requestPermissions(
+                    this,
+                    arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
+                    LOCATION_PERMISSION_REQUEST_CODE
+                )
+            }
+            .setNegativeButton("Cancel", null)
+            .create()
+            .show()
     }
 
 }

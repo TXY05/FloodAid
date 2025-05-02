@@ -14,7 +14,8 @@ data class Border(val coordinates: List<List<Double>>)
 //         Entity
 @Entity(tableName = "State")
 data class State(
-    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    @PrimaryKey
+    val id: Long = 0,
     val name: String
 )
 
@@ -30,7 +31,8 @@ data class State(
     ]
 )
 data class District(
-    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    @PrimaryKey
+    val id: Long = 0,
     val name: String,
     val latitude: Double,
     val longitude: Double,
@@ -87,11 +89,12 @@ data class FloodMarker(
     fun isExpired(): Boolean {
         return Instant.now().isAfter(expiryTime)
     }
-    fun FloodMarker.remainingTime(): Duration {
+
+    fun remainingTime(): Duration {
         return Duration.between(Instant.now(), expiryTime)
     }
 
-    fun FloodMarker.isAboutToExpire(threshold: Duration = Duration.ofHours(1)): Boolean {
+    fun isAboutToExpire(threshold: Duration = Duration.ofHours(1)): Boolean {
         return remainingTime() <= threshold && !isExpired()
     }
 }
