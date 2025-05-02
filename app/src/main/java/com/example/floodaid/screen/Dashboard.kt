@@ -46,6 +46,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
+import com.example.floodaid.models.Screen
 import com.example.floodaid.ui.theme.FloodAidTheme
 import com.example.floodaid.viewmodel.AuthViewModel
 
@@ -62,13 +63,13 @@ fun Dashboard(
     Scaffold(
         bottomBar = { BottomBar(navController = navController) }
     ) {
-        DashboardScreen(navController = navController,authViewModel)
+        DashboardScreen(navController = navController, authViewModel)
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DashboardScreen(navController: NavController,authViewModel: AuthViewModel) {
+fun DashboardScreen(navController: NavController, authViewModel: AuthViewModel) {
     Scaffold(
         topBar = {
             TopAppBar(title = { Text("Dashboard") })
@@ -95,25 +96,25 @@ fun DashboardScreen(navController: NavController,authViewModel: AuthViewModel) {
                     .background(Color(0xFFD6EAF8))
                     .padding(8.dp)
             ) {
-                    Column(
-                        modifier = Modifier
-                            .padding(16.dp)
-                            .wrapContentHeight(),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        DashboardGrid(navController)
-                        Button(
-                            onClick = {
-                                authViewModel.signoutFunction()
-                                navController.navigate("welcomeloading")
-                            },
+                Column(
+                    modifier = Modifier
+                        .padding(16.dp)
+                        .wrapContentHeight(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    DashboardGrid(navController)
+                    Button(
+                        onClick = {
+                            authViewModel.signoutFunction()
+                            navController.navigate("welcomeloading")
+                        },
 
-                            enabled = true,
-                            shape = MaterialTheme.shapes.medium,
-                        ){
-                            Text(text = "Logout")
-                        }
+                        enabled = true,
+                        shape = MaterialTheme.shapes.medium,
+                    ) {
+                        Text(text = "Logout")
                     }
+                }
             }
         }
     }
@@ -157,8 +158,16 @@ fun FloodStatusHeader(status: String = "Safe") {
             title = { Text("Flood Status Information") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    LegendItem(color = Color(0xFFE53935), label = "Flooded", logo = Icons.Default.Warning)
-                    LegendItem(color = Color(0xFF4CAF50), label = "Safe", logo = Icons.Default.CheckCircle)
+                    LegendItem(
+                        color = Color(0xFFE53935),
+                        label = "Flooded",
+                        logo = Icons.Default.Warning
+                    )
+                    LegendItem(
+                        color = Color(0xFF4CAF50),
+                        label = "Safe",
+                        logo = Icons.Default.CheckCircle
+                    )
                 }
             },
             confirmButton = {
@@ -220,7 +229,11 @@ fun DashboardGrid(navController: NavController) {
                 exit = fadeOut() + shrinkVertically()
             ) {
                 FeatureCard(title = title, icon = icon, color = color) {
-                    navController.navigate(route)
+                    navController.navigate(route) {
+                        popUpTo(Screen.Dashboard.route) {
+                            saveState = true
+                        }
+                    }
                 }
             }
         }
