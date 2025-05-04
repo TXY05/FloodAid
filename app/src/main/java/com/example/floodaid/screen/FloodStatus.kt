@@ -24,10 +24,14 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
+import com.example.floodaid.models.Screen
+import com.example.floodaid.repository.FirestoreRepository
 import com.example.floodaid.roomDatabase.Database.FloodAidDatabase
 import com.example.floodaid.screen.floodstatus.FloodStatusRepository
+import com.example.floodaid.screen.floodstatus.FloodStatusViewModelFactory
 import com.example.floodaid.viewmodel.FloodStatusViewModel
 
 @Composable
@@ -46,11 +50,57 @@ fun FloodStatus(navController: NavHostController, viewModel: FloodStatusViewMode
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = "Klang Valley Flood Status",
+                        text = "Selangor's Flood Status",
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(vertical = 16.dp)
+                        modifier = Modifier.padding(top = 16.dp)
                     )
+
+                    Text(
+                        text = "Tap a location below to view details or update status.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.Gray,
+                        modifier = Modifier
+                            .padding(horizontal = 16.dp, vertical = 8.dp)
+                            .fillMaxWidth()
+                            .wrapContentWidth(Alignment.CenterHorizontally)
+                    )
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.CheckCircle,
+                            contentDescription = "Safe",
+                            tint = Color.Green,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Text(
+                            "= Safe",
+                            color = Color.Gray,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(start = 4.dp)
+                        )
+
+                        Spacer(modifier = Modifier.width(24.dp))
+
+                        Icon(
+                            imageVector = Icons.Default.Warning,
+                            contentDescription = "Flooded",
+                            tint = Color.Red,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Text(
+                            "= Flooded",
+                            color = Color.Gray,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(start = 4.dp)
+                        )
+                    }
 
                     Button(onClick = { viewModel.showDialog() }) {
                         Text("Update Flood Status")
@@ -82,6 +132,7 @@ fun FloodStatus(navController: NavHostController, viewModel: FloodStatusViewMode
                                         fontWeight = FontWeight.SemiBold,
                                         modifier = Modifier.weight(1f)
                                     )
+
                                     Icon(
                                         imageVector = when (locationStatus.status) {
                                             "Flooded" -> Icons.Default.Warning
@@ -93,7 +144,19 @@ fun FloodStatus(navController: NavHostController, viewModel: FloodStatusViewMode
                                             "Flooded" -> Color.Red
                                             "Safe" -> Color.Green
                                             else -> Color.Gray
-                                        }
+                                        },
+                                        modifier = Modifier.size(24.dp)
+                                    )
+
+                                    Text(
+                                        text = locationStatus.status,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = when (locationStatus.status) {
+                                            "Flooded" -> Color.Red
+                                            "Safe" -> Color.Green
+                                            else -> Color.Gray
+                                        },
+                                        modifier = Modifier.padding(start = 8.dp)
                                     )
                                 }
                             }
@@ -131,6 +194,7 @@ fun FloodStatus(navController: NavHostController, viewModel: FloodStatusViewMode
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddFloodStatusDialog(
     floodData: List<Pair<String, String>>,
@@ -138,9 +202,10 @@ fun AddFloodStatusDialog(
     onSave: (String, String) -> Unit
 ) {
     val locations = floodData.map { it.first }
-    var selectedLocation by remember { mutableStateOf(locations.first()) }
+    var selectedLocation by remember { mutableStateOf(locations.firstOrNull() ?: "") }
     var status by remember { mutableStateOf("Safe") }
     var isDropdownExpanded by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf("") }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -150,7 +215,7 @@ fun AddFloodStatusDialog(
                 Text("Select Location:")
                 Box {
                     Button(onClick = { isDropdownExpanded = true }) {
-                        Text(selectedLocation)
+                        Text(if (selectedLocation.isNotEmpty()) selectedLocation else "Select a location")
                     }
                     DropdownMenu(
                         expanded = isDropdownExpanded,
@@ -161,11 +226,21 @@ fun AddFloodStatusDialog(
                                 onClick = {
                                     selectedLocation = location
                                     isDropdownExpanded = false
+                                    errorMessage = "" // Clear error when a location is selected
                                 },
                                 text = { Text(location) }
                             )
                         }
                     }
+                }
+
+                if (errorMessage.isNotEmpty()) {
+                    Text(
+                        text = errorMessage,
+                        color = Color.Red,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(top = 8.dp)
+                    )
                 }
 
                 Spacer(modifier = Modifier.height(8.dp))
@@ -189,7 +264,14 @@ fun AddFloodStatusDialog(
             }
         },
         confirmButton = {
-            Button(onClick = { onSave(selectedLocation, status) }) {
+            Button(onClick = {
+                if (selectedLocation.isEmpty()) {
+                    errorMessage = "Please select a location."
+                } else {
+                    onSave(selectedLocation, status)
+                    onDismiss()
+                }
+            }) {
                 Text("Save")
             }
         },
@@ -268,7 +350,7 @@ fun FloodStatusDetail(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "${item.date} - ${item.status}",
+                                text = "${item.date} : ${item.status}",
                                 style = MaterialTheme.typography.bodyLarge,
                                 fontWeight = FontWeight.Normal
                             )
@@ -283,18 +365,26 @@ fun FloodStatusDetail(
 @Preview(showBackground = true)
 @Composable
 fun FloodStatusPreview() {
-    val mockDatabase = FloodAidDatabase.getInstance(LocalContext.current)
-    val mockRepository = FloodStatusRepository(mockDatabase.floodStatusDao())
-    val mockViewModel = FloodStatusViewModel(mockRepository)
-    FloodStatus(navController = rememberNavController(), viewModel = mockViewModel, database = mockDatabase)
+    val context = LocalContext.current
+    val database = FloodAidDatabase.getInstance(context)
+    val roomRepository = FloodStatusRepository(database.floodStatusDao())
+    val firestoreRepository = FirestoreRepository()
+    val dao = database.floodStatusDao()
+
+    val viewModelFactory = FloodStatusViewModelFactory(roomRepository, dao, firestoreRepository)
+    val viewModel: FloodStatusViewModel = viewModel(factory = viewModelFactory)
+
+    FloodStatus(navController = rememberNavController(), viewModel = viewModel, database = database)
 }
 
 @Preview(showBackground = true)
 @Composable
 fun FloodStatusDetailPreview() {
     val mockDatabase = FloodAidDatabase.getInstance(LocalContext.current)
-    val mockRepository = FloodStatusRepository(mockDatabase.floodStatusDao())
-    val mockViewModel = FloodStatusViewModel(mockRepository)
+    val mockDao = mockDatabase.floodStatusDao()
+    val mockRepository = FloodStatusRepository(mockDao)
+    val mockFirestoreRepository = FirestoreRepository()
+    val mockViewModel = FloodStatusViewModel(mockRepository, mockDao, mockFirestoreRepository)
 
     FloodStatusDetail(
         location = "Gombak",
