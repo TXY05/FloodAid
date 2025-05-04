@@ -1,7 +1,9 @@
 package com.example.floodaid.screen
 
 import BottomBar
-import android.annotation.SuppressLint
+import android.os.VibrationEffect
+import android.os.Vibrator
+import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -11,101 +13,101 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
+import com.example.floodaid.roomDatabase.Database.FloodAidDatabase
+import com.example.floodaid.screen.floodstatus.FloodStatusRepository
 import com.example.floodaid.viewmodel.FloodStatusViewModel
 
-@SuppressLint("MutableCollectionMutableState")
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun FloodStatus(navController: NavHostController, viewModel: FloodStatusViewModel = androidx.lifecycle.viewmodel.compose.viewModel()) {
+fun FloodStatus(navController: NavHostController, viewModel: FloodStatusViewModel, database: FloodAidDatabase) {
     val uiState by viewModel.uiState.collectAsState()
 
     Scaffold(
         bottomBar = { BottomBar(navController = navController) }
     ) { innerPadding ->
-        if (uiState.selectedLocation == null) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Top
-            ) {
-                Text(
-                    text = "Klang Valley Flood Status",
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(vertical = 16.dp)
-                )
-                Text(
-                    text = "Tap on the location to view details",
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.padding(bottom = 16.dp)
-                )
-
-                Button(onClick = { viewModel.showDialog() }) {
-                    Text("Update Flood Status")
-                }
-
-                LazyColumn(
+        Crossfade(targetState = uiState.selectedLocation) { selectedLocation ->
+            if (selectedLocation == null) {
+                Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(16.dp)
+                        .padding(innerPadding),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    items(uiState.floodData) { locationStatus ->
-                        Card(
-                            shape = RoundedCornerShape(12.dp),
-                            elevation = CardDefaults.cardElevation(6.dp),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 8.dp)
-                                .clickable { viewModel.selectLocation(locationStatus.location) }
-                        ) {
-                            Row(
+                    Text(
+                        text = "Klang Valley Flood Status",
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(vertical = 16.dp)
+                    )
+
+                    Button(onClick = { viewModel.showDialog() }) {
+                        Text("Update Flood Status")
+                    }
+
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(16.dp)
+                    ) {
+                        items(uiState.floodData) { locationStatus ->
+                            Card(
+                                shape = RoundedCornerShape(12.dp),
+                                elevation = CardDefaults.cardElevation(6.dp),
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(16.dp),
-                                verticalAlignment = Alignment.CenterVertically
+                                    .padding(vertical = 8.dp)
+                                    .clickable { viewModel.selectLocation(locationStatus.location) }
                             ) {
-                                Text(
-                                    text = locationStatus.location,
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.SemiBold,
-                                    modifier = Modifier.weight(1f)
-                                )
-                                Box(
+                                Row(
                                     modifier = Modifier
-                                        .size(20.dp)
-                                        .background(
-                                            color = when (locationStatus.status) {
-                                                "Flooded" -> Color.Red
-                                                "Safe" -> Color.Green
-                                                else -> Color.Gray
-                                            },
-                                            shape = CircleShape
-                                        )
-                                )
+                                        .fillMaxWidth()
+                                        .padding(16.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = locationStatus.location,
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.SemiBold,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    Icon(
+                                        imageVector = when (locationStatus.status) {
+                                            "Flooded" -> Icons.Default.Warning
+                                            "Safe" -> Icons.Default.CheckCircle
+                                            else -> Icons.Default.Warning
+                                        },
+                                        contentDescription = locationStatus.status,
+                                        tint = when (locationStatus.status) {
+                                            "Flooded" -> Color.Red
+                                            "Safe" -> Color.Green
+                                            else -> Color.Gray
+                                        }
+                                    )
+                                }
                             }
                         }
                     }
                 }
+            } else {
+                val currentStatus = uiState.floodData.firstOrNull { it.location == selectedLocation }?.status ?: "Unknown"
+                FloodStatusDetail(
+                    location = selectedLocation,
+                    currentStatus = currentStatus,
+                    onBack = { viewModel.clearSelectedLocation() }
+                )
             }
-        } else {
-            val currentStatus = uiState.floodData.firstOrNull { it.location == uiState.selectedLocation }?.status ?: "Unknown"
-            FloodStatusDetail(
-                location = uiState.selectedLocation!!,
-                currentStatus = currentStatus,
-                onBack = { viewModel.clearSelectedLocation() }
-            )
         }
 
         if (uiState.showDialog) {
@@ -114,6 +116,7 @@ fun FloodStatus(navController: NavHostController, viewModel: FloodStatusViewMode
                 onDismiss = { viewModel.dismissDialog() },
                 onSave = { location, status ->
                     viewModel.updateFloodStatus(location, status)
+                    viewModel.dismissDialog()
                 }
             )
         }
@@ -162,12 +165,14 @@ fun AddFloodStatusDialog(
                 Text("Select Status:")
                 Row {
                     listOf("Safe", "Flooded").forEach { option ->
-                        Button(
-                            onClick = { status = option },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = if (status == option) Color.Gray else Color.LightGray
-                            )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.clickable { status = option }
                         ) {
+                            RadioButton(
+                                selected = status == option,
+                                onClick = { status = option }
+                            )
                             Text(option)
                         }
                         Spacer(modifier = Modifier.width(8.dp))
@@ -266,7 +271,10 @@ fun FloodStatusDetail(location: String, currentStatus: String, onBack: () -> Uni
 @Preview(showBackground = true)
 @Composable
 fun FloodStatusPreview() {
-    FloodStatus(navController = rememberNavController())
+    val mockDatabase = FloodAidDatabase.getInstance(LocalContext.current)
+    val mockRepository = FloodStatusRepository(mockDatabase.floodStatusDao())
+    val mockViewModel = FloodStatusViewModel(mockRepository)
+    FloodStatus(navController = rememberNavController(), viewModel = mockViewModel, database = mockDatabase)
 }
 
 @Preview(showBackground = true)

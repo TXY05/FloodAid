@@ -1,12 +1,16 @@
 package com.example.floodaid
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.key
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.example.floodaid.models.Screen
+import com.example.floodaid.roomDatabase.Database.FloodAidDatabase
 import com.example.floodaid.screen.*
+import com.example.floodaid.screen.floodstatus.FloodStatusRepository
 import com.example.floodaid.screen.forum.Forum
 import com.example.floodaid.screen.forum.ForumEvent
 import com.example.floodaid.screen.forum.ForumPostState
@@ -18,6 +22,7 @@ import com.example.floodaid.screen.login.WelcomeLoading
 import com.example.floodaid.screen.map_UI.Map
 import com.example.floodaid.screen.volunteer.Volunteer
 import com.example.floodaid.viewmodel.AuthViewModel
+import com.example.floodaid.viewmodel.FloodStatusViewModel
 
 @Composable
 fun NavGraph(
@@ -31,7 +36,15 @@ fun NavGraph(
             Dashboard(navController = navController, authViewModel)
         }
         composable(route = Screen.FloodStatus.route) {
-            FloodStatus(navController = navController)
+            val context = LocalContext.current
+            val database = FloodAidDatabase.getInstance(context)
+            val repository = FloodStatusRepository(database.floodStatusDao())
+            val viewModel = FloodStatusViewModel(repository)
+            FloodStatus(navController = navController, viewModel = viewModel, database = database)
+
+            LaunchedEffect(Unit) {
+                repository.initializePredefinedDistricts()
+            }
         }
 
         composable(route = Screen.Forum.route) {

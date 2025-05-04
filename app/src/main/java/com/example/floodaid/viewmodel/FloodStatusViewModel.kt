@@ -1,8 +1,13 @@
 package com.example.floodaid.viewmodel
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.floodaid.screen.floodstatus.FloodStatusRepository
+import com.example.floodaid.screen.floodstatus.LocationStatusEntity
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 
 data class LocationStatus(
     val location: String,
@@ -15,28 +20,24 @@ data class FloodStatusUiState(
     val showDialog: Boolean = false
 )
 
-class FloodStatusViewModel : ViewModel() {
+class FloodStatusViewModel(private val repository: FloodStatusRepository) : ViewModel() {
 
-    private val initialLocations = listOf(
-        "Gombak",
-        "Hulu Langat",
-        "Hulu Selangor",
-        "Klang",
-        "Kuala Langat",
-        "Petaling",
-        "Sabak Bernam",
-        "Sepang"
-    ).map {
-        when (it) {
-            "Sabak Bernam", "Sepang" -> LocationStatus(it, "Flooded")
-            else -> LocationStatus(it, "Safe")
-        }
+    private val _uiState = MutableStateFlow(FloodStatusUiState())
+    val uiState: StateFlow<FloodStatusUiState> = _uiState
+
+    init {
+        fetchLocations()
     }
 
-    private val _uiState = MutableStateFlow(
-        FloodStatusUiState(floodData = initialLocations)
-    )
-    val uiState: StateFlow<FloodStatusUiState> = _uiState
+    private fun fetchLocations() {
+        viewModelScope.launch {
+            repository.getAllLocations().collectLatest { locations ->
+                _uiState.value = _uiState.value.copy(
+                    floodData = locations.map { LocationStatus(it.location, it.status) }
+                )
+            }
+        }
+    }
 
     fun selectLocation(location: String) {
         _uiState.value = _uiState.value.copy(selectedLocation = location)
@@ -55,9 +56,8 @@ class FloodStatusViewModel : ViewModel() {
     }
 
     fun updateFloodStatus(location: String, status: String) {
-        val updatedList = _uiState.value.floodData.map {
-            if (it.location == location) it.copy(status = status) else it
+        viewModelScope.launch {
+            repository.updateStatus(location, status, date = "dd/MM/yyyy") // Replace with actual date
         }
-        _uiState.value = _uiState.value.copy(floodData = updatedList, showDialog = false)
     }
 }

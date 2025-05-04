@@ -15,6 +15,9 @@ import com.example.floodaid.roomDatabase.Entities.District
 import com.example.floodaid.roomDatabase.Entities.FloodMarker
 import com.example.floodaid.roomDatabase.Entities.Shelter
 import com.example.floodaid.roomDatabase.Entities.State
+import com.example.floodaid.screen.floodstatus.FloodHistoryEntity
+import com.example.floodaid.screen.floodstatus.FloodStatusDao
+import com.example.floodaid.screen.floodstatus.LocationStatusEntity
 
 @Database(
     entities = [
@@ -23,9 +26,11 @@ import com.example.floodaid.roomDatabase.Entities.State
         Shelter::class,
         FloodMarker::class,
         VolunteerEvent::class,
-        VolunteerEventHistory::class
+        VolunteerEventHistory::class,
+        LocationStatusEntity::class,
+        FloodHistoryEntity::class
     ],
-    version = 2, // Increment this number by 1
+    version = 3, // Increment this number by 1
     exportSchema = true
 )
 @TypeConverters(Converter::class)
@@ -34,6 +39,7 @@ abstract class FloodAidDatabase : RoomDatabase() {
     abstract fun MapDao(): MapDao
     abstract fun volunteerDao(): VolunteerDao
     abstract fun volunteerEventHistoryDao(): VolunteerEventHistoryDao
+    abstract fun floodStatusDao(): FloodStatusDao
 
     companion object {
         @Volatile
