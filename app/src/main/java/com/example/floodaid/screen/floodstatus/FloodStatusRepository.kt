@@ -17,8 +17,9 @@ class FloodStatusRepository(private val dao: FloodStatusDao) {
 
     fun getAllLocations(): Flow<List<LocationStatusEntity>> = dao.getAllLocations()
 
-    fun getHistory(location: String): Flow<List<FloodHistoryEntity>> =
-        dao.getHistoryForLocation(location)
+    fun getFloodHistory(location: String): Flow<List<FloodHistoryEntity>> {
+        return dao.getHistoryForLocation(location)
+    }
 
     suspend fun updateStatus(location: String, status: String, date: String) {
         dao.updateLocationStatus(LocationStatusEntity(location, status))
@@ -35,4 +36,9 @@ class FloodStatusRepository(private val dao: FloodStatusDao) {
             dao.insertInitialLocations(predefinedDistricts)
         }
     }
+    suspend fun clearAllData() {
+        dao.clearAllStatuses()
+        dao.clearAllHistories()
+    }
+
 }

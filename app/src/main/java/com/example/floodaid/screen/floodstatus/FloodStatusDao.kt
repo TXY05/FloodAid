@@ -21,6 +21,8 @@ interface FloodStatusDao {
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertInitialLocations(locations: List<LocationStatusEntity>)
 
+    @Query("UPDATE location_status SET status = ''")
+    suspend fun clearAllStatuses()
 
     // For FloodHistory
     @Query("SELECT * FROM flood_history WHERE location = :location ORDER BY id DESC LIMIT 7")
@@ -28,4 +30,7 @@ interface FloodStatusDao {
 
     @Insert
     suspend fun insertHistory(history: FloodHistoryEntity)
+
+    @Query("DELETE FROM flood_history")
+    suspend fun clearAllHistories()
 }

@@ -2,6 +2,7 @@ package com.example.floodaid.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.floodaid.screen.floodstatus.FloodHistoryEntity
 import com.example.floodaid.screen.floodstatus.FloodStatusRepository
 import com.example.floodaid.screen.floodstatus.LocationStatusEntity
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -57,7 +58,26 @@ class FloodStatusViewModel(private val repository: FloodStatusRepository) : View
 
     fun updateFloodStatus(location: String, status: String) {
         viewModelScope.launch {
-            repository.updateStatus(location, status, date = "dd/MM/yyyy") // Replace with actual date
+            val currentDate = java.time.LocalDate.now().toString() // System date in "yyyy-MM-dd" format
+            repository.updateStatus(location, status, currentDate)
+        }
+    }
+
+    private val _historyState = MutableStateFlow<List<FloodHistoryEntity>>(emptyList())
+    val historyState: StateFlow<List<FloodHistoryEntity>> = _historyState
+
+    fun fetchFloodHistory(location: String) {
+        viewModelScope.launch {
+            repository.getFloodHistory(location).collectLatest { history ->
+                _historyState.value = history
+            }
+        }
+    }
+
+    fun clearAllData() {
+        viewModelScope.launch {
+            repository.clearAllData()
+            fetchLocations() // Refresh the UI after clearing data
         }
     }
 }

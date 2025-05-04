@@ -58,7 +58,7 @@ fun FloodStatus(navController: NavHostController, viewModel: FloodStatusViewMode
 
                     LazyColumn(
                         modifier = Modifier
-                            .fillMaxSize()
+                            .weight(1f)
                             .padding(16.dp)
                     ) {
                         items(uiState.floodData) { locationStatus ->
@@ -99,13 +99,21 @@ fun FloodStatus(navController: NavHostController, viewModel: FloodStatusViewMode
                             }
                         }
                     }
+
+                    Button(
+                        onClick = { viewModel.clearAllData() },
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+                        Text("Clear All Data")
+                    }
                 }
             } else {
                 val currentStatus = uiState.floodData.firstOrNull { it.location == selectedLocation }?.status ?: "Unknown"
                 FloodStatusDetail(
                     location = selectedLocation,
                     currentStatus = currentStatus,
-                    onBack = { viewModel.clearSelectedLocation() }
+                    onBack = { viewModel.clearSelectedLocation() },
+                    viewModel = viewModel
                 )
             }
         }
@@ -195,16 +203,18 @@ fun AddFloodStatusDialog(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun FloodStatusDetail(location: String, currentStatus: String, onBack: () -> Unit) {
-    val history = listOf(
-        "17/3/2025 - Safe",
-        "16/3/2025 - Safe",
-        "15/3/2025 - Flood",
-        "14/3/2025 - Safe",
-        "13/3/2025 - Safe",
-        "12/3/2025 - Safe",
-        "11/3/2025 - Safe"
-    )
+fun FloodStatusDetail(
+    location: String,
+    currentStatus: String,
+    onBack: () -> Unit,
+    viewModel: FloodStatusViewModel
+) {
+
+    val history by viewModel.historyState.collectAsState()
+
+    LaunchedEffect(location) {
+        viewModel.fetchFloodHistory(location)
+    }
 
     Scaffold(
         topBar = {
@@ -242,25 +252,27 @@ fun FloodStatusDetail(location: String, currentStatus: String, onBack: () -> Uni
                 modifier = Modifier.padding(bottom = 16.dp)
             )
 
-            history.forEach { item ->
-                Card(
-                    shape = RoundedCornerShape(12.dp),
-                    elevation = CardDefaults.cardElevation(6.dp),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 8.dp)
-                ) {
-                    Row(
+            LazyColumn {
+                items(history) { item ->
+                    Card(
+                        shape = RoundedCornerShape(12.dp),
+                        elevation = CardDefaults.cardElevation(6.dp),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                            .padding(vertical = 8.dp)
                     ) {
-                        Text(
-                            text = item,
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.Normal
-                        )
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "${item.date} - ${item.status}",
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.Normal
+                            )
+                        }
                     }
                 }
             }
@@ -280,5 +292,14 @@ fun FloodStatusPreview() {
 @Preview(showBackground = true)
 @Composable
 fun FloodStatusDetailPreview() {
-    FloodStatusDetail(location = "Gombak", currentStatus = "Safe", onBack = {})
+    val mockDatabase = FloodAidDatabase.getInstance(LocalContext.current)
+    val mockRepository = FloodStatusRepository(mockDatabase.floodStatusDao())
+    val mockViewModel = FloodStatusViewModel(mockRepository)
+
+    FloodStatusDetail(
+        location = "Gombak",
+        currentStatus = "",
+        onBack = {},
+        viewModel = mockViewModel
+    )
 }
