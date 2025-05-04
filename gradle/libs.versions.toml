@@ -38,6 +38,7 @@ playServicesLocationVersion = "21.3.0"
 room = "2.7.0"
 roomKtx = "2.6.1"
 runtimeLivedata = "1.7.6"
+roomCommonJvm = "2.7.1"
 
 [libraries]
 androidx-activity-ktx = { module = "androidx.activity:activity-ktx", version.ref = "activityKtx" }
@@ -89,6 +90,7 @@ play-services-location = { module = "com.google.android.gms:play-services-locati
 play-services-location-v2130 = { module = "com.google.android.gms:play-services-location", version.ref = "playServicesLocationVersion" }
 room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
 room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
+androidx-room-common-jvm = { group = "androidx.room", name = "room-common-jvm", version.ref = "roomCommonJvm" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

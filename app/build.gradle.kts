@@ -61,6 +61,7 @@ dependencies {
     implementation(libs.firebase.firestore)
     implementation(libs.androidx.constraintlayout)
     implementation(libs.androidx.fragment)
+    implementation(libs.androidx.room.common.jvm)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -96,5 +97,6 @@ dependencies {
     implementation(libs.googleid)
     implementation(libs.credentials)
     implementation(libs.androidx.credentials.play.services.auth)
+
 
 }

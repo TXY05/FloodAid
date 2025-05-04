@@ -20,11 +20,18 @@ import kotlin.getValue
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import com.example.floodaid.roomDatabase.Database.FloodAidDatabase
+import com.example.floodaid.roomDatabase.Repository.VolunteerRepository
+import com.example.floodaid.utils.GeocodingHelper
 import com.example.floodaid.roomDatabase.Database.FloodAidDatabase
 import com.example.floodaid.viewmodel.AuthViewModel
 import com.google.firebase.auth.FirebaseAuth
 import com.example.floodaid.screen.login.AuthRepository
 import com.example.floodaid.screen.login.AuthViewModelFactory
+import com.example.floodaid.screen.volunteer.VolunteerViewModel
+import com.example.floodaid.screen.volunteer.VolunteerViewModelFactory
 
 private const val LOCATION_PERMISSION_REQUEST_CODE = 1001
 
@@ -56,6 +63,15 @@ class MainActivity : AppCompatActivity() {
         val authRepository = AuthRepository(application, firebaseAuth)
         val authViewModelFactory = AuthViewModelFactory(authRepository)
         val authViewModel = ViewModelProvider(this, authViewModelFactory)[AuthViewModel::class.java]
+        val floodAidDatabase = FloodAidDatabase.getInstance(applicationContext)
+        val volunteerRepository = VolunteerRepository(
+            floodAidDatabase.volunteerDao(),
+            floodAidDatabase.volunteerEventHistoryDao()
+        )
+        val volunteerViewModel: VolunteerViewModel by viewModels {
+            VolunteerViewModelFactory(volunteerRepository)
+        }
+
 
         setContent {
             val navController = rememberNavController()
@@ -68,7 +84,8 @@ class MainActivity : AppCompatActivity() {
                     navController = navController,
                     state = state,
                     onEvent = viewModel::onEvent,
-                    authViewModel = authViewModel
+                    authViewModel = authViewModel,
+                    volunteerViewModel = volunteerViewModel
                 )
             }
         }

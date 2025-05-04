@@ -25,6 +25,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -35,21 +36,27 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import com.example.floodaid.composable.TopBar
+import com.example.floodaid.models.VolunteerEvent
+import com.example.floodaid.roomDatabase.Repository.VolunteerRepository
 
 @OptIn(ExperimentalMaterial3Api::class)
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
 fun Volunteer(
     navController: NavHostController,
+    viewModel: VolunteerViewModel
 ) {
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(
         state = rememberTopAppBarState()
     )
 
     val listState = rememberLazyListState()
+
+    val events by viewModel.events.collectAsState()
 
     Scaffold(
         modifier = Modifier
@@ -88,19 +95,8 @@ fun Volunteer(
                 .padding(innerPadding)
 //                .nestedScroll(nestedScrollConnection)
         ) {
-            val sampleEvents = listOf(
-                Event(1, "Clean-Up in Klang", "April 20, 2025", "Hulu Langat"),
-                Event(2, "Supply Drop to Kelantan", "April 22, 2025", "Kuala Lumpur"),
-                Event(3, "Medical Aid Setup", "April 25, 2025", "Petaling"),
-                Event(1, "Clean-Up in Klang", "April 20, 2025", "Hulu Langat"),
-                Event(2, "Supply Drop to Kelantan", "April 22, 2025", "Kuala Lumpur"),
-                Event(3, "Medical Aid Setup", "April 25, 2025", "Petaling"),
-                Event(1, "Clean-Up in Klang", "April 20, 2025", "Hulu Langat"),
-                Event(2, "Supply Drop to Kelantan", "April 22, 2025", "Kuala Lumpur"),
-                Event(3, "Medical Aid Setup", "April 25, 2025", "Petaling")
-            )
             EventListScreen(
-                events = sampleEvents,
+                events = events,
                 onEventClick = {},
                 listState = listState,
 //                modifier = Modifier.offset { IntOffset(0, currentCalSize) }
@@ -149,8 +145,8 @@ fun CalendarScreen() {
 
 @Composable
 fun EventListScreen(
-    events: List<Event>,
-    onEventClick: (Event) -> Unit,
+    events: List<VolunteerEvent>,
+    onEventClick: (VolunteerEvent) -> Unit,
     listState: LazyListState,
     modifier: Modifier = Modifier
 ) {
@@ -170,7 +166,7 @@ fun EventListScreen(
 }
 
 @Composable
-fun EventCard(event: Event, onClick: () -> Unit) {
+fun EventCard(event: VolunteerEvent, onClick: () -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -178,22 +174,9 @@ fun EventCard(event: Event, onClick: () -> Unit) {
         elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text(text = event.title, style = MaterialTheme.typography.titleLarge)
+            Text(text = event.description, style = MaterialTheme.typography.titleLarge)
             Text(text = event.date, style = MaterialTheme.typography.bodyMedium)
-            Text(text = event.location, style = MaterialTheme.typography.bodySmall)
+            Text(text = event.district, style = MaterialTheme.typography.bodySmall)
         }
     }
-}
-
-data class Event(
-    val id: Int,
-    val title: String,
-    val date: String,
-    val location: String
-)
-
-@Preview(showBackground = true)
-@Composable
-fun EventListPreview() {
-    Volunteer(navController = rememberNavController())
 }
