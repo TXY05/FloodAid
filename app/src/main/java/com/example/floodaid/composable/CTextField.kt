@@ -23,8 +23,7 @@ fun CTextField(
 ) {
     TextField(
         value = value,
-        onValueChange = onValueChange,
-        placeholder = {
+        label = {
             Text(
                 text = hint,
                 style = TextStyle(
@@ -34,6 +33,8 @@ fun CTextField(
                 )
             )
         },
+        singleLine = true,
+        onValueChange = onValueChange,
         modifier = Modifier
             .fillMaxWidth()
             .padding(bottom = 8.dp),

@@ -48,6 +48,8 @@ import com.example.floodaid.viewmodel.AuthState
 import com.example.floodaid.viewmodel.AuthViewModel
 import com.example.jetpackcomposeauthui.components.CButton
 import com.example.jetpackcomposeauthui.components.CTextField
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 
 @Composable
 fun Signup(
@@ -61,10 +63,27 @@ fun Signup(
     val authState = authViewModel.authState.observeAsState()
     val context = LocalContext.current
 
+    val firestore = FirebaseFirestore.getInstance()
+
+
     LaunchedEffect(authState.value) {
         when (authState.value) {
-            is AuthState.Authenticated -> navController.navigate(Screen.Dashboard.route) {
-                popUpTo(Screen.Signup.route) { inclusive = true }
+            is AuthState.Authenticated -> {
+                val uid = FirebaseAuth.getInstance().currentUser?.uid
+                if (uid != null) {
+                    firestore.collection("users").document(uid).get()
+                        .addOnSuccessListener { doc ->
+                            val isComplete = doc.exists() && doc.getString("name") != null
+                            if (isComplete) {
+                                navController.navigate(Screen.Dashboard.route)
+                            } else {
+                                navController.navigate(Screen.RegisterProfile.route)
+                            }
+                        }
+                        .addOnFailureListener {
+                            Toast.makeText(context, "Error loading profile", Toast.LENGTH_SHORT).show()
+                        }
+                }
             }
 
             is AuthState.Error -> Toast.makeText(
@@ -168,9 +187,9 @@ fun Signup(
                 ) {
                     CButton(
                         text = "Register", onClick = {
-                            navController.navigate("registerprofile")
-                            //authViewModel.signupFunction(email, password)
-                        }//, enabled = authState.value != AuthState.Loading
+                            //navController.navigate("registerprofile")
+                            authViewModel.signupFunction(email, password)
+                        }, enabled = authState.value != AuthState.Loading
                     )
 
                     LoginDivider(text = "or")

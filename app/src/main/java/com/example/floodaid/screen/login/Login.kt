@@ -1,5 +1,6 @@
 package com.example.floodaid.screen.login
 
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
@@ -47,6 +48,8 @@ import com.example.floodaid.viewmodel.AuthViewModel
 import com.example.jetpackcomposeauthui.components.CButton
 import com.example.jetpackcomposeauthui.components.CTextField
 import com.example.jetpackcomposeauthui.components.DontHaveAccountRow
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 
 @Composable
 fun Login(
@@ -59,20 +62,33 @@ fun Login(
     val authState = authViewModel.authState.observeAsState()
     val context = LocalContext.current
 
+    val firestore = FirebaseFirestore.getInstance()
+
+
     LaunchedEffect(authState.value) {
         when (authState.value) {
             is AuthState.Authenticated -> {
-                navController.navigate(Screen.Dashboard.route) {
-                    popUpTo(Screen.Login.route) { inclusive = true }
+                val uid = FirebaseAuth.getInstance().currentUser?.uid
+                Log.d("ProfileDebug", "UID = $uid")
+                if (uid != null) {
+                    firestore.collection("users").document(uid).get()
+                        .addOnSuccessListener { doc ->
+                            val isComplete = doc.exists() && doc.getString("name") != null
+                            if (isComplete) {
+                                navController.navigate(Screen.Dashboard.route)
+                            } else {
+                                navController.navigate(Screen.RegisterProfile.route)
+                            }
+                        }
+                        .addOnFailureListener {
+                            Toast.makeText(context, "Error loading profile", Toast.LENGTH_SHORT).show()
+                        }
                 }
             }
-            is AuthState.Error -> {
-                Toast.makeText(
-                    context,
-                    (authState.value as AuthState.Error).message,
-                    Toast.LENGTH_SHORT
-                ).show()
-            }
+
+            is AuthState.Error -> Toast.makeText(
+                context, (authState.value as AuthState.Error).message, Toast.LENGTH_SHORT
+            ).show()
 
             else -> Unit
         }
