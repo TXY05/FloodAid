@@ -3,7 +3,6 @@ package com.example.floodaid
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Bundle
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
@@ -13,24 +12,17 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.compose.rememberNavController
-import com.example.floodaid.screen.Dashboard
-import com.example.floodaid.screen.*
 import com.example.floodaid.ui.theme.FloodAidTheme
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
-import androidx.room.Room
 import com.example.floodaid.viewmodel.ForumViewModel
 import kotlin.getValue
-import com.google.android.gms.maps.SupportMapFragment
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
-import com.example.floodaid.utils.GeocodingHelper
+import com.example.floodaid.roomDatabase.Database.FloodAidDatabase
 import com.example.floodaid.viewmodel.AuthViewModel
 import com.google.firebase.auth.FirebaseAuth
-import com.example.floodaid.screen.forum.ForumDatabase
 import com.example.floodaid.screen.login.AuthRepository
 import com.example.floodaid.screen.login.AuthViewModelFactory
 
@@ -42,19 +34,19 @@ private const val LOCATION_PERMISSION_REQUEST_CODE = 1001
 class MainActivity : AppCompatActivity() {
 
     private val db by lazy {
-        Room.databaseBuilder(
-            applicationContext, ForumDatabase::class.java, "forumposts.db"
-        ).build()
+        FloodAidDatabase.getInstance(applicationContext)
     }
 
-    private val viewModel by viewModels<ForumViewModel>(
-        factoryProducer = {
-            object : ViewModelProvider.Factory {
-                override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                    return ForumViewModel(db.dao) as T
-                }
+    private val viewModel by viewModels<ForumViewModel> {
+        object : ViewModelProvider.Factory {
+            override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                val app = application as FloodAidApp
+                return ForumViewModel(app.database.forumDao()) as T
             }
-        })
+        }
+    }
+
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

@@ -30,13 +30,23 @@ import com.example.floodaid.ui.theme.AlegreyaSansFontFamily
 fun PasswordTextField(
     value: String,
     onValueChange: (String) -> Unit,
-    hint: String
+    hint: String,
 ) {
     var isPasswordVisible by remember { mutableStateOf(false) }
 
     TextField(
         value = value,
         onValueChange = onValueChange,
+        label = {
+            Text(
+                text = hint,
+                style = TextStyle(
+                    fontSize = 18.sp,
+                    fontFamily = AlegreyaSansFontFamily,
+                    color = Color(0xFFBEC2C2)
+                )
+            )
+        },
         placeholder = {
             Text(
                 text = hint,
@@ -47,6 +57,7 @@ fun PasswordTextField(
                 )
             )
         },
+        singleLine = true,
         modifier = Modifier
             .fillMaxWidth()
             .padding(bottom = 8.dp),
@@ -64,7 +75,8 @@ fun PasswordTextField(
         ),
         visualTransformation = if (isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
         trailingIcon = {
-            val icon = if (isPasswordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff
+            val icon =
+                if (isPasswordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff
             val description = if (isPasswordVisible) "Hide password" else "Show password"
             IconButton(onClick = { isPasswordVisible = !isPasswordVisible }) {
                 Icon(imageVector = icon, contentDescription = description, tint = Color.White)

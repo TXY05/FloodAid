@@ -1,6 +1,7 @@
 package com.example.floodaid.screen.login
 
 import android.net.Uri
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -8,6 +9,9 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -28,14 +32,22 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -45,17 +57,26 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import coil3.compose.rememberAsyncImagePainter
 import com.example.floodaid.R
-import com.example.floodaid.screen.volunteer.CalendarViewComposable
+import com.example.floodaid.models.Screen
+import com.example.floodaid.models.UserProfile
 import com.example.floodaid.ui.theme.AlegreyaSansFontFamily
 import com.example.jetpackcomposeauthui.components.CTextField
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @Composable
 fun RegisterProfile(modifier: Modifier = Modifier, navController: NavHostController) {
@@ -77,7 +98,7 @@ fun RegisterProfile(modifier: Modifier = Modifier, navController: NavHostControl
 
     var fullName by remember { mutableStateOf("") }
     var username by remember { mutableStateOf("") }
-    var address by remember { mutableStateOf("") }
+    var myKadOrPassport by remember { mutableStateOf("") }
     var selectedGender by remember { mutableStateOf("") }
     var birthOfDate by remember { mutableStateOf("") }
     var currentDistrict by remember { mutableStateOf("") }
@@ -166,13 +187,16 @@ fun RegisterProfile(modifier: Modifier = Modifier, navController: NavHostControl
                     value = username,
                     onValueChange = { newValue -> username = newValue })
 
+                CTextField(
+                    hint = "Mykad / Passport Number",
+                    value = myKadOrPassport,
+                    onValueChange = { newValue -> myKadOrPassport = newValue })
 
                 GenderSelector(
                     selectedGender = selectedGender, onGenderSelected = { selectedGender = it })
 
-                BODSelector(
-                    birthOfDate = birthOfDate,
-                    onDateSelected = { selected -> birthOfDate = selected })
+
+                birthOfDate=DatePickerFieldToModal()
 
                 StateSelector(
                     modifier = Modifier.fillMaxWidth(),
@@ -181,6 +205,67 @@ fun RegisterProfile(modifier: Modifier = Modifier, navController: NavHostControl
                     onTextChanged = { newText -> currentDistrict = newText }
                 )
 
+
+
+                Box(modifier = Modifier.fillMaxSize()) {
+                    Button(
+                        onClick = {
+                            val uid = FirebaseAuth.getInstance().currentUser?.uid
+                            val email = FirebaseAuth.getInstance().currentUser?.email
+
+                            if (uid != null) {
+                                val profile = UserProfile(
+                                    uid = uid,
+                                    fullName = fullName,       // get these values from your TextFields
+                                    userName = username,
+                                    email = email.toString(),
+                                    myKadOrPassport = myKadOrPassport,
+                                    gender = selectedGender,
+                                    birthOfDate = birthOfDate, // format: "YYYY-MM-DD"
+                                    location = currentDistrict
+                                )
+
+                                FirebaseFirestore.getInstance()
+                                    .collection("users")
+                                    .document(uid)
+                                    .set(profile)
+                                    .addOnSuccessListener {
+                                        Log.d("Profile", "Profile saved")
+
+                                        navController.navigate(Screen.Dashboard.route)
+                                    }
+                                    .addOnFailureListener {
+                                        Log.e("Profile", "Error saving profile", it)
+                                        // Show error message
+                                    }
+                            }
+
+                        },
+                        shape = MaterialTheme.shapes.large,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary
+                        ),
+                        modifier = Modifier
+                            .padding(bottom = 16.dp)
+                            .fillMaxWidth()
+                            .height(52.dp)
+                            .align(alignment = Alignment.BottomCenter)
+
+
+                    ) {
+                        Text(
+                            "Save Profile",
+                            style = TextStyle(
+                                fontSize = 22.sp,
+                                fontFamily = AlegreyaSansFontFamily,
+                                fontWeight = FontWeight(500),
+                                color = Color.White
+                            )
+                        )
+
+
+                    }
+                }
             }
         }
     }
@@ -194,17 +279,19 @@ fun GenderSelector(
 ) {
     var showDialog by remember { mutableStateOf(false) }
 
-    Box(modifier = Modifier
-        .fillMaxWidth()
-        .clickable { showDialog = true }
-        .padding(vertical = 8.dp)) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { showDialog = true }
+            .padding(vertical = 8.dp)) {
         Text(
             text = if (selectedGender.isEmpty()) "Gender" else selectedGender,
             fontSize = 18.sp,
             fontFamily = AlegreyaSansFontFamily,
             color = if (selectedGender.isEmpty()) Color(0xFFBEC2C2) else Color.White,
-            modifier = Modifier.padding(start = 18.dp, end = 12.dp, top = 16.dp, bottom = 16.dp)
-        )
+            modifier = Modifier.padding(start = 18.dp, end = 12.dp, top = 16.dp, bottom = 16.dp),
+
+            )
 
         // Bottom border only
         Box(
@@ -224,15 +311,17 @@ fun GenderSelector(
             text = {
                 Column {
                     listOf("Male", "Female", "Other").forEach { gender ->
-                        Text(text = gender, modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                onGenderSelected(gender)
-                                showDialog = false
-                            }
-                            .padding(12.dp), style = TextStyle(
-                            fontSize = 18.sp, fontFamily = AlegreyaSansFontFamily
-                        ))
+                        Text(
+                            text = gender, modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    onGenderSelected(gender)
+                                    showDialog = false
+                                }
+                                .padding(12.dp), style = TextStyle(
+                                fontSize = 18.sp, fontFamily = AlegreyaSansFontFamily
+                            )
+                        )
                     }
                 }
             },
@@ -241,69 +330,14 @@ fun GenderSelector(
     }
 }
 
-@Composable
-fun BODSelector(
-    birthOfDate: String,
-    onDateSelected: (String) -> Unit,
-) {
-    var showDatePicker by remember { mutableStateOf(false) }
-    var tempSelectedDate by remember { mutableStateOf(birthOfDate) }
 
-    Box(modifier = Modifier
-        .fillMaxWidth()
-        .clickable { showDatePicker = true }
-        .padding(vertical = 8.dp)) {
-        Text(
-            text = if (birthOfDate.isEmpty()) "Birth Of Date" else birthOfDate,
-            fontSize = 18.sp,
-            fontFamily = AlegreyaSansFontFamily,
-            color = if (birthOfDate.isEmpty()) Color(0xFFBEC2C2) else Color.White,
-            modifier = Modifier.padding(start = 18.dp, end = 12.dp, top = 16.dp, bottom = 16.dp)
-        )
-
-        // Bottom border only
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .align(Alignment.BottomStart)
-                .height(1.dp)
-                .background(Color(0xFFBEC2C2))
-        )
-    }
-
-    if (showDatePicker) {
-        AlertDialog(
-            onDismissRequest = { showDatePicker = false },
-            title = { Text("Select Birth Of Date") },
-            text = {
-                CalendarViewComposable { year, month, dayOfMonth ->
-                    tempSelectedDate = "$dayOfMonth/${month + 1}/$year"
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    onDateSelected(tempSelectedDate)
-                    showDatePicker = false
-                }) {
-                    Text("Confirm")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = {
-                    showDatePicker = false
-                }) {
-                    Text("Cancel")
-                }
-            })
-    }
-}
 
 @Composable
 fun StateSelector(
     modifier: Modifier = Modifier,
     currentDistrict: String,
     onDistrictSelected: (String) -> Unit,
-    onTextChanged: (String) -> Unit
+    onTextChanged: (String) -> Unit,
 ) {
     val districts = listOf(
         "Hulu Langat", "Ampang", "Cheras", "Semenyih", "Kajang", "Bangi", "Hulu Selangor",
@@ -317,11 +351,20 @@ fun StateSelector(
         // Editable TextField for typing input
         TextField(
             value = currentDistrict,
+            label = {
+                Text(
+                    text = "State",
+                    style = TextStyle(
+                        fontSize = 18.sp,
+                        fontFamily = AlegreyaSansFontFamily,
+                        color = Color(0xFFBEC2C2)
+                    )
+                )
+            },
             onValueChange = {
                 onTextChanged(it)
                 expanded = it.isNotEmpty()
-            }
-            ,
+            },
             textStyle = TextStyle(
                 fontSize = 18.sp,
                 fontFamily = AlegreyaSansFontFamily,
@@ -346,8 +389,9 @@ fun StateSelector(
             ),
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable { expanded = true
-                    } // Expand the dropdown
+                .clickable {
+                    expanded = true
+                } // Expand the dropdown
                 .padding(vertical = 8.dp),
         )
 
@@ -368,7 +412,8 @@ fun StateSelector(
             ) {
                 items(
                     districts.filter {
-                        it.lowercase().contains(currentDistrict.lowercase()) // Filter based on input
+                        it.lowercase()
+                            .contains(currentDistrict.lowercase()) // Filter based on input
                     }.sorted()
                 ) { district ->
                     DistrictItems(title = district) {
@@ -384,7 +429,7 @@ fun StateSelector(
 @Composable
 fun DistrictItems(
     title: String,
-    onSelect: (String) -> Unit
+    onSelect: (String) -> Unit,
 ) {
     Row(
         modifier = Modifier
@@ -393,5 +438,99 @@ fun DistrictItems(
             .padding(10.dp)
     ) {
         Text(text = title, fontSize = 16.sp)
+    }
+}
+
+
+@Composable
+fun DatePickerFieldToModal(modifier: Modifier = Modifier): String {
+    var selectedDate by remember { mutableStateOf<Long?>(null) }
+    var showModal by remember { mutableStateOf(false) }
+
+    TextField(
+        value = selectedDate?.let { convertMillisToDate(it) } ?: "",
+        onValueChange = { },
+        placeholder = {
+            Text(
+                text = "MM/DD/YYYY",
+                style = TextStyle(
+                    fontSize = 18.sp,
+                    fontFamily = AlegreyaSansFontFamily,
+                    color = Color(0xFFBEC2C2)
+                )
+            )
+        },
+
+        trailingIcon = {
+            Icon(Icons.Default.DateRange, contentDescription = "Select date")
+        },
+        modifier = modifier
+            .fillMaxWidth()
+            .pointerInput(selectedDate) {
+                awaitEachGesture {
+                    // Modifier.clickable doesn't work for text fields, so we use Modifier.pointerInput
+                    // in the Initial pass to observe events before the text field consumes them
+                    // in the Main pass.
+                    awaitFirstDown(pass = PointerEventPass.Initial)
+                    val upEvent = waitForUpOrCancellation(pass = PointerEventPass.Initial)
+
+                    if (upEvent != null) {
+                        showModal = true
+                    }
+                }
+            },
+        colors = TextFieldDefaults.colors(
+            focusedContainerColor = Color.Transparent,
+            unfocusedContainerColor = Color.Transparent,
+            focusedIndicatorColor = Color(0xFFBEC2C2),
+            unfocusedIndicatorColor = Color(0xFFBEC2C2),
+            cursorColor = Color(0xFFBEC2C2)
+        ),
+        textStyle = TextStyle(
+            fontSize = 18.sp,
+            fontFamily = AlegreyaSansFontFamily,
+            color = Color.White
+        )
+    )
+
+    if (showModal) {
+        DatePickerModal(
+            onDateSelected = { selectedDate = it },
+            onDismiss = { showModal = false }
+        )
+    }
+    return selectedDate?.let { convertMillisToDate(it) } ?: ""
+}
+
+fun convertMillisToDate(millis: Long): String {
+    val formatter = SimpleDateFormat("MM/dd/yyyy", Locale.getDefault())
+    return formatter.format(Date(millis))
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DatePickerModal(
+    onDateSelected: (Long?) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val datePickerState = rememberDatePickerState()
+
+    DatePickerDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(onClick = {
+                onDateSelected(datePickerState.selectedDateMillis)
+                onDismiss()
+            }) {
+                Text("OK")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    ) {
+        DatePicker(state = datePickerState)
     }
 }

@@ -28,6 +28,8 @@ import com.example.floodaid.R
 import com.example.floodaid.models.Screen
 import com.example.floodaid.viewmodel.AuthState
 import com.example.floodaid.viewmodel.AuthViewModel
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -35,16 +37,35 @@ import kotlinx.coroutines.delay
 @Composable
 fun WelcomeLoading(
     navController: NavHostController,
-    modifier: Modifier = Modifier,
-    authViewModel: AuthViewModel
+    authViewModel: AuthViewModel,
 ) {
     val authState = authViewModel.authState.observeAsState()
     val context = LocalContext.current
 
+    val firestore = FirebaseFirestore.getInstance()
+
+
     LaunchedEffect(authState.value) {
         delay(2000)
         when (authState.value) {
-            is AuthState.Authenticated -> navController.navigate(Screen.Dashboard.route)
+            is AuthState.Authenticated -> {
+                val uid = FirebaseAuth.getInstance().currentUser?.uid
+                if (uid != null) {
+                    firestore.collection("users").document(uid).get()
+                        .addOnSuccessListener { doc ->
+                            val isComplete = doc.exists() && doc.getString("name") != null
+                            if (isComplete) {
+                                navController.navigate(Screen.Dashboard.route)
+                            } else {
+                                navController.navigate(Screen.RegisterProfile.route)
+                            }
+                        }
+                        .addOnFailureListener {
+                            Toast.makeText(context, "Error loading profile", Toast.LENGTH_SHORT)
+                                .show()
+                        }
+                }
+            }
 
             is AuthState.Error -> Toast.makeText(
                 context, (authState.value as AuthState.Error).message, Toast.LENGTH_SHORT
@@ -55,7 +76,6 @@ fun WelcomeLoading(
             else -> Unit
         }
     }
-
     Box(
         modifier = Modifier
             .fillMaxSize()

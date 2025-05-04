@@ -86,8 +86,7 @@ fun NavGraph(
 
         composable(route = Screen.Welcome.route) {
             Welcome(
-                navController = navController,
-                authViewModel = authViewModel
+                navController = navController
             )
         }
 
