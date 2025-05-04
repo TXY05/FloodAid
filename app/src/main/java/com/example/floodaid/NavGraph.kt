@@ -21,6 +21,7 @@ import com.example.floodaid.screen.login.Welcome
 import com.example.floodaid.screen.login.WelcomeLoading
 import com.example.floodaid.screen.map_UI.Map
 import com.example.floodaid.screen.volunteer.Volunteer
+import com.example.floodaid.screen.volunteer.VolunteerViewModel
 import com.example.floodaid.viewmodel.AuthViewModel
 import com.example.floodaid.viewmodel.FloodStatusViewModel
 
@@ -30,6 +31,7 @@ fun NavGraph(
     state: ForumPostState,
     onEvent: (ForumEvent) -> Unit,
     authViewModel: AuthViewModel,
+    volunteerViewModel: VolunteerViewModel
 ) {
     NavHost(navController = navController, startDestination = Screen.WelcomeLoading.route) {
         composable(route = Screen.Dashboard.route) {
@@ -80,7 +82,8 @@ fun NavGraph(
         }
 
         composable(route = Screen.Volunteer.route) {
-            Volunteer(navController = navController)
+            Volunteer(navController = navController,
+                viewModel = volunteerViewModel)
 //            Profile(navController = navController)
         }
 
