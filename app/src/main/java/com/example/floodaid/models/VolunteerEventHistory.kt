@@ -8,8 +8,10 @@ import java.util.UUID
 @Entity(tableName = "event_history")
 data class VolunteerEventHistory(
     @ColumnInfo(name = "history_id")
-    @PrimaryKey
-    val id: String = UUID.randomUUID().toString(),
+    @PrimaryKey(autoGenerate = true)
+    val id: Int = 0,
     val userId: String,
     val eventId: String
-)
+){
+    constructor() : this(0, "", "")
+}
