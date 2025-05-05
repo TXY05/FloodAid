@@ -98,14 +98,4 @@ class FloodStatusViewModel(
             }
         }
     }
-
-    fun clearAllData() {
-        // Caution: Firestore does not support bulk deletes client-side easily.
-        // So you may either skip this or implement Firestore recursive delete via admin scripts.
-        viewModelScope.launch {
-            repository.clearAllData()
-        }
-    }
-
-
 }

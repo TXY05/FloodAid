@@ -117,7 +117,7 @@ fun FloodStatus(navController: NavHostController, viewModel: FloodStatusViewMode
                             modifier = Modifier.size(20.dp)
                         )
                         Text(
-                            "= Safe",
+                            " Safe",
                             color = Color.Gray,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.padding(start = 4.dp)
@@ -132,7 +132,7 @@ fun FloodStatus(navController: NavHostController, viewModel: FloodStatusViewMode
                             modifier = Modifier.size(20.dp)
                         )
                         Text(
-                            "= Flooded",
+                            " Flooded",
                             color = Color.Gray,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.padding(start = 4.dp)
@@ -187,6 +187,7 @@ fun FloodStatus(navController: NavHostController, viewModel: FloodStatusViewMode
 
                                     Text(
                                         text = locationStatus.status,
+                                        fontWeight = FontWeight.Bold,
                                         style = MaterialTheme.typography.bodySmall,
                                         color = when (locationStatus.status) {
                                             "Flooded" -> Color.Red
@@ -198,13 +199,6 @@ fun FloodStatus(navController: NavHostController, viewModel: FloodStatusViewMode
                                 }
                             }
                         }
-                    }
-
-                    Button(
-                        onClick = { viewModel.clearAllData() },
-                        modifier = Modifier.padding(16.dp)
-                    ) {
-                        Text("Clear All Data")
                     }
                 }
             } else {
