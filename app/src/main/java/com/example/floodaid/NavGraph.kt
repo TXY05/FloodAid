@@ -42,7 +42,7 @@ fun NavGraph(
             val context = LocalContext.current
             val database = FloodAidDatabase.getInstance(context)
             val dao = database.floodStatusDao()
-            val repository = FloodStatusRepository(dao)
+            val repository = FloodStatusRepository(dao, FirestoreRepository())
             val firestoreRepository = FirestoreRepository()
             val viewModel = FloodStatusViewModel(repository, dao, firestoreRepository)
             FloodStatus(navController = navController, viewModel = viewModel, database = database)

@@ -13,5 +13,6 @@ data class FloodHistoryEntity(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
     val location: String,
     val status: String,
-    val date: String // Save as "dd/MM/yyyy"
+    val date: String,    // e.g., "05/05/2025"
+    val time: String     // e.g., "14:30"
 )

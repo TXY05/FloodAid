@@ -36,7 +36,7 @@ import com.example.floodaid.screen.floodstatus.LocationStatusEntity
         UserProfile::class,
         ForumPost::class
     ],
-    version = 5, // Increment this number by 1
+    version = 6, // Increment this number by 1
     exportSchema = true
 )
 @TypeConverters(Converter::class)

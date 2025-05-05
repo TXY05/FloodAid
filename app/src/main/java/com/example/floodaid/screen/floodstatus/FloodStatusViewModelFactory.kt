@@ -3,7 +3,6 @@ package com.example.floodaid.screen.floodstatus
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.example.floodaid.repository.FirestoreRepository
-import com.example.floodaid.screen.floodstatus.FloodStatusRepository
 import com.example.floodaid.viewmodel.FloodStatusViewModel
 
 class FloodStatusViewModelFactory(

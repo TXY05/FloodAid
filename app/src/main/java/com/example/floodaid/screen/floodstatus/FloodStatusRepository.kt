@@ -1,14 +1,14 @@
 package com.example.floodaid.screen.floodstatus
 
 import android.util.Log
-import kotlinx.coroutines.flow.Flow
-import com.example.floodaid.screen.floodstatus.FloodStatusDao
+import com.example.floodaid.repository.FirestoreRepository
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 
-class FloodStatusRepository(private val dao: FloodStatusDao) {
+class FloodStatusRepository(private val dao: FloodStatusDao, private val firestoreRepository: FirestoreRepository) {
     val predefinedDistricts = listOf(
         LocationStatusEntity(location = "Gombak", status = ""),
         LocationStatusEntity(location = "Hulu Langat", status = ""),
@@ -20,6 +20,8 @@ class FloodStatusRepository(private val dao: FloodStatusDao) {
         LocationStatusEntity(location = "Sepang", status = "")
     )
 
+
+
     private val firestore = FirebaseFirestore.getInstance()
 
     suspend fun syncFloodStatusFromFirestore() = withContext(Dispatchers.IO) {
@@ -29,9 +31,10 @@ class FloodStatusRepository(private val dao: FloodStatusDao) {
                 val location = doc.id // Use document ID as location name
                 val status = doc.getString("status") ?: continue
                 val date = doc.getString("last_updated") ?: continue
+                val time = doc.getString("last_updated_time") ?: "00:00"
 
                 val locationStatus = LocationStatusEntity(location, status)
-                val history = FloodHistoryEntity(location = location, status = status, date = date)
+                val history = FloodHistoryEntity(location = location, status = status, date = date, time = time)
 
                 dao.insertLocationStatus(locationStatus)
                 dao.insertFloodHistory(history)
@@ -42,19 +45,6 @@ class FloodStatusRepository(private val dao: FloodStatusDao) {
     }
 
     fun getAllLocations(): Flow<List<LocationStatusEntity>> = dao.getAllLocations()
-
-    fun getFloodHistory(location: String): Flow<List<FloodHistoryEntity>> {
-        return dao.getHistoryForLocation(location)
-    }
-
-    suspend fun updateStatus(location: String, status: String, date: String) {
-        dao.updateLocationStatus(LocationStatusEntity(location, status))
-        dao.insertFloodHistory(FloodHistoryEntity(location = location, status = status, date = date))
-    }
-
-    suspend fun insertInitial(locations: List<LocationStatusEntity>) {
-        dao.insertInitialLocations(locations)
-    }
 
     suspend fun initializePredefinedDistricts() {
         val existingDistricts = dao.getAllLocationsOnce() // Add a method to fetch all locations synchronously
@@ -69,5 +59,9 @@ class FloodStatusRepository(private val dao: FloodStatusDao) {
 
     suspend fun insertOrUpdateLocation(location: String, status: String) {
         dao.insertLocationStatus(LocationStatusEntity(location, status))
+    }
+
+    suspend fun updateFloodStatus(location: String, status: String, date: String, time: String) {
+        firestoreRepository.updateFloodStatus(location, status, date, time)
     }
 }

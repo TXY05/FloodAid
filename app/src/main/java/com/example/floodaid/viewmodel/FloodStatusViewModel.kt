@@ -7,13 +7,15 @@ import com.example.floodaid.repository.FirestoreRepository
 import com.example.floodaid.screen.floodstatus.FloodHistoryEntity
 import com.example.floodaid.screen.floodstatus.FloodStatusDao
 import com.example.floodaid.screen.floodstatus.FloodStatusRepository
-import com.example.floodaid.screen.floodstatus.LocationStatusEntity
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import java.util.Date
+import java.util.Locale
 
 data class LocationStatus(
     val location: String,
@@ -32,7 +34,7 @@ class FloodStatusViewModel(
     private val firestoreRepository: FirestoreRepository
 ) : ViewModel() {
 
-    val locations = repository.getAllLocations().asLiveData() // Collecting the Flow as LiveData
+    val locations = repository.getAllLocations().asLiveData()
     private val _uiState = MutableStateFlow(FloodStatusUiState())
     val uiState: StateFlow<FloodStatusUiState> = _uiState
 
@@ -75,10 +77,11 @@ class FloodStatusViewModel(
     }
 
     fun updateFloodStatus(location: String, status: String) {
+        val currentDate = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date())
+        val currentTime = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
+
         viewModelScope.launch {
-            val date = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
-            firestoreRepository.updateFloodStatus(location, status, date)
-            repository.insertOrUpdateLocation(location, status)
+            repository.updateFloodStatus(location, status, currentDate, currentTime)
         }
     }
 
