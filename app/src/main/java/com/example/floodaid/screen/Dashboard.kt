@@ -2,6 +2,7 @@ package com.example.floodaid.screen
 
 import BottomBar
 import android.annotation.SuppressLint
+import android.content.res.Configuration
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -38,8 +39,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.navigation.NavHostController
@@ -68,49 +71,101 @@ fun Dashboard(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(navController: NavController, authViewModel: AuthViewModel) {
+    val configuration = LocalConfiguration.current
+    val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+
     Scaffold(
         topBar = {
             TopAppBar(title = { Text("Dashboard") })
         }
     ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .padding(paddingValues)
-                .padding(16.dp)
-                .fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            // Flood Warning Image + Status Label
-            FloodStatusHeader()
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Grid of Main Features
-            Box(
+        if (isLandscape) {
+            // Landscape layout with fixed-size shortcuts
+            Row(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .wrapContentHeight()
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(Color(0xFFD6EAF8))
-                    .padding(8.dp)
+                    .padding(paddingValues)
+                    .fillMaxSize()
             ) {
+                // Left side - Additional content
                 Column(
                     modifier = Modifier
-                        .padding(16.dp)
-                        .wrapContentHeight(),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                        .weight(1f)
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.Center
                 ) {
-                    DashboardGrid(navController)
+                    // Flood status information
+                    FloodStatusHeader()
+
+                    Spacer(modifier = Modifier.height(24.dp))
+                }
+
+                // Right side - Features grid (same size as portrait)
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .wrapContentHeight()
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(Color(0xFFD6EAF8))
+                            .padding(8.dp)
+                    ) {
+                        DashboardGrid(navController, isLandscape = isLandscape)
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
                     Button(
                         onClick = {
                             authViewModel.signoutFunction()
                             navController.navigate("welcomeloading")
                         },
-
-                        enabled = true,
+                        modifier = Modifier.fillMaxWidth(),
                         shape = MaterialTheme.shapes.medium,
                     ) {
                         Text(text = "Logout")
+                    }
+                }
+            }
+        } else {
+            // Original portrait layout
+            Column(
+                modifier = Modifier
+                    .padding(paddingValues)
+                    .padding(16.dp)
+                    .fillMaxSize(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                FloodStatusHeader()
+                Spacer(modifier = Modifier.height(24.dp))
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .wrapContentHeight()
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(Color(0xFFD6EAF8))
+                        .padding(8.dp)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .padding(16.dp)
+                            .wrapContentHeight(),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        DashboardGrid(navController, isLandscape = isLandscape)
+                        Button(
+                            onClick = {
+                                authViewModel.signoutFunction()
+                                navController.navigate("welcomeloading")
+                            },
+                            enabled = true,
+                            shape = MaterialTheme.shapes.medium,
+                        ) {
+                            Text(text = "Logout")
+                        }
                     }
                 }
             }
@@ -202,7 +257,7 @@ fun LegendItem(color: Color, label: String, logo: ImageVector) {
 }
 
 @Composable
-fun DashboardGrid(navController: NavController) {
+fun DashboardGrid(navController: NavController, isLandscape: Boolean) {
     val features = listOf(
         Triple("Shelter Map", "map", Pair(Icons.Default.Place, Color(66, 165, 245))),
         Triple("Flood Status", "floodStatus", Pair(Icons.Default.Warning, Color(239, 83, 80))),
@@ -221,16 +276,15 @@ fun DashboardGrid(navController: NavController) {
     ) {
         items(features) { (title, route, iconWithColor) ->
             val (icon, color) = iconWithColor
-            AnimatedVisibility(
-                visible = true,
-                enter = fadeIn() + expandVertically(),
-                exit = fadeOut() + shrinkVertically()
+            FeatureCard(
+                title = title,
+                icon = icon,
+                color = color,
+                size = if (isLandscape) 120.dp else 150.dp // Adjust size
             ) {
-                FeatureCard(title = title, icon = icon, color = color) {
-                    navController.navigate(route) {
-                        popUpTo(Screen.Dashboard.route) {
-                            saveState = true
-                        }
+                navController.navigate(route) {
+                    popUpTo(Screen.Dashboard.route) {
+                        saveState = true
                     }
                 }
             }
@@ -239,11 +293,16 @@ fun DashboardGrid(navController: NavController) {
 }
 
 @Composable
-fun FeatureCard(title: String, icon: ImageVector, color: Color, onClick: () -> Unit) {
+fun FeatureCard(
+    title: String,
+    icon: ImageVector,
+    color: Color,
+    size: Dp, // Add size parameter
+    onClick: () -> Unit
+) {
     Card(
         modifier = Modifier
-            .fillMaxWidth()
-            .aspectRatio(1f)
+            .size(size) // Use the size parameter
             .padding(8.dp)
             .clickable { onClick() },
         colors = CardDefaults.cardColors(
