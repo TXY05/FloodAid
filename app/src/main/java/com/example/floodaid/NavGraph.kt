@@ -1,9 +1,13 @@
 package com.example.floodaid
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -21,6 +25,9 @@ import com.example.floodaid.screen.login.Signup
 import com.example.floodaid.screen.login.Welcome
 import com.example.floodaid.screen.login.WelcomeLoading
 import com.example.floodaid.screen.map_UI.Map
+import com.example.floodaid.screen.map_UI.SOSButton
+import com.example.floodaid.screen.map_UI.SOSButtonPlacement
+import com.example.floodaid.screen.map_UI.SOSViewModel
 import com.example.floodaid.screen.volunteer.Volunteer
 import com.example.floodaid.screen.volunteer.VolunteerViewModel
 import com.example.floodaid.viewmodel.AuthViewModel
@@ -34,9 +41,17 @@ fun NavGraph(
     authViewModel: AuthViewModel,
     volunteerViewModel: VolunteerViewModel
 ) {
+    val sosViewModel: SOSViewModel = viewModel()
+
     NavHost(navController = navController, startDestination = Screen.WelcomeLoading.route) {
         composable(route = Screen.Dashboard.route) {
-            Dashboard(navController = navController, authViewModel)
+            Box {
+                Dashboard(navController = navController, authViewModel)
+                SOSButton(
+                    viewModel = sosViewModel,
+                    placement = SOSButtonPlacement.DASHBOARD
+                )
+            }
         }
         composable(route = Screen.FloodStatus.route) {
             val context = LocalContext.current
@@ -59,12 +74,15 @@ fun NavGraph(
             )
         }
 
-//        composable(route = Screen.Map.route) {
-//            Map(navController = navController)
-//        }
         composable(route = Screen.Map.route) {
             key("persistent_map") {
-                Map(navController = navController)
+                Box {
+                    Map(navController = navController)
+                    SOSButton(
+                        viewModel = sosViewModel,
+                        placement = SOSButtonPlacement.MAP
+                    )
+                }
             }
         }
 
@@ -86,7 +104,6 @@ fun NavGraph(
         composable(route = Screen.Volunteer.route) {
             Volunteer(navController = navController,
                 viewModel = volunteerViewModel)
-//            Profile(navController = navController)
         }
 
         composable(route = Screen.Welcome.route) {

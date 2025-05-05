@@ -11,10 +11,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.floodaid.roomDatabase.Database.FloodAidDatabase
-import com.example.floodaid.roomDatabase.Entities.District
-import com.example.floodaid.roomDatabase.Entities.FloodMarker
-import com.example.floodaid.roomDatabase.Entities.Shelter
-import com.example.floodaid.roomDatabase.Entities.State
+import com.example.floodaid.roomDatabase.Entities.*
 import com.example.floodaid.roomDatabase.Repository.MapRepository
 import com.example.floodaid.utils.DistanceCalculator
 import com.example.floodaid.utils.GeocodingHelper
@@ -23,19 +20,23 @@ import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
-import com.google.android.gms.location.Priority.PRIORITY_HIGH_ACCURACY
 import com.google.android.gms.maps.model.LatLng
 import com.google.firebase.BuildConfig
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import androidx.lifecycle.ViewModel
+import com.example.floodaid.repository.FirestoreRepository
+import java.time.Instant
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 
-class MapViewModel(application: Application) : AndroidViewModel(application) {
-    private val repository = MapRepository(FloodAidDatabase.getInstance(application).MapDao())
+//class MapViewModel(application: Application) : AndroidViewModel(application) {
+class MapViewModel(
+    application: Application,
+    private val repository: MapRepository
+) : AndroidViewModel(application) {
+
     private val geocodingHelper = GeocodingHelper(getApplication())
 
     private val _uiState = MutableStateFlow(MapUiState())
@@ -46,6 +47,9 @@ class MapViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _selectedShelter = MutableStateFlow<Shelter?>(null)
     val selectedShelter: StateFlow<Shelter?> = _selectedShelter.asStateFlow()
+
+    private val _selectedMarkerId = MutableStateFlow<Long?>(null)
+    val selectedMarkerId: StateFlow<Long?> = _selectedMarkerId.asStateFlow()
 
     private val locationClient = LocationServices.getFusedLocationProviderClient(application)
     private val locationCallback = object : LocationCallback() {
@@ -59,13 +63,136 @@ class MapViewModel(application: Application) : AndroidViewModel(application) {
 
 
     init {
+//      Initial data sync
+        viewModelScope.launch {
+            try {
+                observeFireStoreUpdates()
+                withRetry(3) { repository.syncAllData() }
+
+            } catch (e: Exception) {
+            }
+        }
+
         fetchLocation()
         if (hasLocationPermission()) {
-            startLocationUpdates()  // Begin updates immediately if permission exists
+            startLocationUpdates()
         }
-//        if (BuildConfig.DEBUG) {
-//            _currentLocation.value = LatLng(3.1390, 101.6869) // KL coordinates for debugging
-//        }
+    }
+
+    // Helper function for retrying operations
+    private suspend fun <T> withRetry(maxRetries: Int, block: suspend () -> T): T {
+        var lastException: Exception? = null
+        repeat(maxRetries) { attempt ->
+            try {
+                return block()
+            } catch (e: Exception) {
+                lastException = e
+                if (attempt < maxRetries - 1) {
+                    delay(1000L * (attempt + 1)) // Exponential backoff
+                }
+            }
+        }
+        throw lastException ?: Exception("Unknown error occurred")
+    }
+
+    // FireStore Operations
+    fun syncData() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+            try {
+                // Sync data sequentially with retries
+                withRetry(3) { repository.syncAllData() }
+
+                // Refresh current view after sync
+                uiState.value.selectedState?.let { state ->
+                    loadDistrictsForState(state.id)
+                }
+                uiState.value.selectedDistrict?.let { district ->
+                    loadDistrictData(district.id)
+                }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(isLoading = false) }
+            } finally {
+                _uiState.update { it.copy(isLoading = false) }
+            }
+        }
+    }
+
+    fun observeFireStoreUpdates() {
+        viewModelScope.launch {
+            // Observe states updates first
+            repository.listenToStatesUpdates().collect { states ->
+                try {
+                    repository.insertAllStates(states)
+                    _uiState.update { it.copy(states = states) }
+                } catch (e: Exception) {
+                    Log.e("MapViewModel", "Error updating states: ${e.message}")
+                }
+            }
+        }
+
+        viewModelScope.launch {
+            // Observe districts updates after states
+            repository.listenToDistrictsUpdates().collect { districts ->
+                try {
+                    repository.insertAllDistricts(districts)
+                    _uiState.update { it.copy(districts = districts) }
+                } catch (e: Exception) {
+                    Log.e("MapViewModel", "Error updating districts: ${e.message}")
+                }
+            }
+        }
+
+        viewModelScope.launch {
+            // Observe shelters updates after districts
+            repository.listenToSheltersUpdates().collect { shelters ->
+                try {
+                    if (shelters.isNotEmpty()) {
+                        repository.insertAllShelters(shelters)
+                        uiState.value.selectedDistrict?.let { district ->
+                            // Filter shelters for the current district
+                            val districtShelters = shelters.filter { it.districtId == district.id }
+                            _uiState.update { it.copy(currentShelters = districtShelters) }
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.e("MapViewModel", "Error updating shelters: ${e.message}")
+                }
+            }
+        }
+
+        viewModelScope.launch {
+            // Observe flood markers updates after districts
+            repository.listenToFloodMarkersUpdates().collect { markers ->
+                try {
+                    if (markers.isNotEmpty()) {
+                        repository.insertAllMarkers(markers)
+                        uiState.value.selectedDistrict?.let { district ->
+                            // Filter markers for the current district
+                            val districtMarkers = markers.filter { it.districtId == district.id }
+                            _uiState.update { it.copy(currentMarkers = districtMarkers) }
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.e("MapViewModel", "Error updating flood markers: ${e.message}")
+                }
+            }
+        }
+    }
+
+    fun addNewFloodMarker(marker: FloodMarker) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+            try {
+                repository.pushFloodMarker(marker)
+                // Optionally update local database
+                repository.insertAllMarkers(listOf(marker))
+                _uiState.update { it.copy(isLoading = false) }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(isLoading = false) }
+                // Handle error appropriately
+            }
+        }
     }
 
     // For States
@@ -169,6 +296,7 @@ class MapViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    // Shelter
     fun onShelterSelected(shelter: Shelter?) {
         viewModelScope.launch {
             shelter?.let { nonNullShelter ->
@@ -186,17 +314,9 @@ class MapViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    // Calculate distance (example)
-    fun getDistanceToShelter(userLocation: LatLng, shelter: Shelter): Float {
-        return DistanceCalculator.calculateDistance(
-            userLocation,
-            LatLng(shelter.latitude, shelter.longitude)
-        )
-    }
-
     fun clearSelectedShelter() {
         viewModelScope.launch {
-            delay(100)
+//            delay(100)
             _selectedShelter.value = null
         }
     }
@@ -211,11 +331,11 @@ class MapViewModel(application: Application) : AndroidViewModel(application) {
                             _currentLocation.value = LatLng(it.latitude, it.longitude)
                         }
                     }
-                    .addOnFailureListener { e ->
-                        Log.e("Location", "Failed to get location", e)
-                        // Fallback to default location if needed
-                        _currentLocation.value = LatLng(3.1390, 101.6869) // KL coordinates
-                    }
+//                    .addOnFailureListener { e ->
+//                        Log.e("Location", "Failed to get location", e)
+//                        // Fallback to default location if needed
+//                        _currentLocation.value = LatLng(3.1390, 101.6869) // KL coordinates
+//                    }
             } catch (e: SecurityException) {
                 Log.e("Location", "Permission error", e)
             }
@@ -265,9 +385,12 @@ class MapViewModel(application: Application) : AndroidViewModel(application) {
                 ) == PackageManager.PERMISSION_GRANTED
     }
 
-    fun isGpsEnabled(context: Context): Boolean {
-        val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
-        return locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)
+    fun onMarkerSelected(markerId: Long) {
+        _selectedMarkerId.value = markerId
+    }
+
+    fun clearSelectedMarker() {
+        _selectedMarkerId.value = null
     }
 
     // State operations

@@ -30,6 +30,7 @@ navigationCompose = "2.8.9"
 firebaseFirestore = "25.1.3"
 mapsSecret = "2.0.1"
 googleMaps = "18.2.0"
+mapktx = "3.4.0"
 constraintlayout = "2.2.1"
 fragment = "1.8.6"
 appcompat = "1.7.0"
@@ -94,6 +95,7 @@ play-services-location-v2130 = { module = "com.google.android.gms:play-services-
 room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
 room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
 androidx-room-common-jvm = { group = "androidx.room", name = "room-common-jvm", version.ref = "roomCommonJvm" }
+map-ktx = { group = "com.google.maps.android", name = "maps-utils-ktx", version.ref = "mapktx" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

@@ -1,5 +1,6 @@
 package com.example.floodaid.roomDatabase.Dao
 
+import android.util.Log
 import androidx.room.Dao
 import androidx.room.Delete
 import androidx.room.Insert
@@ -31,6 +32,9 @@ interface MapDao {
     suspend fun deleteAllStates()
 
     // District operations
+    @Query("SELECT * FROM District")
+    suspend fun getAllDistricts(): List<District>
+
     @Transaction
     @Query("SELECT * FROM District WHERE stateId = :stateId")
     suspend fun getDistrictsByState(stateId: Long): List<DistrictWithShelters>
@@ -42,12 +46,15 @@ interface MapDao {
     suspend fun deleteAllDistricts()
 
     // Shelter operations
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertAllShelters(shelters: List<Shelter>)
+    @Query("SELECT * FROM Shelter")
+    suspend fun getAllShelters(): List<Shelter>
 
     @Transaction
     @Query("SELECT * FROM Shelter WHERE districtId = :districtId")
     fun getSheltersByDistrict(districtId: Long): Flow<List<Shelter>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAllShelters(shelters: List<Shelter>)
 
     @Query("DELETE FROM Shelter")
     suspend fun deleteAllShelters()
@@ -56,11 +63,8 @@ interface MapDao {
     suspend fun getShelterById(shelterId: Long): Shelter?
 
     // FloodMarker operations
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertAllMarkers(markers: List<FloodMarker>)
-
-    @Update
-    suspend fun updateMarker(marker: FloodMarker)
+    @Query("SELECT * FROM FloodMarker")
+    suspend fun getAllMarkers(): List<FloodMarker>
 
     @Query("SELECT * FROM FloodMarker WHERE id = :id")
     suspend fun getMarkerById(id: Long): FloodMarker?
@@ -74,6 +78,15 @@ interface MapDao {
         currentTime: Instant = Instant.now()
     ): Flow<List<FloodMarker>>
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertMarkers(markers: FloodMarker)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAllMarkers(markers: List<FloodMarker>)
+
+    @Update
+    suspend fun updateMarker(marker: FloodMarker)
+
     @Query("DELETE FROM FloodMarker WHERE id = :id")
     suspend fun deleteMarker(id: Long)
 
@@ -82,6 +95,17 @@ interface MapDao {
 
     @Query("DELETE FROM FloodMarker")
     suspend fun deleteAllMarkers()
+
+//    // Add a new function to safely delete markers
+//    @Transaction
+//    suspend fun safeDeleteExpiredMarkers(currentTime: Instant = Instant.now()) {
+//        try {
+//            cleanupExpiredMarkers(currentTime)
+//        } catch (e: Exception) {
+//            Log.e("MapDao", "Error cleaning up expired markers: ${e.message}")
+//            // Continue execution even if cleanup fails
+//        }
+//    }
 
 //    // Complex relationships
 //    @Transaction

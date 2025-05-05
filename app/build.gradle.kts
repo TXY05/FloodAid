@@ -75,6 +75,7 @@ dependencies {
     implementation(libs.google.firebase.analytics)
     implementation(libs.google.map)
     implementation(libs.androidx.appcompat)
+    implementation(libs.map.ktx)
 
     implementation(libs.androidx.room.runtime)
     ksp("androidx.room:room-compiler:${rootProject.extra["room_version"]}")

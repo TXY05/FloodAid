@@ -8,12 +8,20 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
+import com.example.floodaid.roomDatabase.Entities.*
+import java.time.Instant
 
 class FirestoreRepository {
 
     private val firestore = FirebaseFirestore.getInstance()
     private val floodStatusCollection = firestore.collection("floodstatus")
 
+    private val statesCollection = firestore.collection("states")
+    private val districtsCollection = firestore.collection("districts")
+    private val sheltersCollection = firestore.collection("shelters")
+    private val floodMarkersCollection = firestore.collection("flood_markers")
+
+    // Flood Status
     suspend fun updateFloodStatus(location: String, status: String, date: String, time: String) {
         val docRef = firestore.collection("floodstatus").document(location)
 
@@ -85,6 +93,187 @@ class FirestoreRepository {
             trySend(history)
         }
 
+        awaitClose { listener.remove() }
+    }
+
+    // Map
+    // States
+    suspend fun fetchAllStates(): List<State> {
+        val snapshot = statesCollection.get().await()
+        return snapshot.documents.mapNotNull { doc ->
+            State(
+                id = doc.getLong("id") ?: 0L,
+                name = doc.getString("name") ?: return@mapNotNull null
+            )
+        }
+    }
+
+    fun listenToStates(): Flow<List<State>> = callbackFlow {
+        val listener = statesCollection.addSnapshotListener { snapshot, error ->
+            if (error != null || snapshot == null) return@addSnapshotListener
+
+            val states = snapshot.documents.mapNotNull { doc ->
+                State(
+                    id = doc.getLong("id") ?: 0L,
+                    name = doc.getString("name") ?: return@mapNotNull null
+                )
+            }
+            trySend(states)
+        }
+        awaitClose { listener.remove() }
+    }
+
+    // Districts
+    suspend fun fetchAllDistricts(): List<District> {
+        val snapshot = districtsCollection.get().await()
+        val districts = mutableListOf<District>()
+
+        for (doc in snapshot.documents) {
+            val borderCoordinates = mutableListOf<List<Double>>()
+            val borderSnapshot = doc.reference.collection("borderCoordinates").get().await()
+
+            for (borderDoc in borderSnapshot.documents) {
+                val lat = borderDoc.getDouble("lat") ?: continue
+                val lon = borderDoc.getDouble("lon") ?: continue
+                borderCoordinates.add(listOf(lat, lon))
+            }
+
+            districts.add(
+                District(
+                    id = doc.getLong("id") ?: 0L,
+                    name = doc.getString("name") ?: continue,
+                    latitude = doc.getDouble("latitude") ?: continue,
+                    longitude = doc.getDouble("longitude") ?: continue,
+                    borderCoordinates = if (borderCoordinates.isNotEmpty()) Border(borderCoordinates) else null,
+                    stateId = doc.getLong("stateId") ?: continue
+                )
+            )
+        }
+        return districts
+    }
+
+    fun listenToDistricts(): Flow<List<District>> = callbackFlow {
+        val listener = districtsCollection.addSnapshotListener { snapshot, error ->
+            if (error != null || snapshot == null) return@addSnapshotListener
+
+            val districts = mutableListOf<District>()
+            for (doc in snapshot.documents) {
+                val borderCoordinates = mutableListOf<List<Double>>()
+                doc.reference.collection("borderCoordinates").get()
+                    .addOnSuccessListener { borderSnapshot ->
+                        for (borderDoc in borderSnapshot.documents) {
+                            val lat = borderDoc.getDouble("lat") ?: return@addOnSuccessListener
+                            val lon = borderDoc.getDouble("lon") ?: return@addOnSuccessListener
+                            borderCoordinates.add(listOf(lat, lon))
+                        }
+
+                        districts.add(
+                            District(
+                                id = doc.getLong("id") ?: 0L,
+                                name = doc.getString("name") ?: return@addOnSuccessListener,
+                                latitude = doc.getDouble("latitude") ?: return@addOnSuccessListener,
+                                longitude = doc.getDouble("longitude") ?: return@addOnSuccessListener,
+                                borderCoordinates = if (borderCoordinates.isNotEmpty()) Border(borderCoordinates) else null,
+                                stateId = doc.getLong("stateId") ?: return@addOnSuccessListener
+                            )
+                        )
+                        trySend(districts)
+                    }
+            }
+        }
+        awaitClose { listener.remove() }
+    }
+
+    // Shelters
+    suspend fun fetchAllShelters(): List<Shelter> {
+        val snapshot = sheltersCollection.get().await()
+        return snapshot.documents.mapNotNull { doc ->
+            Shelter(
+                id = doc.getLong("id") ?: 0L,
+                helpCenterName = doc.getString("helpCenterName") ?: return@mapNotNull null,
+                descriptions = doc.getString("descriptions") ?: "",
+                latitude = doc.getDouble("latitude") ?: return@mapNotNull null,
+                longitude = doc.getDouble("longitude") ?: return@mapNotNull null,
+                districtId = doc.getLong("districtId") ?: return@mapNotNull null,
+                address = doc.getString("address")
+            )
+        }
+    }
+
+    fun listenToShelters(): Flow<List<Shelter>> = callbackFlow {
+        val listener = sheltersCollection.addSnapshotListener { snapshot, error ->
+            if (error != null || snapshot == null) return@addSnapshotListener
+
+            val shelters = snapshot.documents.mapNotNull { doc ->
+                Shelter(
+                    id = doc.getLong("id") ?: 0L,
+                    helpCenterName = doc.getString("helpCenterName") ?: return@mapNotNull null,
+                    descriptions = doc.getString("descriptions") ?: "",
+                    latitude = doc.getDouble("latitude") ?: return@mapNotNull null,
+                    longitude = doc.getDouble("longitude") ?: return@mapNotNull null,
+                    districtId = doc.getLong("districtId") ?: return@mapNotNull null,
+                    address = doc.getString("address")
+                )
+            }
+            trySend(shelters)
+        }
+        awaitClose { listener.remove() }
+    }
+
+    // Flood Markers
+    suspend fun fetchAllFloodMarkers(): List<FloodMarker> {
+        val currentTime = Instant.now().toEpochMilli()
+        val snapshot = floodMarkersCollection
+            .whereGreaterThan("expiryTime", currentTime)
+            .get()
+            .await()
+
+        return snapshot.documents.mapNotNull { doc ->
+            FloodMarker(
+                id = doc.getLong("id") ?: 0L,
+                floodStatus = doc.getString("floodStatus") ?: return@mapNotNull null,
+                districtId = doc.getLong("districtId") ?: return@mapNotNull null,
+                latitude = doc.getDouble("latitude") ?: return@mapNotNull null,
+                longitude = doc.getDouble("longitude") ?: return@mapNotNull null,
+                expiryTime = Instant.ofEpochMilli(doc.getLong("expiryTime") ?: return@mapNotNull null),
+                reporterId = doc.getString("reporterId")
+            )
+        }
+    }
+
+    suspend fun pushFloodMarker(marker: FloodMarker) {
+        val markerData = mapOf(
+            "id" to marker.id,
+            "floodStatus" to marker.floodStatus,
+            "districtId" to marker.districtId,
+            "latitude" to marker.latitude,
+            "longitude" to marker.longitude,
+            "expiryTime" to marker.expiryTime.toEpochMilli(),
+            "reporterId" to marker.reporterId
+        )
+
+        floodMarkersCollection.document(marker.id.toString()).set(markerData).await()
+    }
+
+    fun listenToFloodMarkers(): Flow<List<FloodMarker>> = callbackFlow {
+        val listener = floodMarkersCollection
+            .whereGreaterThan("expiryTime", Instant.now().toEpochMilli())
+            .addSnapshotListener { snapshot, error ->
+                if (error != null || snapshot == null) return@addSnapshotListener
+
+                val markers = snapshot.documents.mapNotNull { doc ->
+                    FloodMarker(
+                        id = doc.getLong("id") ?: 0L,
+                        floodStatus = doc.getString("floodStatus") ?: return@mapNotNull null,
+                        districtId = doc.getLong("districtId") ?: return@mapNotNull null,
+                        latitude = doc.getDouble("latitude") ?: return@mapNotNull null,
+                        longitude = doc.getDouble("longitude") ?: return@mapNotNull null,
+                        expiryTime = Instant.ofEpochMilli(doc.getLong("expiryTime") ?: return@mapNotNull null),
+                        reporterId = doc.getString("reporterId")
+                    )
+                }
+                trySend(markers)
+            }
         awaitClose { listener.remove() }
     }
 }

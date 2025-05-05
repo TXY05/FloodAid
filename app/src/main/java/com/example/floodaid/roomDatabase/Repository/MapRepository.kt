@@ -1,17 +1,24 @@
 package com.example.floodaid.roomDatabase.Repository
 
+import com.example.floodaid.repository.FirestoreRepository
 import com.example.floodaid.roomDatabase.Dao.MapDao
 import com.example.floodaid.roomDatabase.Entities.District
 import com.example.floodaid.roomDatabase.Entities.FloodMarker
 import com.example.floodaid.roomDatabase.Entities.Shelter
 import com.example.floodaid.roomDatabase.Entities.State
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
+import java.time.Instant
+import android.util.Log
 
-class MapRepository(private val dao: MapDao) {
+class MapRepository(
+    private val dao: MapDao,
+    private val FirestoreRepository: FirestoreRepository
+) {
     // State operations
     suspend fun getAllStates(): List<State> {
         return dao.getAllStates().distinctBy { it.id } // or distinctBy { it.name }
     }
-//    suspend fun getAllStates() = dao.getAllStates()
     suspend fun insertState(states: State) = dao.insertState(states)
     suspend fun insertAllStates(states: List<State>) = dao.insertAllStates(states)
     suspend fun deleteAllStates() = dao.deleteAllStates()
@@ -28,7 +35,6 @@ class MapRepository(private val dao: MapDao) {
     suspend fun getShelterById(shelterId: Long) = dao.getShelterById(shelterId)
 
     // FloodMarker operations
-    fun getMarkersByDistrict(districtId: Long) = dao.getMarkersByDistrict(districtId)
     fun getActiveMarkersByDistrict(districtId: Long) = dao.getActiveMarkersByDistrict(districtId)
     suspend fun insertAllMarkers(markers: List<FloodMarker>) = dao.insertAllMarkers(markers)
     suspend fun updateMarker(marker: FloodMarker) = dao.updateMarker(marker)
@@ -37,7 +43,64 @@ class MapRepository(private val dao: MapDao) {
     suspend fun getMarkerById(id: Long) = dao.getMarkerById(id)
     suspend fun deleteAllMarkers() = dao.deleteAllMarkers()
 
-//    // Complex relationships
-//    suspend fun getStateWithDistricts(stateId: Long) = dao.getStateWithDistricts(stateId)
-//    suspend fun getDistrictWithMarkers(districtId: Long) = dao.getDistrictWithMarkers(districtId)
+    // FireStore Operations
+    suspend fun syncAllData() {
+        try {
+            syncStates()
+            syncDistricts()
+            syncShelters()
+            syncFloodMarkers()
+
+        } catch (e: Exception) {
+            Log.e("MapRepository", "Error during sync: ${e.message}")
+        }
+    }
+
+    // Separate sync functions for individual tables
+    suspend fun syncStates() {
+        try {
+            val states = FirestoreRepository.fetchAllStates()
+            insertAllStates(states)
+        } catch (e: Exception) {
+            Log.e("MapRepository", "Error syncing states: ${e.message}")
+        }
+    }
+
+    suspend fun syncDistricts() {
+        try {
+            val districts = FirestoreRepository.fetchAllDistricts()
+            insertAllDistricts(districts)
+        } catch (e: Exception) {
+            Log.e("MapRepository", "Error syncing districts: ${e.message}")
+        }
+    }
+
+    suspend fun syncShelters() {
+        try {
+            val shelters = FirestoreRepository.fetchAllShelters()
+            insertAllShelters(shelters)
+        } catch (e: Exception) {
+            Log.e("MapRepository", "Error syncing shelters: ${e.message}")
+        }
+    }
+
+    suspend fun syncFloodMarkers() {
+        try {
+            val markers = FirestoreRepository.fetchAllFloodMarkers()
+            insertAllMarkers(markers)
+        } catch (e: Exception) {
+            Log.e("MapRepository", "Error syncing flood markers: ${e.message}")
+        }
+    }
+
+    // Listen to FireStore updates
+    fun listenToStatesUpdates(): Flow<List<State>> = FirestoreRepository.listenToStates()
+    fun listenToDistrictsUpdates(): Flow<List<District>> = FirestoreRepository.listenToDistricts()
+    fun listenToSheltersUpdates(): Flow<List<Shelter>> = FirestoreRepository.listenToShelters()
+    fun listenToFloodMarkersUpdates(): Flow<List<FloodMarker>> = FirestoreRepository.listenToFloodMarkers()
+
+    // Add new flood marker to FireStore
+    suspend fun pushFloodMarker(marker: FloodMarker) {
+        FirestoreRepository.pushFloodMarker(marker)
+    }
 }

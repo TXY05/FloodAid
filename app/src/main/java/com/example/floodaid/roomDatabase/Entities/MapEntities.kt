@@ -53,14 +53,15 @@ data class District(
     indices = [Index(value = ["districtId"])]
 )
 data class Shelter(
-    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    @PrimaryKey
+    val id: Long = 0,
     val helpCenterName: String,
     val descriptions: String,
     val latitude: Double,
     val longitude: Double,
     val districtId: Long, // Foreign key reference to District
     val address: String? = null,
-    val distance: Float? = null
+//    val distance: Float? = null
 )
 
 @Entity(
@@ -83,7 +84,6 @@ data class FloodMarker(
     val longitude: Double,
     val expiryTime: Instant, // When this marker should expire
     val createdAt: Instant = Instant.now(), // When this marker was created
-    val notes: String? = null, // Optional additional information
     val reporterId: String? = null // Who reported this (could be user ID or device ID)
 ) {
     fun isExpired(): Boolean {
