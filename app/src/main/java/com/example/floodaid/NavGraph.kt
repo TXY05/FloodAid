@@ -8,6 +8,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.example.floodaid.models.Screen
+import com.example.floodaid.repository.FirestoreRepository
 import com.example.floodaid.roomDatabase.Database.FloodAidDatabase
 import com.example.floodaid.screen.*
 import com.example.floodaid.screen.floodstatus.FloodStatusRepository
@@ -40,10 +41,11 @@ fun NavGraph(
         composable(route = Screen.FloodStatus.route) {
             val context = LocalContext.current
             val database = FloodAidDatabase.getInstance(context)
-            val repository = FloodStatusRepository(database.floodStatusDao())
-            val viewModel = FloodStatusViewModel(repository)
+            val dao = database.floodStatusDao()
+            val repository = FloodStatusRepository(dao)
+            val firestoreRepository = FirestoreRepository()
+            val viewModel = FloodStatusViewModel(repository, dao, firestoreRepository)
             FloodStatus(navController = navController, viewModel = viewModel, database = database)
-
             LaunchedEffect(Unit) {
                 repository.initializePredefinedDistricts()
             }

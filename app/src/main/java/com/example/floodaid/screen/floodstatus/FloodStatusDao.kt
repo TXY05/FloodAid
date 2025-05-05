@@ -24,13 +24,24 @@ interface FloodStatusDao {
     @Query("UPDATE location_status SET status = ''")
     suspend fun clearAllStatuses()
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertLocationStatus(location: LocationStatusEntity)
+
+    @Query("SELECT * FROM location_status")
+    fun getAllLocationStatuses(): Flow<List<LocationStatusEntity>>
+
     // For FloodHistory
     @Query("SELECT * FROM flood_history WHERE location = :location ORDER BY id DESC LIMIT 7")
     fun getHistoryForLocation(location: String): Flow<List<FloodHistoryEntity>>
 
     @Insert
-    suspend fun insertHistory(history: FloodHistoryEntity)
+    suspend fun insertFloodHistory(history: FloodHistoryEntity)
 
     @Query("DELETE FROM flood_history")
     suspend fun clearAllHistories()
+
+    @Query("SELECT * FROM flood_history")
+    fun getAllFloodHistory(): Flow<List<FloodHistoryEntity>>
+
+
 }

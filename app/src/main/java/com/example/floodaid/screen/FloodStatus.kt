@@ -17,6 +17,7 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -33,10 +34,22 @@ import com.example.floodaid.roomDatabase.Database.FloodAidDatabase
 import com.example.floodaid.screen.floodstatus.FloodStatusRepository
 import com.example.floodaid.screen.floodstatus.FloodStatusViewModelFactory
 import com.example.floodaid.viewmodel.FloodStatusViewModel
+import com.google.firebase.auth.FirebaseAuth
 
 @Composable
 fun FloodStatus(navController: NavHostController, viewModel: FloodStatusViewModel, database: FloodAidDatabase) {
     val uiState by viewModel.uiState.collectAsState()
+    val user = FirebaseAuth.getInstance().currentUser
+    val locations by viewModel.locations.observeAsState(initial = emptyList())
+
+    LaunchedEffect(Unit) {
+        if (user != null) {
+            viewModel.syncFromFirestore()
+        } else {
+            // Redirect to login or show an error
+            navController.navigate(Screen.Login.route)
+        }
+    }
 
     Scaffold(
         bottomBar = { BottomBar(navController = navController) }

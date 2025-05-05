@@ -22,7 +22,6 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
-import com.example.floodaid.roomDatabase.Database.FloodAidDatabase
 import com.example.floodaid.roomDatabase.Repository.VolunteerRepository
 import com.example.floodaid.utils.GeocodingHelper
 import com.example.floodaid.roomDatabase.Database.FloodAidDatabase
