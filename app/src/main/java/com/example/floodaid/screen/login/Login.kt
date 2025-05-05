@@ -1,6 +1,5 @@
 package com.example.floodaid.screen.login
 
-import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
@@ -69,11 +68,10 @@ fun Login(
         when (authState.value) {
             is AuthState.Authenticated -> {
                 val uid = FirebaseAuth.getInstance().currentUser?.uid
-                Log.d("ProfileDebug", "UID = $uid")
                 if (uid != null) {
                     firestore.collection("users").document(uid).get()
                         .addOnSuccessListener { doc ->
-                            val isComplete = doc.exists() && doc.getString("name") != null
+                            val isComplete = doc.exists() && doc.getString("fullName") != null
                             if (isComplete) {
                                 navController.navigate(Screen.Dashboard.route)
                             } else {
@@ -81,7 +79,8 @@ fun Login(
                             }
                         }
                         .addOnFailureListener {
-                            Toast.makeText(context, "Error loading profile", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, "Error loading profile", Toast.LENGTH_SHORT)
+                                .show()
                         }
                 }
             }

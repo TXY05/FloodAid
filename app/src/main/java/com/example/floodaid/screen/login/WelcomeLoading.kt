@@ -53,7 +53,7 @@ fun WelcomeLoading(
                 if (uid != null) {
                     firestore.collection("users").document(uid).get()
                         .addOnSuccessListener { doc ->
-                            val isComplete = doc.exists() && doc.getString("name") != null
+                            val isComplete = doc.exists() && doc.getString("fullName") != null
                             if (isComplete) {
                                 navController.navigate(Screen.Dashboard.route)
                             } else {
