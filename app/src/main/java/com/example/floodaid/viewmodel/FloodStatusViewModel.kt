@@ -76,14 +76,31 @@ class FloodStatusViewModel(
         _uiState.value = _uiState.value.copy(showDialog = false)
     }
 
+    private val _snackbarMessage = MutableStateFlow<String?>(null)
+    val snackbarMessage: StateFlow<String?> = _snackbarMessage
+
+    fun showSnackbar(message: String) {
+        _snackbarMessage.value = message
+    }
+
+    fun clearSnackbar() {
+        _snackbarMessage.value = null
+    }
+
     fun updateFloodStatus(location: String, status: String) {
         val currentDate = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date())
         val currentTime = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
 
         viewModelScope.launch {
-            repository.updateFloodStatus(location, status, currentDate, currentTime)
+            try {
+                repository.updateFloodStatus(location, status, currentDate, currentTime)
+                showSnackbar("Status updated successfully!")
+            } catch (e: Exception) {
+                showSnackbar("Failed to update status: ${e.message}")
+            }
         }
     }
+
 
     fun syncFromFirestore() {
         viewModelScope.launch {
@@ -98,4 +115,5 @@ class FloodStatusViewModel(
             }
         }
     }
+
 }
