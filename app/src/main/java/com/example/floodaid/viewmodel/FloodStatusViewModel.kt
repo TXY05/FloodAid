@@ -1,14 +1,19 @@
 package com.example.floodaid.viewmodel
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.asLiveData
 import androidx.lifecycle.viewModelScope
+import com.example.floodaid.repository.FirestoreRepository
 import com.example.floodaid.screen.floodstatus.FloodHistoryEntity
+import com.example.floodaid.screen.floodstatus.FloodStatusDao
 import com.example.floodaid.screen.floodstatus.FloodStatusRepository
 import com.example.floodaid.screen.floodstatus.LocationStatusEntity
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 
 data class LocationStatus(
     val location: String,
@@ -21,21 +26,34 @@ data class FloodStatusUiState(
     val showDialog: Boolean = false
 )
 
-class FloodStatusViewModel(private val repository: FloodStatusRepository) : ViewModel() {
+class FloodStatusViewModel(
+    private val repository: FloodStatusRepository,
+    private val dao: FloodStatusDao,
+    private val firestoreRepository: FirestoreRepository
+) : ViewModel() {
 
+    val locations = repository.getAllLocations().asLiveData() // Collecting the Flow as LiveData
     private val _uiState = MutableStateFlow(FloodStatusUiState())
     val uiState: StateFlow<FloodStatusUiState> = _uiState
 
+    private val _historyState = MutableStateFlow<List<FloodHistoryEntity>>(emptyList())
+    val historyState: StateFlow<List<FloodHistoryEntity>> = _historyState
+
     init {
-        fetchLocations()
+        observeFirestoreStatus()
     }
 
-    private fun fetchLocations() {
+    private fun observeFirestoreStatus() {
         viewModelScope.launch {
-            repository.getAllLocations().collectLatest { locations ->
+            firestoreRepository.listenToFloodStatus().collectLatest { statusList ->
                 _uiState.value = _uiState.value.copy(
-                    floodData = locations.map { LocationStatus(it.location, it.status) }
+                    floodData = statusList.map { LocationStatus(it.location, it.status) }
                 )
+
+                // Also update local Room DB (optional syncing back to Room)
+                statusList.forEach {
+                    repository.insertOrUpdateLocation(it.location, it.status)
+                }
             }
         }
     }
@@ -58,26 +76,33 @@ class FloodStatusViewModel(private val repository: FloodStatusRepository) : View
 
     fun updateFloodStatus(location: String, status: String) {
         viewModelScope.launch {
-            val currentDate = java.time.LocalDate.now().toString() // System date in "yyyy-MM-dd" format
-            repository.updateStatus(location, status, currentDate)
+            val date = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
+            firestoreRepository.updateFloodStatus(location, status, date)
+            repository.insertOrUpdateLocation(location, status)
         }
     }
 
-    private val _historyState = MutableStateFlow<List<FloodHistoryEntity>>(emptyList())
-    val historyState: StateFlow<List<FloodHistoryEntity>> = _historyState
+    fun syncFromFirestore() {
+        viewModelScope.launch {
+            repository.syncFloodStatusFromFirestore()
+        }
+    }
 
     fun fetchFloodHistory(location: String) {
         viewModelScope.launch {
-            repository.getFloodHistory(location).collectLatest { history ->
-                _historyState.value = history
+            firestoreRepository.listenToFloodHistory(location).collectLatest { historyList ->
+                _historyState.value = historyList
             }
         }
     }
 
     fun clearAllData() {
+        // Caution: Firestore does not support bulk deletes client-side easily.
+        // So you may either skip this or implement Firestore recursive delete via admin scripts.
         viewModelScope.launch {
             repository.clearAllData()
-            fetchLocations() // Refresh the UI after clearing data
         }
     }
+
+
 }
