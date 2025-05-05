@@ -12,5 +12,6 @@ data class UserProfile(
     val myKadOrPassport: String,
     val gender: String,
     val birthOfDate: String,
-    val location: String
+    val location: String,
+    val profilePictureUrl: String = "",
 )

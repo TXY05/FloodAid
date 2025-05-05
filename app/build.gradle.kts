@@ -98,5 +98,6 @@ dependencies {
     implementation(libs.credentials)
     implementation(libs.androidx.credentials.play.services.auth)
 
-
+    implementation(libs.firebase.storage.ktx)
+    implementation (libs.firebase.storage)
 }

@@ -1,6 +1,9 @@
 package com.example.floodaid.screen.login
 
+import android.graphics.Bitmap
 import android.net.Uri
+import android.provider.MediaStore
+import android.util.Base64
 import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -60,6 +63,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -74,27 +78,22 @@ import com.example.floodaid.ui.theme.AlegreyaSansFontFamily
 import com.example.jetpackcomposeauthui.components.CTextField
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import java.io.ByteArrayOutputStream
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+
 @Composable
 fun RegisterProfile(modifier: Modifier = Modifier, navController: NavHostController) {
-    val imageUri = rememberSaveable { mutableStateOf("") }
+    val imageUri = rememberSaveable { mutableStateOf<Uri?>(null) }
     val painter = rememberAsyncImagePainter(
-        model = if (imageUri.value.isEmpty()) {
-            R.drawable.ic_user
-        } else {
-            imageUri.value
-        }, error = painterResource(R.drawable.ic_user)
+        model = imageUri.value ?: R.drawable.ic_user,
+        error = painterResource(R.drawable.ic_user)
     )
     val launcher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
-    ) { uri: Uri? ->
-        uri?.let {
-            imageUri.value = it.toString()
-        }
-    }
+        ActivityResultContracts.GetContent()
+    ) { uri: Uri? -> imageUri.value = uri }
 
     var fullName by remember { mutableStateOf("") }
     var username by remember { mutableStateOf("") }
@@ -102,33 +101,43 @@ fun RegisterProfile(modifier: Modifier = Modifier, navController: NavHostControl
     var selectedGender by remember { mutableStateOf("") }
     var birthOfDate by remember { mutableStateOf("") }
     var currentDistrict by remember { mutableStateOf("") }
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(WindowInsets.statusBars.asPaddingValues())
-    ) {
-        /// Background Image
+
+    // Move context-related tasks to a Composable scope
+    val context = LocalContext.current
+
+    // Helper function to encode the image to Base64
+    fun encodeImageToBase64(imageUri: Uri?): String? {
+        return if (imageUri != null) {
+            try {
+                val bitmap: Bitmap = MediaStore.Images.Media.getBitmap(context.contentResolver, imageUri)
+                val byteArrayOutputStream = ByteArrayOutputStream()
+                bitmap.compress(Bitmap.CompressFormat.JPEG, 100, byteArrayOutputStream)
+                val byteArray = byteArrayOutputStream.toByteArray()
+                Base64.encodeToString(byteArray, Base64.DEFAULT)
+            } catch (e: Exception) {
+                e.printStackTrace()
+                null
+            }
+        } else {
+            null
+        }
+    }
+
+    Box(modifier = Modifier.fillMaxSize().padding(WindowInsets.statusBars.asPaddingValues())) {
+        // Background Image
         Image(
-            painter = painterResource(
-                id = R.drawable.loginbackground
-            ),
+            painter = painterResource(id = R.drawable.loginbackground),
             contentDescription = null,
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop
-
         )
 
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.SpaceBetween,
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 24.dp),
+            modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp)
         ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.fillMaxWidth()
-            ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
                 Box(
                     modifier = Modifier
                         .padding(top = 50.dp, bottom = 20.dp)
@@ -140,7 +149,8 @@ fun RegisterProfile(modifier: Modifier = Modifier, navController: NavHostControl
                         shape = CircleShape,
                         modifier = Modifier
                             .fillMaxSize()
-                            .clickable { launcher.launch("image/*") }) {
+                            .clickable { launcher.launch("image/*") }
+                    ) {
                         Image(
                             painter = painter,
                             contentDescription = "Profile Picture",
@@ -161,9 +171,7 @@ fun RegisterProfile(modifier: Modifier = Modifier, navController: NavHostControl
                         Icon(
                             imageVector = Icons.Default.Edit,
                             contentDescription = "Camera Icon",
-                            modifier = Modifier
-                                .align(Alignment.Center)
-                                .size(24.dp)
+                            modifier = Modifier.align(Alignment.Center).size(24.dp)
                         )
                     }
                 }
@@ -176,36 +184,17 @@ fun RegisterProfile(modifier: Modifier = Modifier, navController: NavHostControl
                     modifier = Modifier.padding(bottom = 15.dp)
                 )
 
-
-                CTextField(
-                    hint = "Full Name",
-                    value = fullName,
-                    onValueChange = { newValue -> fullName = newValue })
-
-                CTextField(
-                    hint = "Username",
-                    value = username,
-                    onValueChange = { newValue -> username = newValue })
-
-                CTextField(
-                    hint = "Mykad / Passport Number",
-                    value = myKadOrPassport,
-                    onValueChange = { newValue -> myKadOrPassport = newValue })
-
-                GenderSelector(
-                    selectedGender = selectedGender, onGenderSelected = { selectedGender = it })
-
-
-                birthOfDate=DatePickerFieldToModal()
-
+                CTextField(hint = "Full Name", value = fullName, onValueChange = { fullName = it })
+                CTextField(hint = "Username", value = username, onValueChange = { username = it })
+                CTextField(hint = "Mykad / Passport Number", value = myKadOrPassport, onValueChange = { myKadOrPassport = it })
+                GenderSelector(selectedGender = selectedGender, onGenderSelected = { selectedGender = it })
+                birthOfDate = datePickerFieldToModal()
                 StateSelector(
                     modifier = Modifier.fillMaxWidth(),
                     currentDistrict = currentDistrict,
-                    onDistrictSelected = { district -> currentDistrict = district },
-                    onTextChanged = { newText -> currentDistrict = newText }
+                    onDistrictSelected = { currentDistrict = it },
+                    onTextChanged = { currentDistrict = it }
                 )
-
-
 
                 Box(modifier = Modifier.fillMaxSize()) {
                     Button(
@@ -214,15 +203,20 @@ fun RegisterProfile(modifier: Modifier = Modifier, navController: NavHostControl
                             val email = FirebaseAuth.getInstance().currentUser?.email
 
                             if (uid != null) {
+                                // Now, use the helper function inside composable scope
+                                val base64Image = encodeImageToBase64(imageUri.value)
+
+                                // Save profile with or without image
                                 val profile = UserProfile(
                                     uid = uid,
-                                    fullName = fullName,       // get these values from your TextFields
+                                    fullName = fullName,
                                     userName = username,
-                                    email = email.toString(),
+                                    email = email ?: "",
                                     myKadOrPassport = myKadOrPassport,
                                     gender = selectedGender,
-                                    birthOfDate = birthOfDate, // format: "YYYY-MM-DD"
-                                    location = currentDistrict
+                                    birthOfDate = birthOfDate,
+                                    location = currentDistrict,
+                                    profilePictureUrl = base64Image ?: ""
                                 )
 
                                 FirebaseFirestore.getInstance()
@@ -230,47 +224,30 @@ fun RegisterProfile(modifier: Modifier = Modifier, navController: NavHostControl
                                     .document(uid)
                                     .set(profile)
                                     .addOnSuccessListener {
-                                        Log.d("Profile", "Profile saved")
-
+                                        Log.d("Profile", "Profile saved successfully")
                                         navController.navigate(Screen.Dashboard.route)
                                     }
-                                    .addOnFailureListener {
-                                        Log.e("Profile", "Error saving profile", it)
-                                        // Show error message
+                                    .addOnFailureListener { e ->
+                                        Log.e("Firestore", "Error saving profile", e)
                                     }
                             }
-
                         },
                         shape = MaterialTheme.shapes.large,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary
-                        ),
-                        modifier = Modifier
-                            .padding(bottom = 16.dp)
-                            .fillMaxWidth()
-                            .height(52.dp)
-                            .align(alignment = Alignment.BottomCenter)
-
-
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                        modifier = Modifier.padding(bottom = 16.dp).fillMaxWidth().height(52.dp).align(alignment = Alignment.BottomCenter)
                     ) {
                         Text(
                             "Save Profile",
-                            style = TextStyle(
-                                fontSize = 22.sp,
-                                fontFamily = AlegreyaSansFontFamily,
-                                fontWeight = FontWeight(500),
-                                color = Color.White
-                            )
+                            style = TextStyle(fontSize = 22.sp, fontFamily = AlegreyaSansFontFamily, fontWeight = FontWeight(500), color = Color.White)
                         )
-
-
                     }
                 }
             }
         }
     }
-
 }
+
+
 
 @Composable
 fun GenderSelector(
@@ -329,7 +306,6 @@ fun GenderSelector(
             dismissButton = {})
     }
 }
-
 
 
 @Composable
@@ -443,7 +419,7 @@ fun DistrictItems(
 
 
 @Composable
-fun DatePickerFieldToModal(modifier: Modifier = Modifier): String {
+fun datePickerFieldToModal(modifier: Modifier = Modifier): String {
     var selectedDate by remember { mutableStateOf<Long?>(null) }
     var showModal by remember { mutableStateOf(false) }
 
