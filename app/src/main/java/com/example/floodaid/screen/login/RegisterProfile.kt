@@ -74,10 +74,14 @@ import coil3.compose.rememberAsyncImagePainter
 import com.example.floodaid.R
 import com.example.floodaid.models.Screen
 import com.example.floodaid.models.UserProfile
+import com.example.floodaid.roomDatabase.Database.FloodAidDatabase
 import com.example.floodaid.ui.theme.AlegreyaSansFontFamily
 import com.example.jetpackcomposeauthui.components.CTextField
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import java.io.ByteArrayOutputStream
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -123,7 +127,8 @@ fun RegisterProfile(modifier: Modifier = Modifier, navController: NavHostControl
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize().padding(WindowInsets.statusBars.asPaddingValues())) {
+    Box(modifier = Modifier.fillMaxSize()
+        .padding(WindowInsets.statusBars.asPaddingValues())) {
         // Background Image
         Image(
             painter = painterResource(id = R.drawable.loginbackground),
@@ -230,7 +235,16 @@ fun RegisterProfile(modifier: Modifier = Modifier, navController: NavHostControl
                                     .addOnFailureListener { e ->
                                         Log.e("Firestore", "Error saving profile", e)
                                     }
+
+                                val db = FloodAidDatabase.getInstance(context)
+                                val userProfileDao = db.userProfileDao()
+
+                                CoroutineScope(Dispatchers.IO).launch {
+                                    userProfileDao.insert(profile)
+                                }
                             }
+
+
                         },
                         shape = MaterialTheme.shapes.large,
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),

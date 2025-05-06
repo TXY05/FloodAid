@@ -3,10 +3,11 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.map.secret)
-
     //id("com.android.application")
     id("com.google.gms.google-services")
     id("com.google.devtools.ksp") version "2.1.0-1.0.29"
+    kotlin("kapt")
+
 }
 
 android {
@@ -101,4 +102,7 @@ dependencies {
 
     implementation(libs.firebase.storage.ktx)
     implementation (libs.firebase.storage)
+
+    implementation(libs.androidx.constraintlayout.compose)
+
 }

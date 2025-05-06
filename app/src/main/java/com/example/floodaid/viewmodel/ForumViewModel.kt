@@ -1,12 +1,14 @@
 package com.example.floodaid.viewmodel
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.floodaid.screen.forum.ForumDao
-import com.example.floodaid.models.ForumPost
 import com.example.floodaid.screen.forum.ForumEvent
-import com.example.floodaid.screen.forum.ForumPostState
+import com.example.floodaid.screen.forum.ForumPost
 import com.example.floodaid.screen.forum.ForumSortType
+import com.example.floodaid.screen.forum.ForumState
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -16,6 +18,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 
 @Suppress("DEPRECATION")
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -32,14 +35,16 @@ class ForumViewModel(
             }
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(), emptyList())
-    private val _state = MutableStateFlow(ForumPostState())
+    private val _state = MutableStateFlow(ForumState())
 
     val state = combine(_state, _sortType, _forumPosts) { state, sortType, forumPosts ->
         state.copy(
-            forumPost = forumPosts,
+            forumPosts = forumPosts,
             sortType = sortType
         )
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ForumPostState())
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ForumState())
+
+    val uid = FirebaseAuth.getInstance().currentUser?.uid?: ""
 
     fun onEvent(event: ForumEvent) {
         when (event) {
@@ -49,32 +54,66 @@ class ForumViewModel(
                 }
             }
 
-            ForumEvent.SaveForumPost -> {
-                val title = state.value.title
-                val content = state.value.content
-
-                if(title.isBlank()||content.isBlank()){
-                    return
+            is ForumEvent.SetRegion -> {
+                _state.update {
+                    it.copy(region = event.region)
                 }
+            }
 
+            is ForumEvent.SetImages -> {
+                _state.update {
+                    it.copy(imageUrls = event.images)
+                }
+            }
+
+
+            is ForumEvent.SaveForumPost -> {
+                viewModelScope.launch {
+                    val uid = FirebaseAuth.getInstance().currentUser?.uid
+                    if (uid == null) return@launch
+
+                    val profileBase64 = getCurrentUserProfileBase64() ?: ""
+                    val postWithAuthorImage = event.forumPost.copy(
+                        authorId = uid,
+                        authorImageBase64 = profileBase64,
+                        timestamp = System.currentTimeMillis()
+                    )
+
+                    dao.insertForumPost(postWithAuthorImage)
+                    _state.update { ForumState() }
+
+                    try {
+                        val documentReference = FirebaseFirestore.getInstance()
+                            .collection("forumPosts")
+                            .add(postWithAuthorImage)
+                            .await()
+
+                        Log.d("Firestore", "Post saved with ID: ${documentReference.id}")
+                    } catch (e: Exception) {
+                        Log.e("Firestore", "Error saving post: ${e.message}")
+                    }
+                }
+            }
+
+
+
+
+
+
+            ForumEvent.EditForumPost -> {
+                val currentState = state.value
                 val forumPost = ForumPost(
-                    title = title,
-                    content = content,
-                    authorId = "", //link to user id
+                    id=currentState.id,
+                    content = currentState.content,
+                    authorId = currentState.authorId, // Assign current user ID here
                     timestamp = System.currentTimeMillis(),
-                    region = TODO()
-
+                    region = currentState.region,
+                    imageUrls = currentState.imageUrls
                 )
                 viewModelScope.launch {
                     dao.upsertForumPost(forumPost)
                 }
-                _state.update { it.copy(
-                    title="",
-                    content = "",
-                    authorId = "",
-                    timestamp = 0,
-                    region = ""
-                ) }
+                _state.update { ForumState() } // Reset all fields
             }
 
             is ForumEvent.SetContent -> {
@@ -85,13 +124,6 @@ class ForumViewModel(
                 }
             }
 
-            is ForumEvent.SetTitle -> {
-                _state.update {
-                    it.copy(
-                        title = event.title
-                    )
-                }
-            }
 
             is ForumEvent.SortForumPost -> {
                 _sortType.value = event.sortType
@@ -101,3 +133,20 @@ class ForumViewModel(
 
 
 }
+
+suspend fun getCurrentUserProfileBase64(): String? {
+    val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return null
+
+    return try {
+        val document = FirebaseFirestore.getInstance()
+            .collection("users")
+            .document(uid)
+            .get()
+            .await()
+
+        document.getString("profileImageBase64")
+    } catch (e: Exception) {
+        null
+    }
+}
+

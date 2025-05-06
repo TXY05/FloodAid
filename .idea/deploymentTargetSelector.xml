@@ -4,9 +4,11 @@
     <selectionStates>
       <SelectionState runConfigName="FloodAid.app">
         <option name="selectionMode" value="DROPDOWN" />
+        <DialogSelection />
       </SelectionState>
       <SelectionState runConfigName="FloodAid.app">
         <option name="selectionMode" value="DROPDOWN" />
+        <DialogSelection />
       </SelectionState>
     </selectionStates>
   </component>

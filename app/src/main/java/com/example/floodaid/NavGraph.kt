@@ -4,8 +4,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.key
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
@@ -14,11 +12,14 @@ import androidx.navigation.compose.composable
 import com.example.floodaid.models.Screen
 import com.example.floodaid.repository.FirestoreRepository
 import com.example.floodaid.roomDatabase.Database.FloodAidDatabase
-import com.example.floodaid.screen.*
+import com.example.floodaid.screen.Dashboard
+import com.example.floodaid.screen.FloodStatus
+import com.example.floodaid.screen.Notification
+import com.example.floodaid.screen.Profile
 import com.example.floodaid.screen.floodstatus.FloodStatusRepository
+import com.example.floodaid.screen.forum.CreateForumPost
 import com.example.floodaid.screen.forum.Forum
 import com.example.floodaid.screen.forum.ForumEvent
-import com.example.floodaid.screen.forum.ForumPostState
 import com.example.floodaid.screen.login.Login
 import com.example.floodaid.screen.login.RegisterProfile
 import com.example.floodaid.screen.login.Signup
@@ -34,14 +35,15 @@ import com.example.floodaid.screen.volunteer.VolunteerHistory
 import com.example.floodaid.screen.volunteer.VolunteerViewModel
 import com.example.floodaid.viewmodel.AuthViewModel
 import com.example.floodaid.viewmodel.FloodStatusViewModel
+import com.example.floodaid.viewmodel.ForumViewModel
 
 @Composable
 fun NavGraph(
     navController: NavHostController,
-    state: ForumPostState,
     onEvent: (ForumEvent) -> Unit,
     authViewModel: AuthViewModel,
-    volunteerViewModel: VolunteerViewModel
+    volunteerViewModel: VolunteerViewModel,
+    forumViewModel: ForumViewModel
 ) {
     val sosViewModel: SOSViewModel = viewModel()
 
@@ -79,13 +81,7 @@ fun NavGraph(
             }
         }
 
-        composable(route = Screen.Forum.route) {
-            Forum(
-                navController = navController,
-                state = state,
-                onEvent = onEvent,
-            )
-        }
+
 
         composable(route = Screen.Map.route) {
             key("persistent_map") {
@@ -152,6 +148,21 @@ fun NavGraph(
         composable(route = Screen.RegisterProfile.route) {
             RegisterProfile(
                 navController = navController,
+            )
+        }
+
+        composable(route = Screen.Forum.route) {
+            Forum(
+                navController = navController,
+                viewModel = forumViewModel
+            )
+        }
+
+        composable(route = Screen.CreateForumPost.route) {
+            CreateForumPost(
+                navController = navController,
+                onEvent = onEvent,
+                forumViewModel
             )
         }
     }

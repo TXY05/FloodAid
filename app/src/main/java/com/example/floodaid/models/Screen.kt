@@ -85,4 +85,11 @@ sealed class Screen(
         title = null,
         icon = null
     )
+
+    data object CreateForumPost : Screen(
+        route = "createforumpost",
+        title = null,
+        icon = null
+    )
+
 }

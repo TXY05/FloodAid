@@ -2,6 +2,7 @@
 activityKtx = "1.10.1"
 agp = "8.9.2"
 coilCompose = "3.1.0"
+constraintlayoutCompose = "1.0.1"
 coreSplashscreen = "1.0.1"
 credentials = "1.5.0"
 credentialsPlayServicesAuth = "1.5.0"
@@ -13,6 +14,10 @@ firebaseBomVersion = "31.0.1"
 firebaseStorage = "20.2.0"
 googleid = "1.1.1"
 gson = "2.10.1"
+hiltAndroid = "2.48"
+hiltAndroidCompiler = "2.48"
+hiltCompiler = "2.48"
+hiltNavigationCompose = "1.2.0"
 kmpDateTimePicker = "1.0.0"
 kotlin = "2.1.0"
 coreKtx = "1.15.0"
@@ -44,9 +49,11 @@ roomCommonJvm = "2.7.1"
 
 [libraries]
 androidx-activity-ktx = { module = "androidx.activity:activity-ktx", version.ref = "activityKtx" }
+androidx-constraintlayout-compose = { module = "androidx.constraintlayout:constraintlayout-compose", version.ref = "constraintlayoutCompose" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-core-splashscreen = { module = "androidx.core:core-splashscreen", version.ref = "coreSplashscreen" }
 androidx-credentials-play-services-auth = { module = "androidx.credentials:credentials-play-services-auth", version.ref = "credentialsPlayServicesAuth" }
+androidx-hilt-navigation-compose = { module = "androidx.hilt:hilt-navigation-compose", version.ref = "hiltNavigationCompose" }
 androidx-lifecycle-livedata-ktx = { module = "androidx.lifecycle:lifecycle-livedata-ktx", version.ref = "lifecycleLivedataKtx" }
 androidx-lifecycle-viewmodel-ktx = { module = "androidx.lifecycle:lifecycle-viewmodel-ktx", version.ref = "lifecycleViewmodelKtx" }
 androidx-lifecycle-viewmodel-ktx-v270 = { module = "androidx.lifecycle:lifecycle-viewmodel-ktx", version.ref = "lifecycleViewmodelKtxVersion" }
@@ -67,6 +74,9 @@ firebase-storage-ktx = { module = "com.google.firebase:firebase-storage-ktx" }
 google-firebase-analytics = { module = "com.google.firebase:firebase-analytics", version.ref = "firebaseAnalytics" }
 googleid = { module = "com.google.android.libraries.identity.googleid:googleid", version.ref = "googleid" }
 gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
+hilt-android = { module = "com.google.dagger:hilt-android", version.ref = "hiltAndroid" }
+hilt-android-compiler = { module = "com.google.dagger:hilt-android-compiler", version.ref = "hiltAndroidCompiler" }
+hilt-compiler = { module = "com.google.dagger:hilt-compiler", version.ref = "hiltCompiler" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }

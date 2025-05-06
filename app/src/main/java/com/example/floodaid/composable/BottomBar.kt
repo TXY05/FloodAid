@@ -45,6 +45,8 @@ fun RowScope.AddItem(
     currentDestination: NavDestination?,
     navController: NavHostController,
 ) {
+    val isForumScreen = currentDestination?.route?.contains("forum") == true // Check if the current route contains "forum"
+
     if (screen.icon != null && screen.title != null) {
         NavigationBarItem(
             label = {
@@ -56,13 +58,14 @@ fun RowScope.AddItem(
                     contentDescription = "Navigation Icon"
                 )
             },
-            selected = currentDestination?.hierarchy?.any {
-                it.route == screen.route
-            } == true,
+            selected = when (screen) {
+                Screen.Forum -> isForumScreen // Keep Forum selected if either Forum or CreateForumPost is active
+                else -> currentDestination?.hierarchy?.any { it.route == screen.route } == true
+            },
             onClick = {
                 if (currentDestination?.route != screen.route) {
                     navController.navigate(screen.route) {
-                        popUpTo(Screen.Dashboard.route) {
+                        popUpTo(navController.graph.startDestinationId) {
                             saveState = true
                         }
                         launchSingleTop = true

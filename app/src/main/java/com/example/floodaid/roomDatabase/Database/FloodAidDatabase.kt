@@ -5,7 +5,6 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
-import com.example.floodaid.models.ForumPost
 import com.example.floodaid.models.UserProfile
 import com.example.floodaid.models.VolunteerEvent
 import com.example.floodaid.models.VolunteerEventHistory
@@ -26,6 +25,7 @@ import com.example.floodaid.screen.forum.ForumDao
 import com.example.floodaid.screen.floodstatus.FloodHistoryEntity
 import com.example.floodaid.screen.floodstatus.FloodStatusDao
 import com.example.floodaid.screen.floodstatus.LocationStatusEntity
+import com.example.floodaid.screen.forum.ForumPost
 
 @Database(
     entities = [

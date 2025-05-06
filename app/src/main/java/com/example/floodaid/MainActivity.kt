@@ -8,23 +8,18 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.appcompat.app.AlertDialog
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.compose.rememberNavController
 import com.example.floodaid.ui.theme.FloodAidTheme
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.example.floodaid.viewmodel.ForumViewModel
 import kotlin.getValue
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
 import com.example.floodaid.roomDatabase.Repository.VolunteerRepository
-import com.example.floodaid.utils.GeocodingHelper
 import com.example.floodaid.roomDatabase.Database.FloodAidDatabase
+import com.example.floodaid.screen.forum.ForumViewModelFactory
 import com.example.floodaid.viewmodel.AuthViewModel
 import com.google.firebase.auth.FirebaseAuth
 import com.example.floodaid.screen.login.AuthRepository
@@ -39,29 +34,23 @@ private const val LOCATION_PERMISSION_REQUEST_CODE = 1001
 //class MainActivity : ComponentActivity() {
 class MainActivity : AppCompatActivity() {
 
-    private val db by lazy {
-        FloodAidDatabase.getInstance(applicationContext)
-    }
-
-    private val viewModel by viewModels<ForumViewModel> {
-        object : ViewModelProvider.Factory {
-            override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                val app = application as FloodAidApp
-                return ForumViewModel(app.database.forumDao()) as T
-            }
-        }
-    }
-
-
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
+        // Auth ViewModel
         val firebaseAuth = FirebaseAuth.getInstance()
         val authRepository = AuthRepository(application, firebaseAuth)
         val authViewModelFactory = AuthViewModelFactory(authRepository)
         val authViewModel = ViewModelProvider(this, authViewModelFactory)[AuthViewModel::class.java]
+
+        // Forum ViewModel
+        val forumDao = FloodAidDatabase.getInstance(applicationContext).forumDao()
+        val forumViewModelFactory = ForumViewModelFactory(forumDao)
+        val forumViewModel =
+            ViewModelProvider(this, forumViewModelFactory)[ForumViewModel::class.java]
+
+        // Volunteer ViewModel
         val floodAidDatabase = FloodAidDatabase.getInstance(applicationContext)
         val volunteerRepository = VolunteerRepository(
             floodAidDatabase.volunteerDao(),
@@ -74,21 +63,19 @@ class MainActivity : AppCompatActivity() {
 
         setContent {
             val navController = rememberNavController()
-            val state by viewModel.state.collectAsState()
-            val authViewModel: AuthViewModel by viewModels()
-
 
             FloodAidTheme {
                 NavGraph(
                     navController = navController,
-                    state = state,
-                    onEvent = viewModel::onEvent,
+                    onEvent = forumViewModel::onEvent,
                     authViewModel = authViewModel,
-                    volunteerViewModel = volunteerViewModel
+                    volunteerViewModel = volunteerViewModel,
+                    forumViewModel = forumViewModel,
                 )
             }
         }
     }
+
 
     private fun checkLocationPermission() {
         when {
@@ -98,6 +85,7 @@ class MainActivity : AppCompatActivity() {
             ) == PackageManager.PERMISSION_GRANTED -> {
                 // Permission already granted
             }
+
             ActivityCompat.shouldShowRequestPermissionRationale(
                 this,
                 Manifest.permission.ACCESS_FINE_LOCATION
@@ -105,6 +93,7 @@ class MainActivity : AppCompatActivity() {
                 // Explain why you need permission
                 showPermissionRationale()
             }
+
             else -> {
                 ActivityCompat.requestPermissions(
                     this,

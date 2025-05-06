@@ -23,4 +23,16 @@ class Converter {
     fun toInstant(value: Long?): Instant? {
         return value?.let { Instant.ofEpochMilli(it) }
     }
+
+    @TypeConverter
+    fun fromImageListToString(images: List<String>): String {
+        return images.joinToString(",")  // You can use any delimiter you prefer
+    }
+
+    // Convert a single string back to List<String> (split by the delimiter)
+    @TypeConverter
+    fun fromStringToImageList(imageString: String): List<String> {
+        return imageString.split(",")  // Use the same delimiter as above
+    }
+    
 }

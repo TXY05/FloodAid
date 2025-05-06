@@ -37,4 +37,5 @@ fun LoginDivider(text: String) {
             color = Color.Gray
         )
     }
+
 }
