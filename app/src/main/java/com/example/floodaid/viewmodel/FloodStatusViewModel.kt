@@ -12,8 +12,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
 import java.util.Date
 import java.util.Locale
 
@@ -25,7 +23,8 @@ data class LocationStatus(
 data class FloodStatusUiState(
     val floodData: List<LocationStatus> = emptyList(),
     val selectedLocation: String? = null,
-    val showDialog: Boolean = false
+    val showDialog: Boolean = false,
+    val currentStatus: String
 )
 
 class FloodStatusViewModel(
@@ -35,7 +34,7 @@ class FloodStatusViewModel(
 ) : ViewModel() {
 
     val locations = repository.getAllLocations().asLiveData()
-    private val _uiState = MutableStateFlow(FloodStatusUiState())
+    private val _uiState = MutableStateFlow(FloodStatusUiState(currentStatus = "Unknown"))
     val uiState: StateFlow<FloodStatusUiState> = _uiState
 
     private val _historyState = MutableStateFlow<List<FloodHistoryEntity>>(emptyList())
@@ -62,6 +61,14 @@ class FloodStatusViewModel(
 
     fun selectLocation(location: String) {
         _uiState.value = _uiState.value.copy(selectedLocation = location)
+        fetchFloodStatusForLocation(location)
+    }
+
+    private fun fetchFloodStatusForLocation(location: String) {
+        viewModelScope.launch {
+            val status = repository.getFloodStatusForLocation(location) // Fetch from repository
+            _uiState.value = _uiState.value.copy(currentStatus = status)
+        }
     }
 
     fun clearSelectedLocation() {

@@ -20,8 +20,6 @@ class FloodStatusRepository(private val dao: FloodStatusDao, private val firesto
         LocationStatusEntity(location = "Sepang", status = "")
     )
 
-
-
     private val firestore = FirebaseFirestore.getInstance()
 
     suspend fun syncFloodStatusFromFirestore() = withContext(Dispatchers.IO) {
@@ -52,10 +50,6 @@ class FloodStatusRepository(private val dao: FloodStatusDao, private val firesto
             dao.insertInitialLocations(predefinedDistricts)
         }
     }
-    suspend fun clearAllData() {
-        dao.clearAllStatuses()
-        dao.clearAllHistories()
-    }
 
     suspend fun insertOrUpdateLocation(location: String, status: String) {
         dao.insertLocationStatus(LocationStatusEntity(location, status))
@@ -64,4 +58,15 @@ class FloodStatusRepository(private val dao: FloodStatusDao, private val firesto
     suspend fun updateFloodStatus(location: String, status: String, date: String, time: String) {
         firestoreRepository.updateFloodStatus(location, status, date, time)
     }
+
+    suspend fun getFloodStatusForLocation(location: String): String {
+        return withContext(Dispatchers.IO) {
+            dao.getFloodStatus(location) // Fetch from Room database
+        }
+    }
+//    // Clear all data from both Firestore and Room
+//    suspend fun clearAllData() {
+//        dao.clearAllStatuses()
+//        dao.clearAllHistories()
+//    }
 }

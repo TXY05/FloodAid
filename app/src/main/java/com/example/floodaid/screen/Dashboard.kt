@@ -32,8 +32,11 @@ import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -50,13 +53,22 @@ import androidx.navigation.compose.rememberNavController
 import com.example.floodaid.models.Screen
 import com.example.floodaid.ui.theme.FloodAidTheme
 import com.example.floodaid.viewmodel.AuthViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.floodaid.repository.FirestoreRepository
+import com.example.floodaid.screen.floodstatus.FloodStatusDao
+import com.example.floodaid.screen.floodstatus.FloodStatusRepository
+import com.example.floodaid.screen.floodstatus.FloodStatusViewModelFactory
+import com.example.floodaid.viewmodel.FloodStatusViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
 fun Dashboard(
     navController: NavHostController = rememberNavController(),
-    authViewModel: AuthViewModel
+    authViewModel: AuthViewModel,
+    repository: FloodStatusRepository,
+    dao: FloodStatusDao,
+    firestoreRepository: FirestoreRepository
 ) {
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(
         state = rememberTopAppBarState()
@@ -64,15 +76,30 @@ fun Dashboard(
     Scaffold(
         bottomBar = { BottomBar(navController = navController) }
     ) {
-        DashboardScreen(navController = navController, authViewModel)
+        DashboardScreen(
+            navController = navController,
+            authViewModel = authViewModel,
+            repository = repository,
+            dao = dao,
+            firestoreRepository = firestoreRepository
+        )
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DashboardScreen(navController: NavController, authViewModel: AuthViewModel) {
+fun DashboardScreen(
+    navController: NavController,
+    authViewModel: AuthViewModel,
+    repository: FloodStatusRepository,
+    dao: FloodStatusDao,
+    firestoreRepository: FirestoreRepository
+) {
+    val factory = FloodStatusViewModelFactory(repository, dao, firestoreRepository)
+    val viewModel: FloodStatusViewModel = viewModel(factory = factory)
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+    val uiState by viewModel.uiState.collectAsState()
 
     Scaffold(
         topBar = {
@@ -94,7 +121,12 @@ fun DashboardScreen(navController: NavController, authViewModel: AuthViewModel) 
                     verticalArrangement = Arrangement.Center
                 ) {
                     // Flood status information
-                    FloodStatusHeader()
+                    FloodStatusHeader(
+                        status = uiState.currentStatus,
+                        locations = uiState.floodData.map { it.location },
+                        selectedLocation = uiState.selectedLocation ?: "",
+                        onLocationSelected = { location -> viewModel.selectLocation(location) }
+                    )
 
                     Spacer(modifier = Modifier.height(24.dp))
                 }
@@ -139,7 +171,13 @@ fun DashboardScreen(navController: NavController, authViewModel: AuthViewModel) 
                     .fillMaxSize(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                FloodStatusHeader()
+                FloodStatusHeader(
+                    status = uiState.currentStatus,
+                    locations = uiState.floodData.map { it.location },
+                    selectedLocation = uiState.selectedLocation ?: "",
+                    onLocationSelected = { location -> viewModel.selectLocation(location) }
+                )
+
                 Spacer(modifier = Modifier.height(24.dp))
                 Box(
                     modifier = Modifier
@@ -174,8 +212,14 @@ fun DashboardScreen(navController: NavController, authViewModel: AuthViewModel) 
 }
 
 @Composable
-fun FloodStatusHeader(status: String = "Safe") {
+fun FloodStatusHeader(
+    status: String = "Safe",
+    locations: List<String>,
+    onLocationSelected: (String) -> Unit,
+    selectedLocation: String
+) {
     val (showLegendDialog, setShowLegendDialog) = remember { mutableStateOf(false) }
+    var isDropdownExpanded by remember { mutableStateOf(false) }
 
     val (iconColor, textColor, message) = when (status) {
         "Flooded" -> Triple(Color.Red, Color.Red, "Flooded Area Detected")
@@ -186,49 +230,55 @@ fun FloodStatusHeader(status: String = "Safe") {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(16.dp)
-            .clickable { setShowLegendDialog(true) }, // Open dialog on click
+            .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        // Add a logo at the top
         Icon(
-            imageVector = Icons.Default.Warning,
-            contentDescription = "Flood Status Icon",
-            tint = iconColor,
-            modifier = Modifier.size(80.dp)
+            imageVector = if (status == "Flooded") Icons.Default.Warning else Icons.Default.CheckCircle,
+            contentDescription = "Status Icon",
+            modifier = Modifier.size(64.dp),
+            tint = iconColor
         )
-        Spacer(modifier = Modifier.height(8.dp))
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Display message based on status
         Text(
             text = message,
             color = textColor,
             fontWeight = FontWeight.Bold,
-            style = MaterialTheme.typography.titleMedium
         )
-    }
 
-    if (showLegendDialog) {
-        AlertDialog(
-            onDismissRequest = { setShowLegendDialog(false) },
-            title = { Text("Flood Status Information") },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    LegendItem(
-                        color = Color(0xFFE53935),
-                        label = "Flooded",
-                        logo = Icons.Default.Warning
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Dropdown for Location Selection
+        Box {
+            Button(onClick = { isDropdownExpanded = true }) {
+                Text(selectedLocation.ifEmpty { "Select a location" })
+            }
+            DropdownMenu(
+                expanded = isDropdownExpanded,
+                onDismissRequest = { isDropdownExpanded = false }
+            ) {
+                locations.forEach { location ->
+                    DropdownMenuItem(
+                        onClick = {
+                            onLocationSelected(location)
+                            isDropdownExpanded = false
+                        },
+                        text = { Text(location) }
                     )
-                    LegendItem(
-                        color = Color(0xFF4CAF50),
-                        label = "Safe",
-                        logo = Icons.Default.CheckCircle
-                    )
-                }
-            },
-            confirmButton = {
-                Button(onClick = { setShowLegendDialog(false) }) {
-                    Text("Close")
                 }
             }
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = "Press the button above to change districts.",
+            style = MaterialTheme.typography.bodySmall,
+            color = Color.Gray
         )
+
     }
 }
 

@@ -45,8 +45,19 @@ fun NavGraph(
 
     NavHost(navController = navController, startDestination = Screen.WelcomeLoading.route) {
         composable(route = Screen.Dashboard.route) {
+            val context = LocalContext.current
+            val database = FloodAidDatabase.getInstance(context)
+            val dao = database.floodStatusDao()
+            val repository = FloodStatusRepository(dao, FirestoreRepository())
+            val firestoreRepository = FirestoreRepository()
             Box {
-                Dashboard(navController = navController, authViewModel)
+                Dashboard(
+                    navController = navController,
+                    authViewModel = authViewModel,
+                    repository = repository,
+                    dao = dao,
+                    firestoreRepository = firestoreRepository
+                )
                 SOSButton(
                     viewModel = sosViewModel,
                     placement = SOSButtonPlacement.DASHBOARD
