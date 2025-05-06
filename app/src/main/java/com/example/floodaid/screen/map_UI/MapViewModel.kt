@@ -67,11 +67,14 @@ class MapViewModel(
         viewModelScope.launch {
             try {
                 observeFireStoreUpdates()
+                cleanupDatabases()
                 withRetry(3) { repository.syncAllData() }
 
             } catch (e: Exception) {
             }
         }
+
+        startPeriodicCleanup()
 
         fetchLocation()
         if (hasLocationPermission()) {
@@ -93,6 +96,33 @@ class MapViewModel(
             }
         }
         throw lastException ?: Exception("Unknown error occurred")
+    }
+
+    // Add new function to handle both database cleanups
+    private suspend fun cleanupDatabases() {
+        try {
+            // Clean up FireStore first
+            repository.cleanupRoomMarkers()
+            // Then clean up Room database
+            repository.cleanupFireStoreMarkers()
+
+            viewModelScope.launch {
+                uiState.value.selectedDistrict?.let {
+                    loadDistrictData(it.id)
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("MapViewModel", "Error during database cleanup: ${e.message}")
+        }
+    }
+
+    private fun startPeriodicCleanup() {
+        viewModelScope.launch {
+            while (true) {
+                delay(5 * 60 * 1000) // Clean up every 5 minutes
+                cleanupDatabases()
+            }
+        }
     }
 
     // FireStore Operations
@@ -502,15 +532,6 @@ class MapViewModel(
         viewModelScope.launch {
             val marker = repository.getMarkerById(id)
             onResult(marker)
-        }
-    }
-
-    fun cleanupExpiredMarkers() {
-        viewModelScope.launch {
-            repository.cleanupExpiredMarkers()
-            uiState.value.selectedDistrict?.let {
-                loadDistrictData(it.id)
-            }
         }
     }
 }

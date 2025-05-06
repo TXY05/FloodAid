@@ -230,7 +230,7 @@ class FirestoreRepository {
 
         return snapshot.documents.mapNotNull { doc ->
             FloodMarker(
-                id = doc.getLong("id") ?: 0L,
+                id = doc.id, // Use document ID directly
                 floodStatus = doc.getString("floodStatus") ?: return@mapNotNull null,
                 districtId = doc.getLong("districtId") ?: return@mapNotNull null,
                 latitude = doc.getDouble("latitude") ?: return@mapNotNull null,
@@ -243,7 +243,6 @@ class FirestoreRepository {
 
     suspend fun pushFloodMarker(marker: FloodMarker) {
         val markerData = mapOf(
-            "id" to marker.id,
             "floodStatus" to marker.floodStatus,
             "districtId" to marker.districtId,
             "latitude" to marker.latitude,
@@ -252,7 +251,12 @@ class FirestoreRepository {
             "reporterId" to marker.reporterId
         )
 
-        floodMarkersCollection.document(marker.id.toString()).set(markerData).await()
+        // Let FireStore generate the ID
+        val docRef = floodMarkersCollection.document()
+        docRef.set(markerData).await()
+
+        // Return the marker with the FireStore ID
+        marker.copy(id = docRef.id)
     }
 
     fun listenToFloodMarkers(): Flow<List<FloodMarker>> = callbackFlow {
@@ -263,7 +267,7 @@ class FirestoreRepository {
 
                 val markers = snapshot.documents.mapNotNull { doc ->
                     FloodMarker(
-                        id = doc.getLong("id") ?: 0L,
+                        id = doc.id, // Use document ID directly
                         floodStatus = doc.getString("floodStatus") ?: return@mapNotNull null,
                         districtId = doc.getLong("districtId") ?: return@mapNotNull null,
                         latitude = doc.getDouble("latitude") ?: return@mapNotNull null,
@@ -275,5 +279,17 @@ class FirestoreRepository {
                 trySend(markers)
             }
         awaitClose { listener.remove() }
+    }
+
+    suspend fun cleanupExpiredMarkers() {
+        val currentTime = Instant.now().toEpochMilli()
+        val expiredMarkers = floodMarkersCollection
+            .whereLessThanOrEqualTo("expiryTime", currentTime)
+            .get()
+            .await()
+
+        expiredMarkers.documents.forEach { doc ->
+            doc.reference.delete().await()
+        }
     }
 }

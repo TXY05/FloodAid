@@ -105,6 +105,17 @@ import androidx.lifecycle.LifecycleOwner
 import com.example.floodaid.repository.FirestoreRepository
 import com.example.floodaid.roomDatabase.Database.FloodAidDatabase
 import com.example.floodaid.roomDatabase.Repository.MapRepository
+import com.example.floodaid.utils.FloodClusterItem
+
+// Cluster and Maintain Marker ratio
+//// Marker size and zoom limit constants
+private const val SHELTER_MIN_ZOOM = 10f
+private const val SHELTER_MAX_ZOOM = 22f
+private const val FLOOD_MIN_ZOOM = 8f
+private const val FLOOD_MAX_ZOOM = 22f
+private const val FLOOD_CLUSTER_ZOOM = 12f
+private const val SHELTER_MARKER_SIZE = 150f // Consistent size for shelter markers
+private const val FLOOD_MARKER_SIZE = 100f   // Consistent size for flood markers
 
 val CameraPositionSaver = run {
     val latLngSaver = Saver<LatLng, List<Double>>(
@@ -130,85 +141,6 @@ val CameraPositionSaver = run {
             )
         }
     )
-}
-
-// Cluster and Maintain Marker ratio
-//// Marker size and zoom limit constants
-private const val SHELTER_MIN_ZOOM = 10f
-private const val SHELTER_MAX_ZOOM = 22f
-private const val FLOOD_MIN_ZOOM = 8f
-private const val FLOOD_MAX_ZOOM = 22f
-private const val FLOOD_CLUSTER_ZOOM = 12f
-private const val SHELTER_MARKER_SIZE = 150f // Consistent size for shelter markers
-private const val FLOOD_MARKER_SIZE = 100f   // Consistent size for flood markers
-
-// Custom ClusterItem for Flood Markers
-class FloodClusterItem(
-    private val marker: FloodMarker,
-    private val position: LatLng
-) : ClusterItem {
-    override fun getPosition(): LatLng = position
-    override fun getTitle(): String? = "Flood: ${marker.floodStatus}"
-    override fun getSnippet(): String? = null
-
-    // Add method to get flood status
-    fun getFloodStatus(): String = marker.floodStatus
-}
-
-// Simplified getMarkerSize function that returns constant sizes
-fun getMarkerSize(isShelter: Boolean): Float {
-    return if (isShelter) SHELTER_MARKER_SIZE else FLOOD_MARKER_SIZE
-}
-
-// Add this function to create teardrop-shaped markers
-private fun createTeardropMarker(context: Context, drawableId: Int, size: Int, backgroundColor: Int, isShelter: Boolean = false): Bitmap {
-    val pointerHeight = size * 0.22f // Height of the pointer triangle
-    val circleRadius = (size / 2f) - pointerHeight / 2f
-    val centerX = size / 2f
-    val centerY = size / 2f - pointerHeight / 4f
-
-    val originalBitmap = try {
-        BitmapFactory.decodeResource(context.resources, drawableId)
-    } catch (e: Exception) {
-        Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888).apply {
-            val canvas = Canvas(this)
-            val paint = android.graphics.Paint().apply {
-                color = Color.White.toArgb()
-                isAntiAlias = true
-            }
-            canvas.drawCircle(centerX, centerY, circleRadius, paint)
-        }
-    }
-    val scaledBitmap = Bitmap.createScaledBitmap(originalBitmap, (circleRadius * 2).toInt(), (circleRadius * 2).toInt(), false)
-
-    val outputBitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
-    val canvas = Canvas(outputBitmap)
-
-    // Draw the main circle
-    val paint = android.graphics.Paint().apply {
-        color = backgroundColor
-        isAntiAlias = true
-        style = android.graphics.Paint.Style.FILL
-    }
-    canvas.drawCircle(centerX, centerY, circleRadius, paint)
-
-    // Draw the pointer triangle
-    val trianglePath = Path().apply {
-        moveTo(centerX - circleRadius * 0.5f, centerY + circleRadius * 0.7f) // left base
-        lineTo(centerX + circleRadius * 0.5f, centerY + circleRadius * 0.7f) // right base
-        lineTo(centerX, size.toFloat()) // tip
-        close()
-    }
-    canvas.drawPath(trianglePath, paint)
-
-    // Draw the icon bitmap in the center of the circle
-    val iconLeft = (centerX - circleRadius)
-    val iconTop = (centerY - circleRadius)
-    val iconRect = android.graphics.RectF(iconLeft, iconTop, iconLeft + circleRadius * 2, iconTop + circleRadius * 2)
-    val iconPaint = android.graphics.Paint().apply { isAntiAlias = true }
-    canvas.drawBitmap(scaledBitmap, null, iconRect, iconPaint)
-
-    return outputBitmap
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -247,7 +179,7 @@ fun Map(
 
     // Camera Position
     var savedCameraPosition by rememberSaveable(stateSaver = CameraPositionSaver) {
-        mutableStateOf(CameraPosition(LatLng(4.2105, 101.9758), 12f, 0f, 0f))
+        mutableStateOf(CameraPosition(LatLng(4.2105, 101.9758), 7f, 0f, 0f))
     }
 
     // Add a state to track if we need to show markers
@@ -272,14 +204,12 @@ fun Map(
             val markerId = viewModel.selectedMarkerId.value
             markerId?.let { id ->
                 map?.let { googleMap ->
-                    val shelterIcon = vectorToBitmap(
+                    val shelterIcon = createTeardropMarker(
                         context,
-                        BitmapParameters(
-                            id = R.drawable.icon,
-                            iconColor = Color.White,
-                            backgroundColor = Color(0xFF4CAF50),
-                            size = SHELTER_MARKER_SIZE.toInt()
-                        )
+                        R.drawable.icon,
+                        SHELTER_MARKER_SIZE.toInt(),
+                        Color(0xFF4CAF50).toArgb(),
+                        isShelter = true
                     )
                     markerMap[id]?.setIcon(BitmapDescriptorFactory.fromBitmap(shelterIcon))
                 }
@@ -434,11 +364,11 @@ fun Map(
     }
 
     // Add camera change listener to update currentZoom
-    LaunchedEffect(Unit) {
-        map?.setOnCameraMoveListener {
-            currentZoom = map?.cameraPosition?.zoom ?: 7f
-        }
-    }
+//    LaunchedEffect(Unit) {
+//        map?.setOnCameraMoveListener {
+//            currentZoom = map?.cameraPosition?.zoom ?: 7f
+//        }
+//    }
 
     DisposableEffect(Unit) {
         onDispose {
@@ -565,20 +495,26 @@ fun Map(
                                     isMyLocationButtonEnabled = true
                                 }
 
-                                // Move to save location
+                                googleMap.moveCamera(CameraUpdateFactory.newCameraPosition(savedCameraPosition))
+
+                                // Set up camera idle listener to save position
                                 googleMap.setOnCameraIdleListener {
                                     savedCameraPosition = googleMap.cameraPosition
                                 }
 
-                                // Move to User Location
-                                currentLocation?.let { loc ->
-                                    googleMap.animateCamera(
-                                        CameraUpdateFactory.newLatLngZoom(
-                                            LatLng(loc.latitude, loc.longitude),
-                                            12f
+                                // After initial position is set, check for user location
+                                if (currentLocation != null) {
+                                    // Move to User Location
+                                    currentLocation?.let { loc ->
+                                        googleMap.animateCamera(
+                                            CameraUpdateFactory.newLatLngZoom(
+                                                LatLng(loc.latitude, loc.longitude),
+                                                12f
+                                            )
                                         )
-                                    )
+                                    }
                                 }
+
                             }
                         }.also { mapView = it }
                     },
@@ -609,4 +545,55 @@ fun Map(
             }
         }
     }
+}
+
+// Add this function to create teardrop-shaped markers
+private fun createTeardropMarker(context: Context, drawableId: Int, size: Int, backgroundColor: Int, isShelter: Boolean = false): Bitmap {
+    val pointerHeight = size * 0.22f // Height of the pointer triangle
+    val circleRadius = (size / 2f) - pointerHeight / 2f
+    val centerX = size / 2f
+    val centerY = size / 2f - pointerHeight / 4f
+
+    val originalBitmap = try {
+        BitmapFactory.decodeResource(context.resources, drawableId)
+    } catch (e: Exception) {
+        Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888).apply {
+            val canvas = Canvas(this)
+            val paint = android.graphics.Paint().apply {
+                color = Color.White.toArgb()
+                isAntiAlias = true
+            }
+            canvas.drawCircle(centerX, centerY, circleRadius, paint)
+        }
+    }
+    val scaledBitmap = Bitmap.createScaledBitmap(originalBitmap, (circleRadius * 2).toInt(), (circleRadius * 2).toInt(), false)
+
+    val outputBitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+    val canvas = Canvas(outputBitmap)
+
+    // Draw the main circle
+    val paint = android.graphics.Paint().apply {
+        color = backgroundColor
+        isAntiAlias = true
+        style = android.graphics.Paint.Style.FILL
+    }
+    canvas.drawCircle(centerX, centerY, circleRadius, paint)
+
+    // Draw the pointer triangle
+    val trianglePath = Path().apply {
+        moveTo(centerX - circleRadius * 0.5f, centerY + circleRadius * 0.7f) // left base
+        lineTo(centerX + circleRadius * 0.5f, centerY + circleRadius * 0.7f) // right base
+        lineTo(centerX, size.toFloat()) // tip
+        close()
+    }
+    canvas.drawPath(trianglePath, paint)
+
+    // Draw the icon bitmap in the center of the circle
+    val iconLeft = (centerX - circleRadius)
+    val iconTop = (centerY - circleRadius)
+    val iconRect = RectF(iconLeft, iconTop, iconLeft + circleRadius * 2, iconTop + circleRadius * 2)
+    val iconPaint = android.graphics.Paint().apply { isAntiAlias = true }
+    canvas.drawBitmap(scaledBitmap, null, iconRect, iconPaint)
+
+    return outputBitmap
 }

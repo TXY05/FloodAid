@@ -39,7 +39,7 @@ class MapRepository(
     suspend fun insertAllMarkers(markers: List<FloodMarker>) = dao.insertAllMarkers(markers)
     suspend fun updateMarker(marker: FloodMarker) = dao.updateMarker(marker)
     suspend fun deleteMarker(id: Long) = dao.deleteMarker(id)
-    suspend fun cleanupExpiredMarkers() = dao.cleanupExpiredMarkers()
+    suspend fun cleanupRoomMarkers() = dao.cleanupExpiredMarkers()
     suspend fun getMarkerById(id: Long) = dao.getMarkerById(id)
     suspend fun deleteAllMarkers() = dao.deleteAllMarkers()
 
@@ -102,5 +102,9 @@ class MapRepository(
     // Add new flood marker to FireStore
     suspend fun pushFloodMarker(marker: FloodMarker) {
         FirestoreRepository.pushFloodMarker(marker)
+    }
+
+    suspend fun cleanupFireStoreMarkers(){
+        FirestoreRepository.cleanupExpiredMarkers()
     }
 }

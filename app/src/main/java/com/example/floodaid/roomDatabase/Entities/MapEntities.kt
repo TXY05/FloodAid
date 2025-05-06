@@ -77,7 +77,8 @@ data class Shelter(
     indices = [Index("districtId"), Index("expiryTime")]
 )
 data class FloodMarker(
-    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    @PrimaryKey
+    val id: String,
     val floodStatus: String, // e.g., "Low", "Medium", "High", "Critical"
     val districtId: Long,
     val latitude: Double,
@@ -86,15 +87,7 @@ data class FloodMarker(
     val createdAt: Instant = Instant.now(), // When this marker was created
     val reporterId: String? = null // Who reported this (could be user ID or device ID)
 ) {
-    fun isExpired(): Boolean {
-        return Instant.now().isAfter(expiryTime)
-    }
-
-    fun remainingTime(): Duration {
-        return Duration.between(Instant.now(), expiryTime)
-    }
-
-    fun isAboutToExpire(threshold: Duration = Duration.ofHours(1)): Boolean {
-        return remainingTime() <= threshold && !isExpired()
+    companion object {
+        const val TEMP_ID = "Temp"
     }
 }
