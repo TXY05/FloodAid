@@ -68,7 +68,7 @@ class MainActivity : AppCompatActivity() {
             floodAidDatabase.volunteerEventHistoryDao()
         )
         val volunteerViewModel: VolunteerViewModel by viewModels {
-            VolunteerViewModelFactory(volunteerRepository)
+            VolunteerViewModelFactory(volunteerRepository, firebaseAuth)
         }
 
 

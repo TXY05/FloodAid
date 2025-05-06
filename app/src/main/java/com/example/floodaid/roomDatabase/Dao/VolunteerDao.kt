@@ -32,6 +32,9 @@ interface VolunteerDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertEvents(events: List<VolunteerEvent>)
+
+    @Query("DELETE FROM event")
+    suspend fun deleteAll()
 }
 
 @Dao
@@ -42,6 +45,20 @@ interface VolunteerEventHistoryDao {
     @Delete
     suspend fun delete(event: VolunteerEventHistory)
 
-    @Query("SELECT * FROM event_history WHERE userId = :userId")
+    @Query("""
+        SELECT 
+            eh.history_id as history_id,
+            eh.userId as userId,
+            eh.eventId as eventId,
+            e.date as date,
+            e.startTime as startTime,
+            e.endTime as endTime,
+            e.description as description,
+            e.district as district
+        FROM event_history eh
+        INNER JOIN event e ON eh.eventId = e.event_id
+        WHERE eh.userId = :userId
+        ORDER BY e.date DESC
+    """)
     fun getEventHistory(userId: String): Flow<List<VolunteerEventHistory>>
 }

@@ -28,7 +28,9 @@ import com.example.floodaid.screen.map_UI.Map
 import com.example.floodaid.screen.map_UI.SOSButton
 import com.example.floodaid.screen.map_UI.SOSButtonPlacement
 import com.example.floodaid.screen.map_UI.SOSViewModel
+import com.example.floodaid.screen.volunteer.AddVolunteerEvent
 import com.example.floodaid.screen.volunteer.Volunteer
+import com.example.floodaid.screen.volunteer.VolunteerHistory
 import com.example.floodaid.screen.volunteer.VolunteerViewModel
 import com.example.floodaid.viewmodel.AuthViewModel
 import com.example.floodaid.viewmodel.FloodStatusViewModel
@@ -114,6 +116,16 @@ fun NavGraph(
 
         composable(route = Screen.Volunteer.route) {
             Volunteer(navController = navController,
+                viewModel = volunteerViewModel)
+        }
+
+        composable("addVolunteerEvent") {
+            AddVolunteerEvent(navController = navController,
+                viewModel = volunteerViewModel)
+        }
+
+        composable("volunteerHistory") {
+            VolunteerHistory(navController = navController,
                 viewModel = volunteerViewModel)
         }
 

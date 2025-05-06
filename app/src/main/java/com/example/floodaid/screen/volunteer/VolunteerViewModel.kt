@@ -7,24 +7,35 @@ import androidx.lifecycle.viewModelScope
 import com.example.floodaid.models.VolunteerEvent
 import com.example.floodaid.models.VolunteerEventHistory
 import com.example.floodaid.roomDatabase.Repository.VolunteerRepository
+import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import kotlin.String
 
 class VolunteerViewModel(
-    private val repository: VolunteerRepository
+    private val repository: VolunteerRepository,
+    internal val auth: FirebaseAuth = FirebaseAuth.getInstance()
 ) : ViewModel() {
     val events: StateFlow<List<VolunteerEvent>> = repository.getAllEvents()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    private val _authState = MutableStateFlow(auth.currentUser != null)
+    val authState: StateFlow<Boolean> = _authState
+
     init {
-        syncFirebaseEvents()
+        auth.addAuthStateListener { firebaseAuth ->
+            _authState.value = firebaseAuth.currentUser != null
+            if (firebaseAuth.currentUser != null) {
+                syncFirebaseEvents()
+            }
+        }
     }
 
-    private fun syncFirebaseEvents() {
+    internal fun syncFirebaseEvents() {
         viewModelScope.launch {
             repository.syncEventsFromFirebase()
         }
@@ -70,6 +81,10 @@ class VolunteerViewModel(
         }
     }
 
-    fun getEventHistory(userId: String): LiveData<List<VolunteerEventHistory>> =
-        repository.getEventHistory(userId).asLiveData()
+    val history: StateFlow<List<VolunteerEventHistory>> = repository.getEventHistory(auth.currentUser?.uid ?: "")
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
 }

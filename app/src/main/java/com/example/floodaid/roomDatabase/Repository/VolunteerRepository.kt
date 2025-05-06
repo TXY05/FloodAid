@@ -1,5 +1,6 @@
 package com.example.floodaid.roomDatabase.Repository
 
+import android.util.Log
 import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
@@ -23,19 +24,37 @@ class VolunteerRepository(
     private val user = auth.currentUser
 
     suspend fun syncEventsFromFirebase() {
-        if (user != null) {
+        try {
             val result = firestore.collection("event").get().await()
-            val events = result.toObjects(VolunteerEvent::class.java)
+            val events = result.documents.mapNotNull { doc ->
+                try {
+                    doc.toObject(VolunteerEvent::class.java)?.copy(
+                        firestoreId = doc.id
+                    )
+                } catch (e: Exception) {
+                    Log.e("VolunteerRepo", "Error parsing doc ${doc.id}", e)
+                    null
+                }
+            }
+            volunteerDao.deleteAll()
             volunteerDao.insertEvents(events)
-        }else{
-
+        } catch (e: Exception) {
+            Log.e("VolunteerRepo", "Sync failed", e)
+            throw e
         }
     }
 
-    suspend fun insertEvent(event: VolunteerEvent){
-        if (user != null) {
-            firestore.collection("event").document(event.id.toString()).set(event)
-            volunteerDao.insert(event)
+    suspend fun insertEvent(event: VolunteerEvent): String{
+        return try {
+            val docRef = firestore.collection("event").document()
+            val eventWithId = event.copy(firestoreId = docRef.id)
+            docRef.set(eventWithId).await()
+            volunteerDao.insert(eventWithId)
+
+            docRef.id
+        } catch (e: Exception) {
+            Log.e("VolunteerRepo", "Insert failed", e)
+            throw e
         }
     }
 
@@ -56,12 +75,28 @@ class VolunteerRepository(
     fun getFilteredEvent(date:String): Flow<VolunteerEvent> =
         volunteerDao.getFilteredEvent(date)
 
-    suspend fun applyEvent(userId: String, eventId: String) {
-        if (user != null) {
-            val eventHistory = VolunteerEventHistory(userId = userId, eventId = eventId)
-            firestore.collection("users").document(userId)
-                .collection("event_history").document(eventId).set(eventHistory)
-            volunteerHistoryDao.insertEventHistory(eventHistory)
+    suspend fun applyEvent(userId: String, eventId: String): String {
+        if (user == null) throw IllegalStateException("User not authenticated")
+
+        return try {
+            val eventHistory = VolunteerEventHistory(
+                userId = userId,
+                eventId = eventId,
+                date = "",
+                startTime = "",
+                endTime = "",
+                description = "",
+                district = "")
+
+                val docRef = firestore.collection("event_history").document()
+                val historyWithId = eventHistory.copy(firestoreId = docRef.id)
+                docRef.set(historyWithId).await()
+                volunteerHistoryDao.insertEventHistory(historyWithId)
+
+                docRef.id
+        } catch (e: Exception) {
+                Log.e("VolunteerHistory", "Insert failed", e)
+                throw e
         }
     }
 
