@@ -184,6 +184,43 @@ class FirestoreRepository {
         awaitClose { listener.remove() }
     }
 
+    // Add function to push districts to Firestore
+    suspend fun pushDistricts(districts: List<District>) {
+        val batch = firestore.batch()
+
+        for (district in districts) {
+            // Create main district document
+            val districtRef = districtsCollection.document()
+            val districtData = hashMapOf(
+                "id" to district.id,
+                "name" to district.name,
+                "latitude" to district.latitude,
+                "longitude" to district.longitude,
+                "stateId" to district.stateId
+            )
+            batch.set(districtRef, districtData)
+
+            // Add border coordinates if they exist
+            district.borderCoordinates?.let { border ->
+                // Create ordered document IDs for border coordinates
+                border.coordinates.forEachIndexed { index, coordinate ->
+                    // Create a document ID that will sort alphabetically (e.g., "A001", "A002", etc.)
+                    val docId = String.format("A%03d", index + 1)
+                    val borderRef = districtRef.collection("borderCoordinates").document(docId)
+                    val borderData = hashMapOf(
+                        "lat" to coordinate[0],
+                        "lon" to coordinate[1],
+                        "order" to index // Add an order field for additional sorting
+                    )
+                    batch.set(borderRef, borderData)
+                }
+            }
+        }
+
+        // Commit the batch
+        batch.commit().await()
+    }
+
     // Shelters
     suspend fun fetchAllShelters(): List<Shelter> {
         val snapshot = sheltersCollection.get().await()

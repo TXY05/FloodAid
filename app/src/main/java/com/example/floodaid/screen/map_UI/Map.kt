@@ -8,9 +8,6 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import android.graphics.BitmapShader
-import android.graphics.Shader
-import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.fillMaxSize
@@ -21,7 +18,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.navigation.NavHostController
 import com.google.android.gms.maps.CameraUpdateFactory
-//import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.model.LatLng
 import androidx.compose.material3.*
 import androidx.compose.material.icons.Icons
@@ -37,7 +33,6 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import kotlinx.coroutines.launch
-import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -46,8 +41,6 @@ import com.google.android.gms.maps.MapView
 import com.google.android.gms.maps.model.CameraPosition
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.toArgb
-import com.example.floodaid.ui.theme.Red
-import com.example.floodaid.screen.map_UI.MapUiState
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.model.PolygonOptions
 import com.google.android.gms.maps.model.Polygon
@@ -61,35 +54,19 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import com.example.floodaid.roomDatabase.Entities.District
-import com.example.floodaid.roomDatabase.Entities.Shelter
-import com.example.floodaid.utils.DistanceCalculator
 import com.google.android.gms.maps.GoogleMapOptions
-import com.google.android.gms.maps.model.CircleOptions
-import com.example.floodaid.utils.vectorToBitmap
-import com.example.floodaid.utils.BitmapParameters
-import com.google.android.gms.maps.model.AdvancedMarkerOptions
-import com.google.android.gms.maps.model.AdvancedMarker
 import com.google.maps.android.clustering.ClusterManager
 import com.google.maps.android.clustering.view.DefaultClusterRenderer
-import com.google.maps.android.clustering.ClusterItem
-import com.example.floodaid.roomDatabase.Entities.FloodMarker
 
 import android.graphics.Canvas
 import android.graphics.Path
@@ -101,11 +78,14 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.core.content.ContextCompat.getColor
 import androidx.lifecycle.LifecycleOwner
 import com.example.floodaid.repository.FirestoreRepository
 import com.example.floodaid.roomDatabase.Database.FloodAidDatabase
 import com.example.floodaid.roomDatabase.Repository.MapRepository
 import com.example.floodaid.utils.FloodClusterItem
+import com.google.android.gms.maps.model.Dash
+import com.google.android.gms.maps.model.Gap
 
 // Cluster and Maintain Marker ratio
 //// Marker size and zoom limit constants
@@ -219,6 +199,8 @@ fun Map(
     }
 
     LaunchedEffect(Unit) {
+        viewModel.loadStates()
+
         if (ContextCompat.checkSelfPermission(
                 context,
                 Manifest.permission.ACCESS_FINE_LOCATION
@@ -228,10 +210,6 @@ fun Map(
         } else {
             locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
         }
-    }
-
-    LaunchedEffect(Unit) {
-        viewModel.loadStates()
     }
 
     // Handle District Selection
@@ -252,12 +230,22 @@ fun Map(
                         override fun onFinish() {
                             // Draw border after camera movement
                             district.borderCoordinates?.let { border ->
-                                currentPolygon = googleMap.addPolygon(
-                                    PolygonOptions()
-                                        .addAll(border.coordinates.map { LatLng(it[0], it[1]) })
-                                        .strokeColor(Color.Red.toArgb())
-                                        .fillColor(Color.Red.copy(alpha = 0.2f).toArgb())
-                                )
+                                val polygonOptions = PolygonOptions()
+                                    .addAll(border.coordinates.map { LatLng(it[0], it[1]) })
+                                    .strokeColor(getColor(context, R.color.marker_border))
+                                    .strokeWidth(5f) // Make the border slightly thicker
+                                    .fillColor(getColor(context, R.color.marker_fill) and 0x1AFFFFFF) // Make fill very transparent (10% opacity)
+
+                                currentPolygon = googleMap.addPolygon(polygonOptions)
+
+                                // Apply dash pattern to the polygon
+                                currentPolygon?.let { polygon ->
+                                    val pattern = listOf(
+                                        Dash(20f),  // 20 pixels dash
+                                        Gap(20f)   // 20 pixels gap
+                                    )
+                                    polygon.strokePattern = pattern
+                                }
                             }
                             viewModel.loadDistrictData(district.id)
                         }
@@ -286,12 +274,12 @@ fun Map(
                         val floodIcon = createTeardropMarker(
                             context,
                             if (item.getFloodStatus() == "flood")
-                                R.drawable.icon // Use a default warning icon
+                                R.drawable.flood_icon // Use a default warning icon
                             else
-                                R.drawable.icon, // Use a default check circle icon
+                                R.drawable.safe_icon, // Use a default check circle icon
                             FLOOD_MARKER_SIZE.toInt(),
                             if (item.getFloodStatus() == "flood")
-                                Color.Red.copy(alpha = 0.8f).toArgb() // Increased alpha for better visibility
+                                Color.Blue.copy(alpha = 0.8f).toArgb() // Increased alpha for better visibility
                             else
                                 Color.Green.copy(alpha = 0.8f).toArgb() // Increased alpha for better visibility
                         )
@@ -363,21 +351,9 @@ fun Map(
         }
     }
 
-    // Add camera change listener to update currentZoom
-//    LaunchedEffect(Unit) {
-//        map?.setOnCameraMoveListener {
-//            currentZoom = map?.cameraPosition?.zoom ?: 7f
-//        }
-//    }
-
     DisposableEffect(Unit) {
         onDispose {
             mapView?.onDestroy()
-        }
-    }
-
-    DisposableEffect(Unit) {
-        onDispose {
             viewModel.stopLocationUpdates()
         }
     }
@@ -464,7 +440,7 @@ fun Map(
                     title = { Text("FloodAid Map") },
                     navigationIcon = {
                         IconButton(
-                            onClick = { scope.launch { drawerState.open() }; viewModel.syncData() }
+                            onClick = { scope.launch { drawerState.open() } }
                         ) {
                             Icon(Icons.Default.Menu, contentDescription = "Menu")
                         }
@@ -553,6 +529,7 @@ private fun createTeardropMarker(context: Context, drawableId: Int, size: Int, b
     val circleRadius = (size / 2f) - pointerHeight / 2f
     val centerX = size / 2f
     val centerY = size / 2f - pointerHeight / 4f
+    val borderWidth = size * 0.03f
 
     val originalBitmap = try {
         BitmapFactory.decodeResource(context.resources, drawableId)
@@ -579,6 +556,15 @@ private fun createTeardropMarker(context: Context, drawableId: Int, size: Int, b
     }
     canvas.drawCircle(centerX, centerY, circleRadius, paint)
 
+    // Draw circle border
+    val borderPaint = android.graphics.Paint().apply {
+        color = Color.White.toArgb() // White border
+        isAntiAlias = true
+        style = android.graphics.Paint.Style.STROKE
+        strokeWidth = borderWidth
+    }
+    canvas.drawCircle(centerX, centerY, circleRadius, borderPaint)
+
     // Draw the pointer triangle
     val trianglePath = Path().apply {
         moveTo(centerX - circleRadius * 0.5f, centerY + circleRadius * 0.7f) // left base
@@ -587,6 +573,9 @@ private fun createTeardropMarker(context: Context, drawableId: Int, size: Int, b
         close()
     }
     canvas.drawPath(trianglePath, paint)
+
+    // Draw triangle border
+    canvas.drawPath(trianglePath, borderPaint)
 
     // Draw the icon bitmap in the center of the circle
     val iconLeft = (centerX - circleRadius)

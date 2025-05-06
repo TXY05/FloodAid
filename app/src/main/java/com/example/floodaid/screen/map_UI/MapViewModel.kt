@@ -76,7 +76,7 @@ class MapViewModel(
 
         startPeriodicCleanup()
 
-        fetchLocation()
+//        fetchLocation()
         if (hasLocationPermission()) {
             startLocationUpdates()
         }
@@ -126,27 +126,27 @@ class MapViewModel(
     }
 
     // FireStore Operations
-    fun syncData() {
-        viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
-            try {
-                // Sync data sequentially with retries
-                withRetry(3) { repository.syncAllData() }
-
-                // Refresh current view after sync
-                uiState.value.selectedState?.let { state ->
-                    loadDistrictsForState(state.id)
-                }
-                uiState.value.selectedDistrict?.let { district ->
-                    loadDistrictData(district.id)
-                }
-            } catch (e: Exception) {
-                _uiState.update { it.copy(isLoading = false) }
-            } finally {
-                _uiState.update { it.copy(isLoading = false) }
-            }
-        }
-    }
+//    fun syncData() {
+//        viewModelScope.launch {
+//            _uiState.update { it.copy(isLoading = true) }
+//            try {
+//                // Sync data sequentially with retries
+//                withRetry(3) { repository.syncAllData() }
+//
+//                // Refresh current view after sync
+//                uiState.value.selectedState?.let { state ->
+//                    loadDistrictsForState(state.id)
+//                }
+//                uiState.value.selectedDistrict?.let { district ->
+//                    loadDistrictData(district.id)
+//                }
+//            } catch (e: Exception) {
+//                _uiState.update { it.copy(isLoading = false) }
+//            } finally {
+//                _uiState.update { it.copy(isLoading = false) }
+//            }
+//        }
+//    }
 
     fun observeFireStoreUpdates() {
         viewModelScope.launch {
@@ -215,7 +215,6 @@ class MapViewModel(
             _uiState.update { it.copy(isLoading = true) }
             try {
                 repository.pushFloodMarker(marker)
-                // Optionally update local database
                 repository.insertAllMarkers(listOf(marker))
                 _uiState.update { it.copy(isLoading = false) }
             } catch (e: Exception) {
@@ -351,33 +350,28 @@ class MapViewModel(
         }
     }
 
-    private fun fetchLocation() {
-        if (hasLocationPermission()) {
-            try {
-                LocationServices.getFusedLocationProviderClient(getApplication())
-                    .lastLocation
-                    .addOnSuccessListener { location ->
-                        location?.let {
-                            _currentLocation.value = LatLng(it.latitude, it.longitude)
-                        }
-                    }
-//                    .addOnFailureListener { e ->
-//                        Log.e("Location", "Failed to get location", e)
-//                        // Fallback to default location if needed
-//                        _currentLocation.value = LatLng(3.1390, 101.6869) // KL coordinates
+//    private fun fetchLocation() {
+//        if (hasLocationPermission()) {
+//            try {
+//                LocationServices.getFusedLocationProviderClient(getApplication())
+//                    .lastLocation
+//                    .addOnSuccessListener { location ->
+//                        location?.let {
+//                            _currentLocation.value = LatLng(it.latitude, it.longitude)
+//                        }
 //                    }
-            } catch (e: SecurityException) {
-                Log.e("Location", "Permission error", e)
-            }
-        }
-    }
+//            } catch (e: SecurityException) {
+//                Log.e("Location", "Permission error", e)
+//            }
+//        }
+//    }
 
     fun startLocationUpdates() {
         val locationRequest = LocationRequest.Builder(
             Priority.PRIORITY_HIGH_ACCURACY,
             5000
         ).apply {
-            setMinUpdateDistanceMeters(10f) // Minimum change to trigger update
+            setMinUpdateDistanceMeters(5f) // Minimum change to trigger update
             setWaitForAccurateLocation(true)
         }.build()
 

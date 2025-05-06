@@ -24,6 +24,10 @@ class MapRepository(
     suspend fun deleteAllStates() = dao.deleteAllStates()
 
     // District operations
+//    suspend fun getAllDistricts(): List<District> = dao.getAllDistricts()
+    suspend fun getAllDistricts(): List<District> {
+        return dao.getAllDistricts()
+    }
     suspend fun getDistrictsByState(stateId: Long) = dao.getDistrictsByState(stateId)
     suspend fun insertAllDistricts(districts: List<District>) = dao.insertAllDistricts(districts)
     suspend fun deleteAllDistricts() = dao.deleteAllDistricts()
@@ -102,6 +106,10 @@ class MapRepository(
     // Add new flood marker to FireStore
     suspend fun pushFloodMarker(marker: FloodMarker) {
         FirestoreRepository.pushFloodMarker(marker)
+    }
+
+    suspend fun pushDistricts(district: List<District>) {
+        FirestoreRepository.pushDistricts(district)
     }
 
     suspend fun cleanupFireStoreMarkers(){
