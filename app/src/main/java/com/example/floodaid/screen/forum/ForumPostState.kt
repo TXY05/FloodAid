@@ -14,7 +14,6 @@ data class ForumState(
     val authorImageUrl: String = "",
     val imageUrls: List<String> = emptyList(),
     val forumPosts: List<ForumPost> = emptyList(),
-    val likesCount: Int = 0,
     val commentsCount: Int = 0,
     val sortType: ForumSortType = ForumSortType.TIME_STAMP
 )

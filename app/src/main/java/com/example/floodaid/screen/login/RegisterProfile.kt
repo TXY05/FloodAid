@@ -1,10 +1,7 @@
 package com.example.floodaid.screen.login
 
 import android.content.Context
-import android.graphics.Bitmap
 import android.net.Uri
-import android.provider.MediaStore
-import android.util.Base64
 import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -42,6 +39,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -84,14 +82,13 @@ import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import java.io.ByteArrayOutputStream
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
 
 @Composable
-fun RegisterProfile(modifier: Modifier = Modifier, navController: NavHostController) {
+fun RegisterProfile(navController: NavHostController) {
     val imageUri = rememberSaveable { mutableStateOf<Uri?>(null) }
     val painter = rememberAsyncImagePainter(
         model = imageUri.value ?: R.drawable.ic_user,
@@ -112,8 +109,11 @@ fun RegisterProfile(modifier: Modifier = Modifier, navController: NavHostControl
     val context = LocalContext.current
 
 
-    Box(modifier = Modifier.fillMaxSize()
-        .padding(WindowInsets.statusBars.asPaddingValues())) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(WindowInsets.statusBars.asPaddingValues())
+    ) {
         // Background Image
         Image(
             painter = painterResource(id = R.drawable.loginbackground),
@@ -125,9 +125,14 @@ fun RegisterProfile(modifier: Modifier = Modifier, navController: NavHostControl
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.SpaceBetween,
-            modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp)
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 24.dp)
         ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.fillMaxWidth()
+            ) {
                 Box(
                     modifier = Modifier
                         .padding(top = 50.dp, bottom = 20.dp)
@@ -161,7 +166,9 @@ fun RegisterProfile(modifier: Modifier = Modifier, navController: NavHostControl
                         Icon(
                             imageVector = Icons.Default.Edit,
                             contentDescription = "Camera Icon",
-                            modifier = Modifier.align(Alignment.Center).size(24.dp)
+                            modifier = Modifier
+                                .align(Alignment.Center)
+                                .size(24.dp)
                         )
                     }
                 }
@@ -176,8 +183,13 @@ fun RegisterProfile(modifier: Modifier = Modifier, navController: NavHostControl
 
                 CTextField(hint = "Full Name", value = fullName, onValueChange = { fullName = it })
                 CTextField(hint = "Username", value = username, onValueChange = { username = it })
-                CTextField(hint = "Mykad / Passport Number", value = myKadOrPassport, onValueChange = { myKadOrPassport = it })
-                GenderSelector(selectedGender = selectedGender, onGenderSelected = { selectedGender = it })
+                CTextField(
+                    hint = "Mykad / Passport Number",
+                    value = myKadOrPassport,
+                    onValueChange = { myKadOrPassport = it })
+                GenderSelector(
+                    selectedGender = selectedGender,
+                    onGenderSelected = { selectedGender = it })
                 birthOfDate = datePickerFieldToModal()
                 StateSelector(
                     modifier = Modifier.fillMaxWidth(),
@@ -187,11 +199,13 @@ fun RegisterProfile(modifier: Modifier = Modifier, navController: NavHostControl
                 )
 
                 Box(modifier = Modifier.fillMaxSize()) {
+                    var isUploading by remember { mutableStateOf(false) }
+
                     Button(
                         onClick = {
                             val uid = FirebaseAuth.getInstance().currentUser?.uid
                             val email = FirebaseAuth.getInstance().currentUser?.email
-
+                            isUploading = true
                             if (uid != null) {
                                 val storageRef = FirebaseStorage.getInstance().reference
                                 val fileName = "$uid-profile.jpg"
@@ -215,7 +229,11 @@ fun RegisterProfile(modifier: Modifier = Modifier, navController: NavHostControl
                                                     profilePictureUrl = downloadUrl.toString()
                                                 )
 
-                                                saveProfileToFirebaseAndLocal(profile, navController, context)
+                                                saveProfileToFirebaseAndLocal(
+                                                    profile,
+                                                    navController,
+                                                    context
+                                                )
                                             }
                                         }
                                         .addOnFailureListener { e ->
@@ -240,24 +258,40 @@ fun RegisterProfile(modifier: Modifier = Modifier, navController: NavHostControl
                             }
 
 
-
-
                         },
                         shape = MaterialTheme.shapes.large,
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                        modifier = Modifier.padding(bottom = 16.dp).fillMaxWidth().height(52.dp).align(alignment = Alignment.BottomCenter)
+                        modifier = Modifier
+                            .padding(bottom = 16.dp)
+                            .fillMaxWidth()
+                            .height(52.dp)
+                            .align(alignment = Alignment.BottomCenter),
+                        enabled = !isUploading && fullName.isNotBlank() && username.isNotBlank() && myKadOrPassport.isNotBlank()
+                                && selectedGender.isNotBlank() && birthOfDate.isNotBlank() && currentDistrict.isNotBlank()
                     ) {
-                        Text(
-                            "Save Profile",
-                            style = TextStyle(fontSize = 22.sp, fontFamily = AlegreyaSansFontFamily, fontWeight = FontWeight(500), color = Color.White)
-                        )
+                        if (isUploading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(22.dp),
+                                strokeWidth = 2.dp,
+                                color = Color.White
+                            )
+                        } else {
+                            Text(
+                                "Save Profile",
+                                style = TextStyle(
+                                    fontSize = 22.sp,
+                                    fontFamily = AlegreyaSansFontFamily,
+                                    fontWeight = FontWeight(500),
+                                    color = Color.White
+                                )
+                            )
+                        }
                     }
                 }
             }
         }
     }
 }
-
 
 
 @Composable
@@ -525,7 +559,7 @@ fun DatePickerModal(
 fun saveProfileToFirebaseAndLocal(
     profile: UserProfile,
     navController: NavHostController,
-    context: Context
+    context: Context,
 ) {
     FirebaseFirestore.getInstance()
         .collection("users")

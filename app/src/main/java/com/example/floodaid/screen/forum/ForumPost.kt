@@ -16,8 +16,7 @@ data class ForumPost(
     val timestamp: Timestamp = Timestamp.now(),
     val region: String = "",
     val authorImageUrl: String = "",
-    val likesCount: Int = 0,
-    val commentsCount: Int = 0
+    val commentsCount: Int = 0,
 )
  {
     constructor() : this(
@@ -29,7 +28,6 @@ data class ForumPost(
         region = "",
         authorImageUrl = "",
         imageUrls = listOf(),
-        likesCount = 0,
-        commentsCount = 0
+        commentsCount = 0,
     )
 }

@@ -56,7 +56,6 @@ fun Signup(
     navController: NavHostController,
     authViewModel: AuthViewModel,
 ) {
-    var fullname by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
 
@@ -165,10 +164,6 @@ fun Signup(
                             .padding(bottom = 24.dp)
                     )
 
-                    CTextField(
-                        hint = "Full Name",
-                        value = fullname,
-                        onValueChange = { newValue -> fullname = newValue })
 
                     CTextField(
                         hint = "Email Address",
@@ -188,7 +183,6 @@ fun Signup(
                 ) {
                     CButton(
                         text = "Register", onClick = {
-                            //navController.navigate("registerprofile")
                             authViewModel.signupFunction(email, password)
                         }, enabled = authState.value != AuthState.Loading
                     )

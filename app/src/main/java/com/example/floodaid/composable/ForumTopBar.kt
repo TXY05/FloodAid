@@ -48,7 +48,7 @@ fun ForumTopBar(
                 contentDescription = null,
                 modifier = Modifier
                     .padding(start = 16.dp, end = 8.dp)
-                    .size(27.dp)
+                    .size(50.dp)
             )
         }
     )

@@ -3,12 +3,10 @@ package com.example.floodaid.screen.forum
 import BottomBar
 import android.net.Uri
 import android.util.Log
-import android.util.Log.e
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -53,7 +51,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -61,11 +58,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import coil.compose.AsyncImage
-import coil.compose.rememberAsyncImagePainter
-import coil.request.ImageRequest
-import com.example.floodaid.R
 import com.example.floodaid.models.Screen
-import com.example.floodaid.models.UserProfile
 import com.example.floodaid.ui.theme.AlegreyaSansFontFamily
 import com.example.floodaid.viewmodel.ForumViewModel
 import com.google.firebase.Timestamp
@@ -81,13 +74,11 @@ import java.util.UUID
 fun CreateForumPost(
     navController: NavHostController = rememberNavController(),
     onEvent: (ForumEvent) -> Unit,
-    viewModel: ForumViewModel,
 ) {
-    val state by viewModel.state.collectAsState()
 
     Scaffold(
         bottomBar = { BottomBar(navController = navController) }) { paddingValues ->
-        CreateForumPostScreen(paddingValues, navController, onEvent, state)
+        CreateForumPostScreen(paddingValues, navController, onEvent)
     }
 }
 
@@ -97,7 +88,6 @@ fun CreateForumPostScreen(
     paddingValues: PaddingValues,
     navController: NavHostController,
     onEvent: (ForumEvent) -> Unit,
-    state: ForumState,
 ) {
     // State for content in the TextField
     var forumContent by remember { mutableStateOf("") }
@@ -153,7 +143,7 @@ fun CreateForumPostScreen(
                                         authorId = userId,
                                         authorName = name,
                                         timestamp = Timestamp.now(),
-                                        region = currentDistrict,
+                                        region = currentDistrict.uppercase(),
                                         authorImageUrl = photoUrl,
                                         imageUrls = downloadUrls
                                     )
@@ -172,7 +162,7 @@ fun CreateForumPostScreen(
                                 }
                             }
                         },
-                        enabled = !isUploading
+                        enabled = !isUploading && (forumContent.isNotBlank() || selectedImageUris.isNotEmpty()) && currentDistrict.isNotBlank()
                     ) {
                         if (isUploading) {
                             CircularProgressIndicator(
@@ -306,7 +296,7 @@ fun CreateForumPostScreen(
 
                 // LazyRow to display selected images
                 LazyRow(
-                    modifier = Modifier.padding(top = 8.dp)
+                    modifier = Modifier.padding(8.dp)
                 ) {
                     items(selectedImageUris.size) { index ->
                         Box(modifier = Modifier.clickable {
@@ -315,13 +305,17 @@ fun CreateForumPostScreen(
                             AsyncImage(
                                 model = selectedImageUris[index],
                                 contentDescription = null,
-                                modifier = Modifier.size(200.dp)
+                                modifier = Modifier.height(150.dp)
+                                    .padding(horizontal = 8.dp)
                             )
                             IconButton(
                                 onClick = { selectedImageUris.removeAt(index) },
-                                modifier = Modifier.align(Alignment.TopEnd)
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd)
+                                    .background(Color.Black.copy(alpha = 0.5f), shape = CircleShape)
+                                    .size(24.dp)
                             ) {
-                                Icon(Icons.Default.Close, contentDescription = "Remove")
+                                Icon(Icons.Default.Close, contentDescription = "Remove", tint = Color.White)
                             }
                         }
                     }
@@ -366,15 +360,20 @@ fun CreateForumPostScreen(
 
 suspend fun uploadImagesToFirebaseStorage(imageUris: List<Uri>): List<String> {
     val storage = FirebaseStorage.getInstance()
-    val userId =
-        FirebaseAuth.getInstance().currentUser?.uid ?: throw Exception("User not logged in")
+    val userId = FirebaseAuth.getInstance().currentUser?.uid ?: throw Exception("User not logged in")
 
     return imageUris.map { uri ->
-        val ref = storage.reference.child("forumImages/$userId/${UUID.randomUUID()}.jpg")
-        val uploadTask = ref.putFile(uri).await() // Upload
-        ref.downloadUrl.await().toString()        // Get URL
+        val fileName = "${UUID.randomUUID()}.jpg"
+        val ref = storage.reference.child("forumImages/$userId/$fileName")
+
+        // Upload the file
+        ref.putFile(uri).await()
+
+        // Get download URL after upload
+        ref.downloadUrl.await().toString()
     }
 }
+
 
 suspend fun getCurrentUserProfileImageUrl(): String? {
     val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return null

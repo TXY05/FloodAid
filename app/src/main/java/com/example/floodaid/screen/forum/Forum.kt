@@ -2,9 +2,6 @@ package com.example.floodaid.screen.forum
 
 import BottomBar
 import android.annotation.SuppressLint
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.keyframes
-import androidx.compose.animation.core.updateTransition
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -178,7 +175,7 @@ fun SocialMediaPost(
             .fillMaxWidth()
             .padding(vertical = 16.dp)
     ) {
-        val (avatar, name, time, area, image, like, comment, likes, content, comments) = createRefs()
+        val (avatar, name, time, area, image, comment, content, comments) = createRefs()
         var selectedImageUrl by remember { mutableStateOf<String?>(null) }
         var scale by remember { mutableFloatStateOf(1f) }
         var offset by remember { mutableStateOf(Offset(0f, 0f)) }
@@ -342,26 +339,6 @@ fun SocialMediaPost(
                     }
             )
         }
-        // Animated Heart Icon
-        AnimatedHeartToggle(
-            initiallyLiked = false,
-            onToggle = { liked -> /* Handle like status */ },
-            modifier = Modifier.constrainAs(like) {
-                top.linkTo(image.bottom, margin = 16.dp)
-                start.linkTo(parent.start, margin = 16.dp)
-            }
-        )
-
-        // Likes count
-        Text(
-            text = forumPost.likesCount.toString(),
-            style = MaterialTheme.typography.titleSmall,
-            color = Color.Black,
-            modifier = Modifier.constrainAs(likes) {
-                top.linkTo(image.bottom, margin = 18.dp)
-                start.linkTo(like.end, margin = 8.dp)
-            }
-        )
 
         // Comment Button
         IconButton(
@@ -370,7 +347,7 @@ fun SocialMediaPost(
                 .size(24.dp)
                 .constrainAs(comment) {
                     top.linkTo(image.bottom, margin = 16.dp)
-                    start.linkTo(likes.end, margin = 16.dp)
+                    start.linkTo(parent.start, margin = 16.dp)
                 }
         ) {
             Icon(
@@ -390,47 +367,6 @@ fun SocialMediaPost(
             }
         )
     }
-}
-
-@Composable
-fun AnimatedHeartToggle(
-    modifier: Modifier = Modifier,
-    initiallyLiked: Boolean = false,
-    onToggle: (Boolean) -> Unit,
-) {
-    var isLiked by remember { mutableStateOf(initiallyLiked) }
-
-    val transition = updateTransition(targetState = isLiked, label = "heart_transition")
-
-    // Scale animation
-    val scale by transition.animateFloat(
-        label = "scale",
-        transitionSpec = {
-            keyframes {
-                durationMillis = 300
-                1.2f at 100
-                0.9f at 200
-                1f at 300
-            }
-        }
-    ) { trueOrFalse -> if (trueOrFalse) 1.2f else 1f }
-
-    // Heart icon and color
-    val heartIcon = if (isLiked) R.drawable.heart_filled else R.drawable.heart_icon
-    val heartColor = if (isLiked) Color.Red else Color.Gray
-
-    Icon(
-        painter = painterResource(id = heartIcon),
-        contentDescription = null,
-        tint = heartColor,
-        modifier = modifier
-            .size(24.dp)
-            .graphicsLayer { scaleX = scale; scaleY = scale }
-            .clickable {
-                isLiked = !isLiked
-                onToggle(isLiked)
-            }
-    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
