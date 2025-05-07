@@ -124,7 +124,7 @@ val CameraPositionSaver = run {
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
-@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
+@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter", "PotentialBehaviorOverride")
 @Composable
 fun Map(
     navController: NavHostController,
@@ -161,9 +161,6 @@ fun Map(
     var savedCameraPosition by rememberSaveable(stateSaver = CameraPositionSaver) {
         mutableStateOf(CameraPosition(LatLng(4.2105, 101.9758), 7f, 0f, 0f))
     }
-
-    // Add a state to track if we need to show markers
-    var shouldShowMarkers by remember { mutableStateOf(false) }
 
     val locationPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -273,12 +270,12 @@ fun Map(
                         // Create teardrop marker based on flood status
                         val floodIcon = createTeardropMarker(
                             context,
-                            if (item.getFloodStatus() == "flood")
+                            if (item.getFloodStatus() == "flooded")
                                 R.drawable.flood_icon // Use a default warning icon
                             else
                                 R.drawable.safe_icon, // Use a default check circle icon
                             FLOOD_MARKER_SIZE.toInt(),
-                            if (item.getFloodStatus() == "flood")
+                            if (item.getFloodStatus() == "flooded")
                                 Color.Blue.copy(alpha = 0.8f).toArgb() // Increased alpha for better visibility
                             else
                                 Color.Green.copy(alpha = 0.8f).toArgb() // Increased alpha for better visibility
@@ -428,6 +425,25 @@ fun Map(
                                 Text("← Back to States")
                             }
                         }
+
+//                        // Add button to create flood markers
+//                        item {
+//                            TextButton(
+//                                onClick = { viewModel.createSelangorFloodMarkers() },
+//                                modifier = Modifier.fillMaxWidth()
+//                            ) {
+//                                Text("Create Flood Markers")
+//                            }
+//                        }
+//
+//                        item {
+//                            TextButton(
+//                                onClick = { viewModel.createAndPushSampleShelterMarkers() },
+//                                modifier = Modifier.fillMaxWidth()
+//                            ) {
+//                                Text("Create Shelters")
+//                            }
+//                        }
                     }
                 }
             }
@@ -515,7 +531,6 @@ fun Map(
                             viewModel.onShelterSelected(null)
                             viewModel.clearSelectedShelter()
                         },
-                        sheetState = sheetState
                     )
                 }
             }

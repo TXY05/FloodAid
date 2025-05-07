@@ -103,13 +103,17 @@ class MapRepository(
     fun listenToSheltersUpdates(): Flow<List<Shelter>> = FirestoreRepository.listenToShelters()
     fun listenToFloodMarkersUpdates(): Flow<List<FloodMarker>> = FirestoreRepository.listenToFloodMarkers()
 
+    suspend fun pushDistricts(district: List<District>) {
+        FirestoreRepository.pushDistricts(district)
+    }
+
+    suspend fun pushShelters(shelters: List<Shelter>) {
+        FirestoreRepository.pushShelters(shelters)
+    }
+
     // Add new flood marker to FireStore
     suspend fun pushFloodMarker(marker: FloodMarker) {
         FirestoreRepository.pushFloodMarker(marker)
-    }
-
-    suspend fun pushDistricts(district: List<District>) {
-        FirestoreRepository.pushDistricts(district)
     }
 
     suspend fun cleanupFireStoreMarkers(){

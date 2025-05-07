@@ -10,6 +10,7 @@ import java.time.Instant
 
 
 data class Border(val coordinates: List<List<Double>>)
+data class ImageURL(val url: List<String>)
 
 //         Entity
 @Entity(tableName = "State")
@@ -61,6 +62,7 @@ data class Shelter(
     val longitude: Double,
     val districtId: Long, // Foreign key reference to District
     val address: String? = null,
+    val imageUrlList: ImageURL? = null
 //    val distance: Float? = null
 )
 
@@ -85,7 +87,6 @@ data class FloodMarker(
     val longitude: Double,
     val expiryTime: Instant, // When this marker should expire
     val createdAt: Instant = Instant.now(), // When this marker was created
-    val reporterId: String? = null // Who reported this (could be user ID or device ID)
 ) {
     companion object {
         const val TEMP_ID = "Temp"

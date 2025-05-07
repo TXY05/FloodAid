@@ -94,6 +94,7 @@ dependencies {
     //Splash Screen
     implementation(libs.androidx.core.splashscreen)
 
+    implementation(libs.coil.compose)
     implementation(libs.coil3.coil.compose)
     implementation(libs.play.services.auth)
     implementation(libs.googleid)

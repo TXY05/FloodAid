@@ -8,12 +8,8 @@ import androidx.room.TypeConverters
 import com.example.floodaid.models.UserProfile
 import com.example.floodaid.models.VolunteerEvent
 import com.example.floodaid.models.VolunteerEventHistory
-//import com.example.floodaid.models.VolunteerEvent
-//import com.example.floodaid.models.VolunteerEventHistory
 import com.example.floodaid.utils.Converter
 import com.example.floodaid.roomDatabase.Dao.MapDao
-//import com.example.floodaid.roomDatabase.Dao.VolunteerDao
-//import com.example.floodaid.roomDatabase.Dao.VolunteerEventHistoryDao
 import com.example.floodaid.roomDatabase.Dao.UserProfileDao
 import com.example.floodaid.roomDatabase.Dao.VolunteerDao
 import com.example.floodaid.roomDatabase.Dao.VolunteerEventHistoryDao
@@ -40,7 +36,7 @@ import com.example.floodaid.screen.forum.ForumPost
         UserProfile::class,
         ForumPost::class
     ],
-    version = 9, // Increment this number by 1
+    version = 12, // Increment this number by 1
     exportSchema = true
 )
 @TypeConverters(Converter::class)
@@ -64,7 +60,6 @@ abstract class FloodAidDatabase : RoomDatabase() {
                     FloodAidDatabase::class.java,
                     "flood_aid_database"
                 )
-                    .fallbackToDestructiveMigration()
                     .build()
                 INSTANCE = instance
                 instance

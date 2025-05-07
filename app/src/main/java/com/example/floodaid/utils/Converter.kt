@@ -2,6 +2,7 @@ package com.example.floodaid.utils
 
 import androidx.room.TypeConverter
 import com.example.floodaid.roomDatabase.Entities.Border
+import com.example.floodaid.roomDatabase.Entities.ImageURL
 import com.google.gson.Gson
 import java.time.Instant
 
@@ -34,5 +35,11 @@ class Converter {
     fun fromStringToImageList(imageString: String): List<String> {
         return imageString.split(",")  // Use the same delimiter as above
     }
-    
+
+    @TypeConverter
+    fun fromImageURL(value: ImageURL?): String? = Gson().toJson(value)
+
+    @TypeConverter
+    fun toImageURL(value: String?): ImageURL? =
+        Gson().fromJson(value, ImageURL::class.java)
 }

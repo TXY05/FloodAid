@@ -224,37 +224,85 @@ class FirestoreRepository {
     // Shelters
     suspend fun fetchAllShelters(): List<Shelter> {
         val snapshot = sheltersCollection.get().await()
-        return snapshot.documents.mapNotNull { doc ->
-            Shelter(
-                id = doc.getLong("id") ?: 0L,
-                helpCenterName = doc.getString("helpCenterName") ?: return@mapNotNull null,
-                descriptions = doc.getString("descriptions") ?: "",
-                latitude = doc.getDouble("latitude") ?: return@mapNotNull null,
-                longitude = doc.getDouble("longitude") ?: return@mapNotNull null,
-                districtId = doc.getLong("districtId") ?: return@mapNotNull null,
-                address = doc.getString("address")
+        val shelters = mutableListOf<Shelter>()
+        for (doc in snapshot.documents) {
+            val imageUrlSnapshot = doc.reference.collection("imageURL_List").get().await()
+            val urlList = imageUrlSnapshot.documents.mapNotNull { it.getString("link") }
+            shelters.add(
+                Shelter(
+                    id = doc.getLong("id") ?: 0L,
+                    helpCenterName = doc.getString("helpCenterName") ?: continue,
+                    descriptions = doc.getString("descriptions") ?: "",
+                    latitude = doc.getDouble("latitude") ?: continue,
+                    longitude = doc.getDouble("longitude") ?: continue,
+                    districtId = doc.getLong("districtId") ?: continue,
+                    address = doc.getString("address"),
+                    imageUrlList = if (urlList.isNotEmpty()) ImageURL(urlList) else null
+                )
             )
         }
+        return shelters
     }
 
     fun listenToShelters(): Flow<List<Shelter>> = callbackFlow {
         val listener = sheltersCollection.addSnapshotListener { snapshot, error ->
             if (error != null || snapshot == null) return@addSnapshotListener
 
-            val shelters = snapshot.documents.mapNotNull { doc ->
-                Shelter(
-                    id = doc.getLong("id") ?: 0L,
-                    helpCenterName = doc.getString("helpCenterName") ?: return@mapNotNull null,
-                    descriptions = doc.getString("descriptions") ?: "",
-                    latitude = doc.getDouble("latitude") ?: return@mapNotNull null,
-                    longitude = doc.getDouble("longitude") ?: return@mapNotNull null,
-                    districtId = doc.getLong("districtId") ?: return@mapNotNull null,
-                    address = doc.getString("address")
-                )
+            val shelters = mutableListOf<Shelter>()
+            var processedCount = 0
+            if (snapshot.documents.isEmpty()) {
+                trySend(emptyList())
+                return@addSnapshotListener
             }
-            trySend(shelters)
+            snapshot.documents.forEach { doc ->
+                doc.reference.collection("imageURL_List").get()
+                    .addOnSuccessListener { imageUrlSnapshot ->
+                        val urlList = imageUrlSnapshot.documents.mapNotNull { it.getString("link") }
+                        shelters.add(
+                            Shelter(
+                                id = doc.getLong("id") ?: 0L,
+                                helpCenterName = doc.getString("helpCenterName") ?: return@addOnSuccessListener,
+                                descriptions = doc.getString("descriptions") ?: "",
+                                latitude = doc.getDouble("latitude") ?: return@addOnSuccessListener,
+                                longitude = doc.getDouble("longitude") ?: return@addOnSuccessListener,
+                                districtId = doc.getLong("districtId") ?: return@addOnSuccessListener,
+                                address = doc.getString("address"),
+                                imageUrlList = if (urlList.isNotEmpty()) ImageURL(urlList) else null
+                            )
+                        )
+                        processedCount++
+                        if (processedCount == snapshot.documents.size) {
+                            trySend(shelters)
+                        }
+                    }
+            }
         }
         awaitClose { listener.remove() }
+    }
+
+    suspend fun pushShelters(shelters: List<Shelter>) {
+        for (shelter in shelters) {
+            val docRef = sheltersCollection.document(shelter.id.toString())
+            // Set main shelter fields
+            docRef.set(
+                mapOf(
+                    "id" to shelter.id,
+                    "helpCenterName" to shelter.helpCenterName,
+                    "descriptions" to shelter.descriptions,
+                    "latitude" to shelter.latitude,
+                    "longitude" to shelter.longitude,
+                    "districtId" to shelter.districtId,
+                    "address" to shelter.address
+                )
+            ).await()
+            // Set image URLs as subcollection
+            shelter.imageUrlList?.url?.forEachIndexed { index, url ->
+                val urlDocId = String.format("U%03d", index + 1)
+                docRef.collection("imageURL_List").document(urlDocId)
+                    .set(mapOf("link" to url, "order" to index))
+                    .await()
+            }
+        }
     }
 
     // Flood Markers
@@ -272,8 +320,7 @@ class FirestoreRepository {
                 districtId = doc.getLong("districtId") ?: return@mapNotNull null,
                 latitude = doc.getDouble("latitude") ?: return@mapNotNull null,
                 longitude = doc.getDouble("longitude") ?: return@mapNotNull null,
-                expiryTime = Instant.ofEpochMilli(doc.getLong("expiryTime") ?: return@mapNotNull null),
-                reporterId = doc.getString("reporterId")
+                expiryTime = Instant.ofEpochMilli(doc.getLong("expiryTime") ?: return@mapNotNull null)
             )
         }
     }
@@ -284,8 +331,7 @@ class FirestoreRepository {
             "districtId" to marker.districtId,
             "latitude" to marker.latitude,
             "longitude" to marker.longitude,
-            "expiryTime" to marker.expiryTime.toEpochMilli(),
-            "reporterId" to marker.reporterId
+            "expiryTime" to marker.expiryTime.toEpochMilli()
         )
 
         // Let FireStore generate the ID
@@ -309,8 +355,7 @@ class FirestoreRepository {
                         districtId = doc.getLong("districtId") ?: return@mapNotNull null,
                         latitude = doc.getDouble("latitude") ?: return@mapNotNull null,
                         longitude = doc.getDouble("longitude") ?: return@mapNotNull null,
-                        expiryTime = Instant.ofEpochMilli(doc.getLong("expiryTime") ?: return@mapNotNull null),
-                        reporterId = doc.getString("reporterId")
+                        expiryTime = Instant.ofEpochMilli(doc.getLong("expiryTime") ?: return@mapNotNull null)
                     )
                 }
                 trySend(markers)
