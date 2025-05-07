@@ -1,11 +1,9 @@
 package com.example.floodaid.screen.forum
 
 import BottomBar
-import android.content.Context
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.net.Uri
-import android.util.Base64
+import android.util.Log
+import android.util.Log.e
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -31,6 +29,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -47,12 +46,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
@@ -61,12 +60,20 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
-import coil3.compose.AsyncImage
+import coil.compose.AsyncImage
+import coil.compose.rememberAsyncImagePainter
+import coil.request.ImageRequest
 import com.example.floodaid.R
+import com.example.floodaid.models.Screen
+import com.example.floodaid.models.UserProfile
 import com.example.floodaid.ui.theme.AlegreyaSansFontFamily
 import com.example.floodaid.viewmodel.ForumViewModel
+import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.storage.FirebaseStorage
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 import java.util.UUID
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -74,13 +81,13 @@ import java.util.UUID
 fun CreateForumPost(
     navController: NavHostController = rememberNavController(),
     onEvent: (ForumEvent) -> Unit,
-    viewModel: ForumViewModel
+    viewModel: ForumViewModel,
 ) {
     val state by viewModel.state.collectAsState()
 
     Scaffold(
         bottomBar = { BottomBar(navController = navController) }) { paddingValues ->
-        CreateForumPostScreen(paddingValues, navController,onEvent,state )
+        CreateForumPostScreen(paddingValues, navController, onEvent, state)
     }
 }
 
@@ -90,7 +97,7 @@ fun CreateForumPostScreen(
     paddingValues: PaddingValues,
     navController: NavHostController,
     onEvent: (ForumEvent) -> Unit,
-    state: ForumState
+    state: ForumState,
 ) {
     // State for content in the TextField
     var forumContent by remember { mutableStateOf("") }
@@ -98,17 +105,9 @@ fun CreateForumPostScreen(
 
     val userId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
 
-    // Firestore reference
-    val firestore = FirebaseFirestore.getInstance()
-
-    // State to hold the Base64 string and Bitmap
-    val userProfilePictureBase64 = remember { mutableStateOf<String?>(null) }
-    val profileBitmap = remember { mutableStateOf<Bitmap?>(null) }
-
     // State for selected images (using mutableStateListOf for a list of URIs)
     val selectedImageUris = remember { mutableStateListOf<Uri>() }
     val context = LocalContext.current
-    val imageBase64List = selectedImageUris.mapNotNull { uri -> uriToBase64(context, uri) }
 
     // This will hold the launcher for picking multiple images
     val multiplePhotoPickerLauncher = rememberLauncherForActivityResult(
@@ -136,26 +135,56 @@ fun CreateForumPostScreen(
                     }
                 },
                 actions = {
+                    val scope = rememberCoroutineScope()
+                    var isUploading by remember { mutableStateOf(false) }
+
                     Button(
                         onClick = {
+                            scope.launch {
+                                isUploading = true
+                                try {
+                                    val name = getUserName(userId) ?: ""
+                                    val photoUrl = getCurrentUserProfileImageUrl() ?: ""
+                                    val downloadUrls = uploadImagesToFirebaseStorage(selectedImageUris)
 
-                            val forumPost = ForumPost(
-                                id = UUID.randomUUID().toString(),
-                                content = forumContent,
-                                authorId = userId,
-                                timestamp = System.currentTimeMillis(),
-                                region = currentDistrict,
-                                imageUrls = imageBase64List
-                            )
+                                    val forumPost = ForumPost(
+                                        id = UUID.randomUUID().toString(),
+                                        content = forumContent,
+                                        authorId = userId,
+                                        authorName = name,
+                                        timestamp = Timestamp.now(),
+                                        region = currentDistrict,
+                                        authorImageUrl = photoUrl,
+                                        imageUrls = downloadUrls
+                                    )
 
-                            // Trigger the SaveForumPost event with the forumPost data
-                            onEvent(ForumEvent.SaveForumPost(forumPost))
+                                    onEvent(ForumEvent.SaveForumPost(forumPost))
+                                    navController.navigate(Screen.Forum.route)
+
+                                } catch (e: Exception) {
+                                    Toast.makeText(
+                                        context,
+                                        "Upload failed: ${e.message}",
+                                        Toast.LENGTH_LONG
+                                    ).show()
+                                } finally {
+                                    isUploading = false
+                                }
+                            }
                         },
-                        enabled = (selectedImageUris.isNotEmpty() || forumContent.isNotBlank()) && currentDistrict.isNotBlank(),
-
-                        ) {
-                        Text("Post")
+                        enabled = !isUploading
+                    ) {
+                        if (isUploading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                strokeWidth = 2.dp,
+                                color = Color.White
+                            )
+                        } else {
+                            Text("Post")
+                        }
                     }
+
 
 
                 })
@@ -174,26 +203,11 @@ fun CreateForumPostScreen(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
 
+                var imageUrl by remember { mutableStateOf<String?>(null) }
 
-                // Ensure the userId is not null
-                if (userId != null) {
-                    // Fetch user profile data from Firestore
-                    LaunchedEffect(userId) {
-                        firestore.collection("users").document(userId).get()
-                            .addOnSuccessListener { document ->
-                                if (document != null && document.exists()) {
-                                    val base64String = document.getString("profilePictureBase64")
-                                    userProfilePictureBase64.value = base64String
-
-                                    // Decode the Base64 string into a Bitmap
-                                    if (base64String != null) {
-                                        profileBitmap.value = decodeBase64ToBitmap(base64String)
-                                    }
-                                }
-                            }
-                    }
+                LaunchedEffect(Unit) {
+                    imageUrl = getCurrentUserProfileImageUrl()
                 }
-
 
                 Row(
                     modifier = Modifier
@@ -201,49 +215,23 @@ fun CreateForumPostScreen(
                         .padding(start = 16.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Display the profile picture or a default image if not available
-                    if (profileBitmap.value != null) {
-                        Image(
-                            bitmap = profileBitmap.value!!.asImageBitmap(),
-                            contentDescription = "User Profile Picture",
-                            modifier = Modifier
-                                .size(70.dp)
-                                .clip(CircleShape)
 
-                        )
-                    } else {
-                        // Fallback: Show a default image if the profile picture is null or invalid
-                        Image(
-                            painter = painterResource(id = R.drawable.ic_user),
-                            contentDescription = "Default Profile Picture",
-                            modifier = Modifier
-                                .size(70.dp)
-                                .clip(CircleShape)
-                        )
-                    }
-                    val districts = listOf(
-                        "Hulu Langat",
-                        "Ampang",
-                        "Cheras",
-                        "Semenyih",
-                        "Kajang",
-                        "Bangi",
-                        "Hulu Selangor",
-                        "Kuala Kubu Bharu",
-                        "Serendah",
-                        "Bukit Beruntung",
-                        "Batang Kali",
-                        "Ulu Yam"
+                    AsyncImage(
+                        model = imageUrl,
+                        contentDescription = "User Profile Image",
+                        modifier = Modifier
+                            .size(64.dp)
+                            .clip(CircleShape)
                     )
 
-
-                    // Container for Address Box
-
                     Column(
+
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(start = 16.dp, end = 16.dp)
+                            .padding(end = 16.dp)
                     ) {
+
+
                         // Editable TextField for typing input
                         OutlinedTextField(
                             value = currentDistrict,
@@ -278,7 +266,7 @@ fun CreateForumPostScreen(
                             },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(vertical = 8.dp),
+                                .padding(16.dp),
                         )
                     }
                 }
@@ -309,7 +297,9 @@ fun CreateForumPostScreen(
                         cursorColor = Color(0xFFBEC2C2)
                     ),
                     textStyle = TextStyle(
-                        fontSize = 24.sp, fontFamily = AlegreyaSansFontFamily, color = Color.Black
+                        fontSize = 24.sp,
+                        fontFamily = AlegreyaSansFontFamily,
+                        color = Color.Black
                     )
                 )
                 var selectedImageUriToShow by remember { mutableStateOf<Uri?>(null) }
@@ -374,24 +364,42 @@ fun CreateForumPostScreen(
     }
 }
 
-fun decodeBase64ToBitmap(base64String: String): Bitmap? {
-    return try {
-        val decodedBytes = Base64.decode(base64String, Base64.DEFAULT)
-        BitmapFactory.decodeByteArray(decodedBytes, 0, decodedBytes.size)
-    } catch (e: Exception) {
-        null // Return null if the decoding fails
+suspend fun uploadImagesToFirebaseStorage(imageUris: List<Uri>): List<String> {
+    val storage = FirebaseStorage.getInstance()
+    val userId =
+        FirebaseAuth.getInstance().currentUser?.uid ?: throw Exception("User not logged in")
+
+    return imageUris.map { uri ->
+        val ref = storage.reference.child("forumImages/$userId/${UUID.randomUUID()}.jpg")
+        val uploadTask = ref.putFile(uri).await() // Upload
+        ref.downloadUrl.await().toString()        // Get URL
     }
 }
 
-fun uriToBase64(context: Context, uri: Uri): String? {
+suspend fun getCurrentUserProfileImageUrl(): String? {
+    val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return null
+
     return try {
-        val inputStream = context.contentResolver.openInputStream(uri)
-        val bytes = inputStream?.readBytes()
-        inputStream?.close()
-        bytes?.let {
-            Base64.encodeToString(it, Base64.DEFAULT)
-        }
+        val document = FirebaseFirestore.getInstance()
+            .collection("users")
+            .document(uid)
+            .get()
+            .await()
+
+        document.getString("profilePictureUrl") // Adjust the field name if needed
     } catch (e: Exception) {
         null
     }
 }
+
+suspend fun getUserName(uid: String): String? {
+    val db = FirebaseFirestore.getInstance()
+    return try {
+        val doc = db.collection("users").document(uid).get().await()
+        doc.getString("fullName")
+    } catch (e: Exception) {
+        Log.e("Firestore", "Error fetching user name", e)
+        null
+    }
+}
+

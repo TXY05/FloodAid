@@ -2,24 +2,27 @@ package com.example.floodaid.screen.forum
 
 import BottomBar
 import android.annotation.SuppressLint
-import android.graphics.BitmapFactory
-import android.util.Base64
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.keyframes
 import androidx.compose.animation.core.updateTransition
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -39,6 +42,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -47,43 +51,47 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.navigation.NavHostController
+import coil.compose.AsyncImage
 import com.example.floodaid.R
 import com.example.floodaid.composable.ForumTopBar
 import com.example.floodaid.models.Screen
 import com.example.floodaid.ui.theme.AlegreyaFontFamily
 import com.example.floodaid.ui.theme.AlegreyaSansFontFamily
 import com.example.floodaid.viewmodel.ForumViewModel
-import androidx.compose.foundation.lazy.items
+import com.google.firebase.Timestamp
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import kotlin.math.roundToInt
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
 fun Forum(
     navController: NavHostController,
-    viewModel: ForumViewModel
+    viewModel: ForumViewModel,
 ) {
 
     Scaffold(
         bottomBar = { BottomBar(navController = navController) }
     ) { paddingValues ->
         ForumScreen(
-            modifier = Modifier.padding(paddingValues), navController,viewModel
+            modifier = Modifier.padding(paddingValues), navController, viewModel
         )
     }
 }
@@ -93,7 +101,7 @@ fun Forum(
 fun ForumScreen(
     modifier: Modifier = Modifier,
     navController: NavHostController,
-    viewModel: ForumViewModel
+    viewModel: ForumViewModel,
 ) {
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(
         state = rememberTopAppBarState()
@@ -102,6 +110,13 @@ fun ForumScreen(
     var showCommentSheet by rememberSaveable { mutableStateOf(false) }
     val uiState by viewModel.state.collectAsState()
     val forumPosts = uiState.forumPosts
+
+
+
+
+    LaunchedEffect(Unit) {
+        viewModel.fetchAndSaveForumPosts()
+    }
 
     CommentModalBottomSheet(
         show = showCommentSheet,
@@ -127,7 +142,7 @@ fun ForumScreen(
                 HorizontalDivider(
                     modifier = Modifier.fillMaxWidth(),
                     color = Color.LightGray,
-                    thickness = 3.dp
+                    thickness = 1.dp
                 )
             }
         }
@@ -164,28 +179,15 @@ fun SocialMediaPost(
             .padding(vertical = 16.dp)
     ) {
         val (avatar, name, time, area, image, like, comment, likes, content, comments) = createRefs()
-
-        val imageBitmap = remember(forumPost.imageUrls) {
-            base64ToImageBitmap(forumPost.imageUrls.firstOrNull() ?: "")
-        }
-
-        Base64Image(
-            base64String = forumPost.authorImageBase64,
-            modifier = Modifier
-                .size(44.dp)
-                .clip(CircleShape)
-                .padding(start = 16.dp)
-                .constrainAs(avatar) {
-                    top.linkTo(parent.top)
-                    start.linkTo(parent.start)
-                },
-        )
+        var selectedImageUrl by remember { mutableStateOf<String?>(null) }
+        var scale by remember { mutableFloatStateOf(1f) }
+        var offset by remember { mutableStateOf(Offset(0f, 0f)) }
 
 
         // Avatar
-       /* Image(
-            painter = painterResource(id = R.drawable.dummy_avatar),
-            contentDescription = null,
+        AsyncImage(
+            model = forumPost.authorImageUrl,
+            contentDescription = "User Profile Image",
             modifier = Modifier
                 .padding(start = 16.dp)
                 .size(44.dp)
@@ -193,11 +195,10 @@ fun SocialMediaPost(
                 .constrainAs(avatar) {
                     top.linkTo(parent.top)
                     start.linkTo(parent.start)
-                })*/
-
-        // Name
+                })
+        //Name
         Text(
-            text = forumPost.authorId,
+            text = forumPost.authorName,
             style = MaterialTheme.typography.titleMedium,
             modifier = Modifier.constrainAs(name) {
                 top.linkTo(parent.top, margin = 3.dp)
@@ -232,36 +233,115 @@ fun SocialMediaPost(
             }
         )
 
-        // Content
-        Text(
-            text = forumPost.content,
-            style = TextStyle(
-                fontSize = 20.sp,
-                fontFamily = AlegreyaSansFontFamily,
-                color = Color.Black
-            ),
-            modifier = Modifier
-                .padding(16.dp, 0.dp)
-                .constrainAs(content) {
-                    top.linkTo(area.bottom, margin = 8.dp)
-                    start.linkTo(parent.start)
-                    end.linkTo(parent.end)
-                }
-        )
+        if (forumPost.content.isNotBlank()) {
+            // Content
+            Text(
+                text = forumPost.content,
+                style = TextStyle(
+                    fontSize = 20.sp,
+                    fontFamily = AlegreyaSansFontFamily,
+                    color = Color.Black
+                ),
+                modifier = Modifier
+                    .padding(16.dp, 0.dp)
+                    .constrainAs(content) {
+                        top.linkTo(area.bottom, margin = 8.dp)
+                        start.linkTo(parent.start)
+                        end.linkTo(parent.end)
+                    }
+            )
+        } else {
+            Box(
+                modifier = Modifier
+                    .size(0.dp)
+                    .constrainAs(content) {
+                        top.linkTo(area.bottom)
+                        start.linkTo(parent.start)
+                        end.linkTo(parent.end)
 
-        // Image
-        Image(
-            painter = painterResource(id = R.drawable.user1),
-            contentDescription = null,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(300.dp)
-                .constrainAs(image) {
-                    top.linkTo(content.bottom, margin = 16.dp)
+                    })
+        }
+        if (forumPost.imageUrls.any { it.isNotBlank() }) {
+            LazyRow(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 16.dp)
+                    .constrainAs(image) {
+                        top.linkTo(content.bottom, margin = 16.dp)
+                        start.linkTo(parent.start)
+                        end.linkTo(parent.end)
+                    },
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                contentPadding = PaddingValues(horizontal = 16.dp)
+            ) {
+                items(forumPost.imageUrls) { imageUrl ->
+                    AsyncImage(
+                        model = imageUrl,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .size(180.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable {
+                                selectedImageUrl = imageUrl // This opens the full-screen view
+                            }
+                    )
                 }
-        )
+            }
 
+
+            if (selectedImageUrl != null) {
+                Dialog(onDismissRequest = { selectedImageUrl = null }) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clickable { selectedImageUrl = null }, // Tap to close the dialog
+                        contentAlignment = Alignment.Center
+                    ) {
+                        AsyncImage(
+                            model = selectedImageUrl,
+                            contentDescription = null,
+                            contentScale = ContentScale.Fit,
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .offset {
+                                    IntOffset(offset.x.roundToInt(), offset.y.roundToInt())
+                                }
+                                .graphicsLayer(
+                                    scaleX = scale,
+                                    scaleY = scale,
+                                    translationX = offset.x,
+                                    translationY = offset.y
+                                )
+                                .pointerInput(Unit) {
+                                    detectTransformGestures { _, pan, zoom, _ ->
+                                        scale =
+                                            (scale * zoom).coerceIn(
+                                                1f,
+                                                3f
+                                            )  // Limit the zoom range
+                                        offset = Offset(
+                                            offset.x + pan.x,
+                                            offset.y + pan.y
+                                        )
+                                    }
+                                }
+                        )
+                    }
+
+                }
+            }
+        } else {
+            Box(
+                modifier = Modifier
+                    .size(0.dp)
+                    .constrainAs(image) {
+                        top.linkTo(content.bottom)
+                        start.linkTo(parent.start)
+                        end.linkTo(parent.end)
+                    }
+            )
+        }
         // Animated Heart Icon
         AnimatedHeartToggle(
             initiallyLiked = false,
@@ -274,7 +354,7 @@ fun SocialMediaPost(
 
         // Likes count
         Text(
-            text = "1,123",
+            text = forumPost.likesCount.toString(),
             style = MaterialTheme.typography.titleSmall,
             color = Color.Black,
             modifier = Modifier.constrainAs(likes) {
@@ -301,7 +381,7 @@ fun SocialMediaPost(
 
         // Comments count
         Text(
-            text = "1,000",
+            text = forumPost.commentsCount.toString(),
             style = MaterialTheme.typography.titleSmall,
             color = Color.Black,
             modifier = Modifier.constrainAs(comments) {
@@ -389,35 +469,7 @@ fun CommentModalBottomSheet(
     }
 }
 
-fun base64ToImageBitmap(base64String: String): ImageBitmap? {
-    return try {
-        val decodedBytes = Base64.decode(base64String, Base64.DEFAULT)
-        BitmapFactory.decodeByteArray(decodedBytes, 0, decodedBytes.size)
-            ?.asImageBitmap()
-    } catch (e: Exception) {
-        null
-    }
-}
-
-fun formatTimestamp(timestamp: Long): String {
+fun formatTimestamp(timestamp: Timestamp): String {
     val sdf = SimpleDateFormat("dd MMM yyyy, hh:mm a", Locale.getDefault())
-    return sdf.format(Date(timestamp))
-}
-
-@Composable
-fun Base64Image(base64String: String, modifier: Modifier = Modifier) {
-    val imageBitmap = remember(base64String) {
-        val decodedBytes = Base64.decode(base64String, Base64.DEFAULT)
-        BitmapFactory.decodeByteArray(decodedBytes, 0, decodedBytes.size)?.asImageBitmap()
-    }
-
-    if (imageBitmap != null) {
-        Image(
-            bitmap = imageBitmap,
-            contentDescription = null,
-            modifier = modifier
-                .size(44.dp)
-                .clip(CircleShape)
-        )
-    }
+    return sdf.format(Date(timestamp.seconds * 1000)) // Convert to milliseconds
 }

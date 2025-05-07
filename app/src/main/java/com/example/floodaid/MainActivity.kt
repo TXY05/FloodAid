@@ -46,9 +46,9 @@ class MainActivity : AppCompatActivity() {
 
         // Forum ViewModel
         val forumDao = FloodAidDatabase.getInstance(applicationContext).forumDao()
-        val forumViewModelFactory = ForumViewModelFactory(forumDao)
-        val forumViewModel =
-            ViewModelProvider(this, forumViewModelFactory)[ForumViewModel::class.java]
+        val forumViewModelFactory = ForumViewModelFactory(forumDao, application)
+        val forumViewModel = ViewModelProvider(this, forumViewModelFactory).get(ForumViewModel::class.java)
+
 
         // Volunteer ViewModel
         val floodAidDatabase = FloodAidDatabase.getInstance(applicationContext)

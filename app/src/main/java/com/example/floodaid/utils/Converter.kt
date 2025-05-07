@@ -3,6 +3,7 @@ package com.example.floodaid.utils
 import androidx.room.TypeConverter
 import com.example.floodaid.roomDatabase.Entities.Border
 import com.example.floodaid.roomDatabase.Entities.ImageURL
+import com.google.firebase.Timestamp
 import com.google.gson.Gson
 import java.time.Instant
 
@@ -42,4 +43,14 @@ class Converter {
     @TypeConverter
     fun toImageURL(value: String?): ImageURL? =
         Gson().fromJson(value, ImageURL::class.java)
+
+    @TypeConverter
+    fun fromTimestamp(timestamp: Timestamp?): Long? {
+        return timestamp?.seconds
+    }
+
+    @TypeConverter
+    fun toTimestamp(seconds: Long?): Timestamp? {
+        return seconds?.let { Timestamp(it, 0) }
+    }
 }

@@ -1,5 +1,6 @@
 package com.example.floodaid.screen.login
 
+import android.content.Context
 import android.graphics.Bitmap
 import android.net.Uri
 import android.provider.MediaStore
@@ -79,6 +80,7 @@ import com.example.floodaid.ui.theme.AlegreyaSansFontFamily
 import com.example.jetpackcomposeauthui.components.CTextField
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -109,23 +111,6 @@ fun RegisterProfile(modifier: Modifier = Modifier, navController: NavHostControl
     // Move context-related tasks to a Composable scope
     val context = LocalContext.current
 
-    // Helper function to encode the image to Base64
-    fun encodeImageToBase64(imageUri: Uri?): String? {
-        return if (imageUri != null) {
-            try {
-                val bitmap: Bitmap = MediaStore.Images.Media.getBitmap(context.contentResolver, imageUri)
-                val byteArrayOutputStream = ByteArrayOutputStream()
-                bitmap.compress(Bitmap.CompressFormat.JPEG, 100, byteArrayOutputStream)
-                val byteArray = byteArrayOutputStream.toByteArray()
-                Base64.encodeToString(byteArray, Base64.DEFAULT)
-            } catch (e: Exception) {
-                e.printStackTrace()
-                null
-            }
-        } else {
-            null
-        }
-    }
 
     Box(modifier = Modifier.fillMaxSize()
         .padding(WindowInsets.statusBars.asPaddingValues())) {
@@ -208,41 +193,53 @@ fun RegisterProfile(modifier: Modifier = Modifier, navController: NavHostControl
                             val email = FirebaseAuth.getInstance().currentUser?.email
 
                             if (uid != null) {
-                                // Now, use the helper function inside composable scope
-                                val base64Image = encodeImageToBase64(imageUri.value)
+                                val storageRef = FirebaseStorage.getInstance().reference
+                                val fileName = "$uid-profile.jpg"
+                                val imageRef = storageRef.child("profileImages/$fileName")
 
-                                // Save profile with or without image
-                                val profile = UserProfile(
-                                    uid = uid,
-                                    fullName = fullName,
-                                    userName = username,
-                                    email = email ?: "",
-                                    myKadOrPassport = myKadOrPassport,
-                                    gender = selectedGender,
-                                    birthOfDate = birthOfDate,
-                                    location = currentDistrict,
-                                    profilePictureUrl = base64Image ?: ""
-                                )
+                                if (imageUri.value != null) {
+                                    // Upload image to Firebase Storage
+                                    imageRef.putFile(imageUri.value!!)
+                                        .addOnSuccessListener {
+                                            imageRef.downloadUrl.addOnSuccessListener { downloadUrl ->
+                                                // ✅ Create profile with image URL
+                                                val profile = UserProfile(
+                                                    uid = uid,
+                                                    fullName = fullName,
+                                                    userName = username,
+                                                    email = email ?: "",
+                                                    myKadOrPassport = myKadOrPassport,
+                                                    gender = selectedGender,
+                                                    birthOfDate = birthOfDate,
+                                                    location = currentDistrict,
+                                                    profilePictureUrl = downloadUrl.toString()
+                                                )
 
-                                FirebaseFirestore.getInstance()
-                                    .collection("users")
-                                    .document(uid)
-                                    .set(profile)
-                                    .addOnSuccessListener {
-                                        Log.d("Profile", "Profile saved successfully")
-                                        navController.navigate(Screen.Dashboard.route)
-                                    }
-                                    .addOnFailureListener { e ->
-                                        Log.e("Firestore", "Error saving profile", e)
-                                    }
+                                                saveProfileToFirebaseAndLocal(profile, navController, context)
+                                            }
+                                        }
+                                        .addOnFailureListener { e ->
+                                            Log.e("Firebase", "Image upload failed: ${e.message}")
+                                        }
+                                } else {
+                                    // No image selected, save profile with empty image
+                                    val profile = UserProfile(
+                                        uid = uid,
+                                        fullName = fullName,
+                                        userName = username,
+                                        email = email ?: "",
+                                        myKadOrPassport = myKadOrPassport,
+                                        gender = selectedGender,
+                                        birthOfDate = birthOfDate,
+                                        location = currentDistrict,
+                                        profilePictureUrl = ""
+                                    )
 
-                                val db = FloodAidDatabase.getInstance(context)
-                                val userProfileDao = db.userProfileDao()
-
-                                CoroutineScope(Dispatchers.IO).launch {
-                                    userProfileDao.insert(profile)
+                                    saveProfileToFirebaseAndLocal(profile, navController, context)
                                 }
                             }
+
+
 
 
                         },
@@ -522,5 +519,30 @@ fun DatePickerModal(
         }
     ) {
         DatePicker(state = datePickerState)
+    }
+}
+
+fun saveProfileToFirebaseAndLocal(
+    profile: UserProfile,
+    navController: NavHostController,
+    context: Context
+) {
+    FirebaseFirestore.getInstance()
+        .collection("users")
+        .document(profile.uid)
+        .set(profile)
+        .addOnSuccessListener {
+            Log.d("Profile", "Profile saved successfully")
+            navController.navigate(Screen.Dashboard.route)
+        }
+        .addOnFailureListener { e ->
+            Log.e("Firestore", "Error saving profile", e)
+        }
+
+    val db = FloodAidDatabase.getInstance(context)
+    val userProfileDao = db.userProfileDao()
+
+    CoroutineScope(Dispatchers.IO).launch {
+        userProfileDao.insert(profile)
     }
 }

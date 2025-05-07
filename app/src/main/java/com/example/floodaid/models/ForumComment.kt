@@ -1,7 +1,9 @@
 package com.example.floodaid.models
 
+import com.google.firebase.Timestamp
+
 data class ForumComment(
     val content: String = "",
     val authorId: String = "",
-    val timestamp: Long = System.currentTimeMillis(),
+    val timestamp: Timestamp = Timestamp.now(),
 )

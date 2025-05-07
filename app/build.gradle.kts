@@ -105,5 +105,6 @@ dependencies {
     implementation (libs.firebase.storage)
 
     implementation(libs.androidx.constraintlayout.compose)
+    implementation(libs.coil.kt.coil.compose)
 
 }
