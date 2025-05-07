@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface VolunteerDao {
+    // For Volunteer Event
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(event: VolunteerEvent)
 
@@ -21,30 +22,33 @@ interface VolunteerDao {
     @Delete
     suspend fun delete(event: VolunteerEvent)
 
-    @Query("SELECT * FROM event")
-    fun getAllEvents(): Flow<List<VolunteerEvent>>
-
     @Query("SELECT * FROM event WHERE event_id =:eventId")
-    fun getEvent(eventId:Int):Flow<VolunteerEvent>
+    fun getEvent(eventId:String):Flow<VolunteerEvent>
 
     @Query("SELECT * FROM event WHERE date =:filterDate")
     fun getFilteredEvent(filterDate:String):Flow<VolunteerEvent>
+
+    // For room and firebase sync
+    @Query("SELECT * FROM event")
+    fun getAllEvents(): Flow<List<VolunteerEvent>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertEvents(events: List<VolunteerEvent>)
 
     @Query("DELETE FROM event")
-    suspend fun deleteAll()
+    suspend fun deleteAllEvent()
 }
 
 @Dao
 interface VolunteerEventHistoryDao {
+    // For Volunteer Event History
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertEventHistory(event: VolunteerEventHistory)
+    suspend fun insert(eventHistory: VolunteerEventHistory)
 
     @Delete
-    suspend fun delete(event: VolunteerEventHistory)
+    suspend fun delete(eventHistory: VolunteerEventHistory)
 
+    // For room and firebase sync
     @Query("""
         SELECT 
             eh.history_id as history_id,
@@ -61,4 +65,10 @@ interface VolunteerEventHistoryDao {
         ORDER BY e.date DESC
     """)
     fun getEventHistory(userId: String): Flow<List<VolunteerEventHistory>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertEventHistory(eventHistory: List<VolunteerEventHistory>)
+
+    @Query("DELETE FROM event_history")
+    suspend fun deleteAllEventHistory()
 }

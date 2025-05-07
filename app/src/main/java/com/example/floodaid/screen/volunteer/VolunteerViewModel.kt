@@ -1,8 +1,6 @@
 package com.example.floodaid.screen.volunteer
 
-import androidx.lifecycle.LiveData
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.asLiveData
 import androidx.lifecycle.viewModelScope
 import com.example.floodaid.models.VolunteerEvent
 import com.example.floodaid.models.VolunteerEventHistory
@@ -13,7 +11,6 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 import kotlin.String
 
 class VolunteerViewModel(
@@ -23,6 +20,9 @@ class VolunteerViewModel(
     val events: StateFlow<List<VolunteerEvent>> = repository.getAllEvents()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    private val _history = MutableStateFlow<List<VolunteerEventHistory>>(emptyList())
+    val history: StateFlow<List<VolunteerEventHistory>> = _history
+
     private val _authState = MutableStateFlow(auth.currentUser != null)
     val authState: StateFlow<Boolean> = _authState
 
@@ -31,6 +31,7 @@ class VolunteerViewModel(
             _authState.value = firebaseAuth.currentUser != null
             if (firebaseAuth.currentUser != null) {
                 syncFirebaseEvents()
+                getEventHistory(firebaseAuth.currentUser!!.uid)
             }
         }
     }
@@ -59,7 +60,7 @@ class VolunteerViewModel(
         }
     }
 
-    fun getEvent(eventId: Int): StateFlow<VolunteerEvent?> {
+    fun getEvent(eventId: String): StateFlow<VolunteerEvent?> {
         return repository.getEvent(eventId)
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
     }
@@ -81,10 +82,12 @@ class VolunteerViewModel(
         }
     }
 
-    val history: StateFlow<List<VolunteerEventHistory>> = repository.getEventHistory(auth.currentUser?.uid ?: "")
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = emptyList()
-        )
+    // For room and firebase sync
+    fun getEventHistory(userId: String) {
+        viewModelScope.launch {
+            repository.getEventHistory(userId).collect { historyList ->
+                _history.value = historyList
+            }
+        }
+    }
 }

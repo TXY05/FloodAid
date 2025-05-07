@@ -1,5 +1,6 @@
 package com.example.floodaid
 
+import VolunteerDetail
 import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -7,8 +8,10 @@ import androidx.compose.runtime.key
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.navArgument
 import com.example.floodaid.models.Screen
 import com.example.floodaid.repository.FirestoreRepository
 import com.example.floodaid.roomDatabase.Database.FloodAidDatabase
@@ -113,6 +116,22 @@ fun NavGraph(
         composable(route = Screen.Volunteer.route) {
             Volunteer(navController = navController,
                 viewModel = volunteerViewModel)
+        }
+
+        composable(
+            route = "volunteerDetail/{eventId}",
+            arguments =
+                listOf(
+                    navArgument("eventId") { type = NavType.StringType },
+                ),
+        ) { backStackEntry ->
+            val eventId = backStackEntry.arguments?.getString("eventId") ?: ""
+
+            VolunteerDetail(
+                eventId = eventId,
+                navController = navController,
+                viewModel = volunteerViewModel
+            )
         }
 
         composable("addVolunteerEvent") {

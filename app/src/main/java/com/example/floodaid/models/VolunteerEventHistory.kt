@@ -18,5 +18,5 @@ data class VolunteerEventHistory(
     val description: String,
     val district: String
 ){
-//    constructor() : this("", "", "")
+    constructor() : this("", "", "", "", "", "", "", "")
 }

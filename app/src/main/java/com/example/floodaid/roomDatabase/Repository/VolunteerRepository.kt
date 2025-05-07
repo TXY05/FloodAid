@@ -14,6 +14,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.tasks.await
+import kotlin.String
 
 class VolunteerRepository(
     private val volunteerDao: VolunteerDao,
@@ -36,8 +37,22 @@ class VolunteerRepository(
                     null
                 }
             }
-            volunteerDao.deleteAll()
+
+            val historyResult = firestore.collection("event_history").get().await()
+            val histories = historyResult.documents.mapNotNull { doc ->
+                try {
+                    doc.toObject(VolunteerEventHistory::class.java)?.copy(
+                        firestoreId = doc.id
+                    )
+                } catch (e: Exception) {
+                    Log.e("VolunteerHistoryRepo", "Error parsing doc ${doc.id}", e)
+                    null
+                }
+            }
+            volunteerDao.deleteAllEvent()
             volunteerDao.insertEvents(events)
+            volunteerHistoryDao.deleteAllEventHistory()
+            volunteerHistoryDao.insertEventHistory(histories)
         } catch (e: Exception) {
             Log.e("VolunteerRepo", "Sync failed", e)
             throw e
@@ -66,18 +81,13 @@ class VolunteerRepository(
         volunteerDao.delete(event)
     }
 
-    fun getAllEvents(): Flow<List<VolunteerEvent>> =
-        volunteerDao.getAllEvents()
-
-    fun getEvent(eventId:Int): Flow<VolunteerEvent> =
+    fun getEvent(eventId:String): Flow<VolunteerEvent> =
         volunteerDao.getEvent(eventId)
 
     fun getFilteredEvent(date:String): Flow<VolunteerEvent> =
         volunteerDao.getFilteredEvent(date)
 
     suspend fun applyEvent(userId: String, eventId: String): String {
-        if (user == null) throw IllegalStateException("User not authenticated")
-
         return try {
             val eventHistory = VolunteerEventHistory(
                 userId = userId,
@@ -88,21 +98,25 @@ class VolunteerRepository(
                 description = "",
                 district = "")
 
-                val docRef = firestore.collection("event_history").document()
-                val historyWithId = eventHistory.copy(firestoreId = docRef.id)
-                docRef.set(historyWithId).await()
-                volunteerHistoryDao.insertEventHistory(historyWithId)
+            val docRef = firestore.collection("event_history").document()
+            val historyWithId = eventHistory.copy(firestoreId = docRef.id)
+            docRef.set(historyWithId).await()
+            volunteerHistoryDao.insert(historyWithId)
 
-                docRef.id
+            docRef.id
         } catch (e: Exception) {
-                Log.e("VolunteerHistory", "Insert failed", e)
-                throw e
+            Log.e("VolunteerHistory", "Insert failed", e)
+            throw e
         }
     }
 
     suspend fun deleteEventHistory(event: VolunteerEventHistory){
         volunteerHistoryDao.delete(event)
     }
+
+    // For room and firebase sync
+    fun getAllEvents(): Flow<List<VolunteerEvent>> =
+        volunteerDao.getAllEvents()
 
     fun getEventHistory(userId: String): Flow<List<VolunteerEventHistory>> =
         volunteerHistoryDao.getEventHistory(userId)
