@@ -272,6 +272,41 @@ fun FloodStatusHeader(
                 }
             }
         }
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.CheckCircle,
+                contentDescription = "Safe",
+                tint = Color.Green,
+                modifier = Modifier.size(20.dp)
+            )
+            Text(
+                " Safe",
+                color = Color.Gray,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(start = 4.dp)
+            )
+
+            Spacer(modifier = Modifier.width(24.dp))
+
+            Icon(
+                imageVector = Icons.Default.Warning,
+                contentDescription = "Flooded",
+                tint = Color.Red,
+                modifier = Modifier.size(20.dp)
+            )
+            Text(
+                " Flooded",
+                color = Color.Gray,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(start = 4.dp)
+            )
+        }
         Spacer(modifier = Modifier.height(8.dp))
         Text(
             text = "Press the button above to change districts.",
