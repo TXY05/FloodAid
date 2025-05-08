@@ -119,7 +119,7 @@ fun FloodStatus(navController: NavHostController, viewModel: FloodStatusViewMode
                             Icon(
                                 imageVector = Icons.Default.CheckCircle,
                                 contentDescription = "Safe",
-                                tint = Color.Green,
+                                tint = Color(0xFF4CAF50),
                                 modifier = Modifier.size(20.dp)
                             )
                             Text(
@@ -186,7 +186,7 @@ fun FloodStatus(navController: NavHostController, viewModel: FloodStatusViewMode
                                     contentDescription = locationStatus.status,
                                     tint = when (locationStatus.status) {
                                         "Flooded" -> Color.Red
-                                        "Safe" -> Color.Green
+                                        "Safe" -> Color(0xFF4CAF50)
                                         else -> Color.Gray
                                     },
                                     modifier = Modifier.size(24.dp)
@@ -198,7 +198,7 @@ fun FloodStatus(navController: NavHostController, viewModel: FloodStatusViewMode
                                     style = MaterialTheme.typography.bodySmall,
                                     color = when (locationStatus.status) {
                                         "Flooded" -> Color.Red
-                                        "Safe" -> Color.Green
+                                        "Safe" -> Color(0xFF4CAF50)
                                         else -> Color.Gray
                                     },
                                     modifier = Modifier.padding(start = 8.dp)

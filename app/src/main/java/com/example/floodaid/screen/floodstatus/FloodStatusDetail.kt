@@ -68,7 +68,7 @@ fun FloodStatusDetail(
             Text(
                 text = "Current Status: $currentStatus",
                 fontWeight = FontWeight.Bold,
-                color = if (currentStatus == "Flooded") Color.Red else Color.Green,
+                color = if (currentStatus == "Flooded") Color.Red else Color(0xFF4CAF50),
                 style = MaterialTheme.typography.titleLarge,
                 modifier = Modifier.padding(bottom = 24.dp)
             )

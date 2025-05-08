@@ -295,7 +295,7 @@ fun Map(
                             if (item.getFloodStatus() == "flooded")
                                 Color.Blue.copy(alpha = 0.8f).toArgb() // Increased alpha for better visibility
                             else
-                                Color.Green.copy(alpha = 0.8f).toArgb() // Increased alpha for better visibility
+                                Color(0xFF4CAF50).copy(alpha = 0.8f).toArgb() // Increased alpha for better visibility
                         )
                         markerOptions.icon(BitmapDescriptorFactory.fromBitmap(floodIcon))
                     }
