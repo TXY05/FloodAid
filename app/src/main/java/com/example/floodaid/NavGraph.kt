@@ -17,7 +17,7 @@ import com.example.floodaid.models.Screen
 import com.example.floodaid.roomDatabase.database.FloodAidDatabase
 import com.example.floodaid.roomDatabase.Repository.FirestoreRepository
 import com.example.floodaid.screen.Dashboard
-import com.example.floodaid.screen.FloodStatus
+import com.example.floodaid.screen.floodstatus.FloodStatus
 import com.example.floodaid.screen.Notification
 import com.example.floodaid.screen.Profile
 import com.example.floodaid.screen.floodstatus.FloodStatusRepository
