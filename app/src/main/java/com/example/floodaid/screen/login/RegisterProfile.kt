@@ -593,15 +593,6 @@ fun GenderSelector(
     }
 }
 
-
-
-
-
-
-
-
-
-
 @Composable
 fun StateSelector(
     modifier: Modifier = Modifier,

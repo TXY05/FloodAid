@@ -34,6 +34,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -73,13 +74,20 @@ fun Dashboard(
     repository: FloodStatusRepository,
     dao: FloodStatusDao,
     firestoreRepository: FirestoreRepository,
-    profileViewModel: ProfileViewModel
+    profileViewModel: ProfileViewModel,
 ) {
+    val configuration = LocalConfiguration.current
+    val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(
         state = rememberTopAppBarState()
     )
+    var scaleDown by remember { mutableFloatStateOf(1f) }
+
+    if (isLandscape) scaleDown = 0.5f else scaleDown = 1f
+
     Scaffold(
-        bottomBar = { BottomBar(navController = navController) }
+        bottomBar = { BottomBar(navController = navController, scaleDown) }
     ) {
         DashboardScreen(
             navController = navController,
@@ -87,7 +95,8 @@ fun Dashboard(
             repository = repository,
             dao = dao,
             firestoreRepository = firestoreRepository,
-            profileViewModel = profileViewModel
+            profileViewModel = profileViewModel,
+            isLandscape
         )
     }
 }
@@ -100,7 +109,8 @@ fun DashboardScreen(
     repository: FloodStatusRepository,
     dao: FloodStatusDao,
     firestoreRepository: FirestoreRepository,
-    profileViewModel: ProfileViewModel
+    profileViewModel: ProfileViewModel,
+    isLandscape: Boolean
 ) {
     val viewModel: FloodStatusViewModel = viewModel(
         factory = FloodStatusViewModelFactory(
@@ -110,8 +120,6 @@ fun DashboardScreen(
             SavedStateHandle()
         )
     )
-    val configuration = LocalConfiguration.current
-    val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
     val uiState by viewModel.uiState.collectAsState()
 
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(
@@ -121,10 +129,11 @@ fun DashboardScreen(
     Scaffold(
         topBar = {
             TopBar(
-            scrollBehavior = scrollBehavior,
-            navController = navController,
-            viewModel = profileViewModel
-            ) },
+                scrollBehavior = scrollBehavior,
+                navController = navController,
+                viewModel = profileViewModel
+            )
+        },
     ) { paddingValues ->
         if (isLandscape) {
             // Landscape layout with fixed-size shortcuts
@@ -236,7 +245,7 @@ fun FloodStatusHeader(
     status: String = "Safe",
     locations: List<String>,
     onLocationSelected: (String) -> Unit,
-    selectedLocation: String
+    selectedLocation: String,
 ) {
     val (showLegendDialog, setShowLegendDialog) = remember { mutableStateOf(false) }
     var isDropdownExpanded by remember { mutableStateOf(false) }
@@ -403,7 +412,7 @@ fun FeatureCard(
     icon: ImageVector,
     color: Color,
     size: Dp, // Add size parameter
-    onClick: () -> Unit
+    onClick: () -> Unit,
 ) {
     Card(
         modifier = Modifier
