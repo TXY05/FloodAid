@@ -780,7 +780,7 @@ fun DatePickerModal(
     scaleDown: Float,
 ) {
     val datePickerState = rememberDatePickerState()
-    var calenderScale by rememberSaveable { mutableFloatStateOf(0f) }
+    var calenderScale by rememberSaveable { mutableFloatStateOf(1f) }
     if (scaleDown < 1f) calenderScale = scaleDown + 0.35f
     DatePickerDialog(
         onDismissRequest = onDismiss,

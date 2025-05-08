@@ -80,13 +80,16 @@ import com.google.firebase.storage.FirebaseStorage
 @Composable
 fun Profile(
     navController: NavHostController,
-    viewModel: ProfileViewModel
+    viewModel: ProfileViewModel,
 ) {
     val imageUri = rememberSaveable { mutableStateOf<Uri?>(null) }
+    val painter = rememberAsyncImagePainter(
+        model = imageUri.value ?: R.drawable.ic_user,
+        error = painterResource(R.drawable.ic_user)
+    )
     val launcher = rememberLauncherForActivityResult(
         ActivityResultContracts.GetContent()
     ) { uri: Uri? -> imageUri.value = uri }
-
     val profileState by viewModel.profile.collectAsState()
 
     var fullName by rememberSaveable { mutableStateOf("") }
@@ -152,7 +155,7 @@ fun Profile(
                                 .clickable { launcher.launch("image/*") }
                         ) {
                             AsyncImage(
-                                model = imageUrl,
+                                model = imageUri.value ?: imageUrl,
                                 error = painterResource(R.drawable.ic_user),
                                 contentDescription = "Profile Picture",
                                 modifier = Modifier.fillMaxSize(),
@@ -361,8 +364,8 @@ fun Profile(
                                 .clickable { launcher.launch("image/*") }
                         ) {
                             AsyncImage(
-                                model = imageUrl,
-                                    error = painterResource(R.drawable.ic_user),
+                                model = imageUri.value ?: imageUrl,
+                                error = painterResource(R.drawable.ic_user),
                                 contentDescription = "Profile Picture",
                                 modifier = Modifier.fillMaxSize(),
                                 contentScale = ContentScale.Crop
@@ -423,8 +426,11 @@ fun Profile(
                         onTextChanged = { currentDistrict = it }
                     )
 
-                    Box(modifier = Modifier.fillMaxSize()
-                        .padding(top = 40.dp)) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(top = 40.dp)
+                    ) {
                         var isUploading by remember { mutableStateOf(false) }
 
                         Button(
