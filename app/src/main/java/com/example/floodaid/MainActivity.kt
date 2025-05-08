@@ -21,11 +21,8 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.example.floodaid.roomDatabase.repository.VolunteerRepository
 import com.example.floodaid.roomDatabase.database.FloodAidDatabase
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.floodaid.roomDatabase.Repository.FirestoreRepository
-import com.example.floodaid.roomDatabase.Repository.VolunteerRepository
-import com.example.floodaid.roomDatabase.Database.FloodAidDatabase
-import com.example.floodaid.roomDatabase.Repository.MapRepository
+import com.example.floodaid.roomDatabase.repository.MapRepository
 import com.example.floodaid.screen.forum.ForumViewModelFactory
 import com.example.floodaid.viewmodel.AuthViewModel
 import com.google.firebase.auth.FirebaseAuth

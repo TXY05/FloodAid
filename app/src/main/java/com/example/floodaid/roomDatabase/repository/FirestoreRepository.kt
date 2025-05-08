@@ -1,11 +1,5 @@
 package com.example.floodaid.roomDatabase.Repository
 
-import com.example.floodaid.roomDatabase.Entities.Border
-import com.example.floodaid.roomDatabase.Entities.District
-import com.example.floodaid.roomDatabase.Entities.FloodMarker
-import com.example.floodaid.roomDatabase.Entities.ImageURL
-import com.example.floodaid.roomDatabase.Entities.Shelter
-import com.example.floodaid.roomDatabase.Entities.State
 import com.example.floodaid.screen.floodstatus.FloodHistoryEntity
 import com.example.floodaid.screen.floodstatus.LocationStatusEntity
 import com.google.firebase.Timestamp

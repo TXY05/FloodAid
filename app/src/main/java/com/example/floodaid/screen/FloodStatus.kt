@@ -1,7 +1,6 @@
 package com.example.floodaid.screen
 
 import BottomBar
-import android.util.Log
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -55,29 +54,18 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
-import androidx.navigation.compose.rememberNavController
 import com.example.floodaid.models.Screen
-import com.example.floodaid.repository.FirestoreRepository
-import com.example.floodaid.roomDatabase.database.FloodAidDatabase
-import com.example.floodaid.roomDatabase.Entities.*
 import com.example.floodaid.roomDatabase.Repository.FirestoreRepository
-import com.example.floodaid.roomDatabase.Database.FloodAidDatabase
-import com.example.floodaid.roomDatabase.Entities.FloodMarker
+import com.example.floodaid.roomDatabase.database.FloodAidDatabase
 import com.example.floodaid.screen.floodstatus.FloodStatusRepository
 import com.example.floodaid.screen.floodstatus.FloodStatusViewModelFactory
 import com.example.floodaid.screen.map_UI.MapViewModel
 import com.example.floodaid.viewmodel.FloodStatusViewModel
 import com.example.floodaid.viewmodel.SaveState
 import com.google.firebase.auth.FirebaseAuth
-import androidx.lifecycle.SavedStateHandle
-import androidx.navigation.navOptions
-import androidx.navigation.navArgument
-import kotlinx.coroutines.launch
-import java.time.Instant
-import java.time.temporal.ChronoUnit
-import kotlin.time.Duration
 
 @Composable
 fun FloodStatus(navController: NavHostController, viewModel: FloodStatusViewModel, database: FloodAidDatabase, mapViewModel: MapViewModel) {

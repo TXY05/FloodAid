@@ -14,10 +14,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.example.floodaid.models.Screen
-import com.example.floodaid.repository.FirestoreRepository
 import com.example.floodaid.roomDatabase.database.FloodAidDatabase
 import com.example.floodaid.roomDatabase.Repository.FirestoreRepository
-import com.example.floodaid.roomDatabase.Database.FloodAidDatabase
 import com.example.floodaid.screen.Dashboard
 import com.example.floodaid.screen.FloodStatus
 import com.example.floodaid.screen.Notification
