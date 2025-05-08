@@ -8,17 +8,24 @@ import androidx.room.Query
 import androidx.room.Update
 import com.example.floodaid.models.VolunteerEvent
 import com.example.floodaid.models.VolunteerEventHistory
+import com.example.floodaid.models.VolunteerProfile
 import com.example.floodaid.roomDatabase.Dao.VolunteerDao
 import com.example.floodaid.roomDatabase.Dao.VolunteerEventHistoryDao
+import com.example.floodaid.roomDatabase.Dao.VolunteerProfileDao
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.snapshots
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.tasks.await
+import java.text.SimpleDateFormat
+import java.util.Locale
 import kotlin.String
 
 class VolunteerRepository(
     private val volunteerDao: VolunteerDao,
     private val volunteerHistoryDao: VolunteerEventHistoryDao,
+    private val volunteerProfileDao: VolunteerProfileDao,
     private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance()
 ) {
     private val auth = FirebaseAuth.getInstance()
@@ -84,9 +91,6 @@ class VolunteerRepository(
     fun getEvent(eventId:String): Flow<VolunteerEvent> =
         volunteerDao.getEvent(eventId)
 
-    fun getFilteredEvent(date:String): Flow<VolunteerEvent> =
-        volunteerDao.getFilteredEvent(date)
-
     suspend fun applyEvent(userId: String, eventId: String): String {
         return try {
             val eventHistory = VolunteerEventHistory(
@@ -114,10 +118,56 @@ class VolunteerRepository(
         volunteerHistoryDao.delete(event)
     }
 
+    suspend fun syncVolunteerProfile(userId: String) {
+        try {
+            volunteerProfileDao.deleteAllVolunteerProfile()
+            val document = firestore.collection("volunteer_profile").document(userId).get().await()
+            val volunteer = document.toObject(VolunteerProfile::class.java)
+            volunteer?.let {
+                volunteerProfileDao.insert(it)
+            }
+        } catch (e: Exception) {
+            Log.e("VolunteerRepo", "Failed to sync volunteer profile", e)
+        }
+    }
+
+    suspend fun saveVolunteerProfile(volunteer: VolunteerProfile) {
+        return try {
+            firestore.collection("volunteer_profile").document(volunteer.userId).set(volunteer).await()
+            volunteerProfileDao.insert(volunteer)
+
+        } catch (e: Exception) {
+            Log.e("VolunteerProfileRepo", "Insert failed", e)
+            throw e
+        }
+    }
+
+    suspend fun updateVolunteerProfile(volunteer: VolunteerProfile){
+        volunteerProfileDao.update(volunteer)
+    }
+
+    suspend fun deleteVolunteerProfile(volunteer: VolunteerProfile){
+        volunteerProfileDao.delete(volunteer)
+    }
+
+    fun getVolunteerProfile(userId: String): Flow<VolunteerProfile?> {
+        return volunteerProfileDao.getVolunteerProfile(userId)
+    }
+
     // For room and firebase sync
     fun getAllEvents(): Flow<List<VolunteerEvent>> =
         volunteerDao.getAllEvents()
 
-    fun getEventHistory(userId: String): Flow<List<VolunteerEventHistory>> =
-        volunteerHistoryDao.getEventHistory(userId)
+    fun getEventHistory(userId: String): Flow<List<VolunteerEventHistory>> {
+        val dateFormat = SimpleDateFormat("MM/dd/yyyy", Locale.getDefault())
+        return volunteerHistoryDao.getEventHistory(userId).map { historyList ->
+            historyList.sortedBy { historyItem ->
+                try {
+                    dateFormat.parse(historyItem.date)?.time ?: 0L
+                } catch (e: Exception) {
+                    0L
+                }
+            }
+        }
+    }
 }

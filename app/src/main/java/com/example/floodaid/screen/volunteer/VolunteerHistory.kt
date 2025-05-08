@@ -101,7 +101,7 @@ fun HistoryItemCard(history: VolunteerEventHistory, onClick: () -> Unit) {
             )
             Spacer(modifier = Modifier.height(8.dp))
             val parsedDate = try {
-                SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).parse(history.date)
+                SimpleDateFormat("MM/dd/yyyy", Locale.getDefault()).parse(history.date)
             } catch (e: Exception) {
                 null
             }

@@ -16,6 +16,8 @@ import com.example.floodaid.screen.volunteer.VolunteerHistory
 import com.example.floodaid.screen.volunteer.VolunteerViewModel
 import com.example.jetpackcomposeauthui.components.CButton
 import com.google.firebase.auth.FirebaseAuth
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -67,7 +69,15 @@ fun VolunteerDetail(
                     EventDetailItem(label = "User ID", value = event.userId)
                     EventDetailItem(label = "Description", value = event.description)
                     EventDetailItem(label = "District", value = event.district)
-                    EventDetailItem(label = "Date", value = event.date)
+                    val parsedDate = try {
+                        SimpleDateFormat("MM/dd/yyyy", Locale.getDefault()).parse(event.date)
+                    } catch (e: Exception) {
+                        null
+                    }
+                    val formattedDate = parsedDate?.let {
+                        SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()).format(it)
+                    } ?: event.date
+                    EventDetailItem(label = "Date", value = formattedDate)
                     EventDetailItem(label = "Start Time", value = event.startTime)
                     EventDetailItem(label = "End Time", value = event.endTime)
 
@@ -99,10 +109,4 @@ fun EventDetailItem(label: String, value: String) {
         Text(text = label, fontWeight = FontWeight.Bold, fontSize = 14.sp)
         Text(text = value, fontSize = 16.sp)
     }
-}
-
-fun CheckIfApplied(){
-    var alrApplied: Boolean = false
-
-
 }

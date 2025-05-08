@@ -13,6 +13,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.example.floodaid.models.Screen
+import com.example.floodaid.models.VolunteerProfile
 import com.example.floodaid.repository.FirestoreRepository
 import com.example.floodaid.roomDatabase.Database.FloodAidDatabase
 import com.example.floodaid.screen.Dashboard
@@ -35,6 +36,7 @@ import com.example.floodaid.screen.map_UI.SOSViewModel
 import com.example.floodaid.screen.volunteer.AddVolunteerEvent
 import com.example.floodaid.screen.volunteer.Volunteer
 import com.example.floodaid.screen.volunteer.VolunteerHistory
+import com.example.floodaid.screen.volunteer.VolunteerRegister
 import com.example.floodaid.screen.volunteer.VolunteerViewModel
 import com.example.floodaid.viewmodel.AuthViewModel
 import com.example.floodaid.viewmodel.FloodStatusViewModel
@@ -114,8 +116,9 @@ fun NavGraph(
         }
 
         composable(route = Screen.Volunteer.route) {
-            Volunteer(navController = navController,
-                viewModel = volunteerViewModel)
+            VolunteerRegister(navController = navController,
+                viewModel = volunteerViewModel
+            )
         }
 
         composable(
@@ -134,6 +137,13 @@ fun NavGraph(
             )
         }
 
+        composable("volunteer_main") {
+            Volunteer(
+                navController = navController,
+                viewModel = volunteerViewModel
+            )
+        }
+
         composable("addVolunteerEvent") {
             AddVolunteerEvent(navController = navController,
                 viewModel = volunteerViewModel)
@@ -141,6 +151,11 @@ fun NavGraph(
 
         composable("volunteerHistory") {
             VolunteerHistory(navController = navController,
+                viewModel = volunteerViewModel)
+        }
+
+        composable("volunteerRegister") {
+            VolunteerRegister(navController = navController,
                 viewModel = volunteerViewModel)
         }
 

@@ -54,7 +54,8 @@ class MainActivity : AppCompatActivity() {
         val floodAidDatabase = FloodAidDatabase.getInstance(applicationContext)
         val volunteerRepository = VolunteerRepository(
             floodAidDatabase.volunteerDao(),
-            floodAidDatabase.volunteerEventHistoryDao()
+            floodAidDatabase.volunteerEventHistoryDao(),
+            floodAidDatabase.volunteerProfileDao()
         )
         val volunteerViewModel: VolunteerViewModel by viewModels {
             VolunteerViewModelFactory(volunteerRepository, firebaseAuth)

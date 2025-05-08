@@ -6,6 +6,7 @@ import android.widget.CalendarView
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
@@ -18,6 +19,7 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -43,6 +45,9 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.navigation.NavHostController
 import com.example.floodaid.composable.VolunteerTopBar
 import com.example.floodaid.models.VolunteerEvent
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
@@ -109,7 +114,7 @@ fun Volunteer(
 //                .nestedScroll(nestedScrollConnection)
         ) {
             EventListScreen(
-                events = events,
+                viewModel = viewModel,
                 onEventClick = { event ->
                     navController.navigate("volunteerDetail/${event.firestoreId}")
                 },
@@ -123,13 +128,16 @@ fun Volunteer(
 
 @Composable
 fun CalendarViewComposable(
-    onDateSelected: (year: Int, month: Int, dayOfMonth: Int) -> Unit
+    viewModel: VolunteerViewModel,
+    modifier: Modifier = Modifier
 ) {
     AndroidView(
         factory = { context ->
             CalendarView(context).apply {
-                setOnDateChangeListener { _, year, month, dayOfMonth ->
-                    onDateSelected(year, month, dayOfMonth)
+                setOnDateChangeListener { _, year, month, day ->
+                    val formattedDate = String.format(Locale.getDefault(), "%02d/%02d/%04d",
+                        month + 1, day, year)
+                    viewModel.setSelectedDate(formattedDate)
                 }
             }
         },
@@ -138,8 +146,11 @@ fun CalendarViewComposable(
 }
 
 @Composable
-fun CalendarScreen() {
-    var selectedDate by remember { mutableStateOf("") }
+fun CalendarScreen(
+    viewModel: VolunteerViewModel,
+    modifier: Modifier = Modifier
+) {
+    val selectedDate by viewModel.selectedDate.collectAsState()
 
     Column(
         modifier = Modifier
@@ -149,24 +160,33 @@ fun CalendarScreen() {
 //            .height(size),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        CalendarViewComposable { year, month, dayOfMonth ->
-            selectedDate = "$dayOfMonth/${month + 1}/$year"
-        }
-        Spacer(modifier = Modifier.height(16.dp))
+        CalendarViewComposable(viewModel = viewModel)
         Text(
-            text = if (selectedDate.isNotEmpty()) "Selected Date: $selectedDate" else "Please select a date",
+            text = selectedDate?.let { "Selected Date: $it" } ?: "No Date Selected",
             style = MaterialTheme.typography.bodyLarge
         )
+
+        if (selectedDate != null) {
+            Button(
+                onClick = { viewModel.clearDateFilter() },
+                modifier = Modifier.padding(top = 8.dp)
+            ) {
+                Text("Show All Events")
+            }
+        }
     }
 }
 
 @Composable
 fun EventListScreen(
-    events: List<VolunteerEvent>,
+    viewModel: VolunteerViewModel,
     onEventClick: (VolunteerEvent) -> Unit,
     listState: LazyListState,
     modifier: Modifier = Modifier
 ) {
+    val filteredEvents by viewModel.filteredEvents.collectAsState()
+    val selectedDate by viewModel.selectedDate.collectAsState()
+
     LazyColumn(
         state = listState,
         modifier = modifier
@@ -175,10 +195,30 @@ fun EventListScreen(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item {
-            CalendarScreen()
+            CalendarScreen(viewModel = viewModel)
         }
-        items(events) { event ->
-            EventCard(event, onClick = { onEventClick(event) })
+        if (filteredEvents.isEmpty()) {
+            item {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = if (selectedDate != null) {
+                            "No events on $selectedDate"
+                        } else {
+                            "No events available"
+                        },
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                }
+            }
+        } else {
+            items(filteredEvents) { event ->
+                EventCard(event, onClick = { onEventClick(event) })
+            }
         }
     }
 }
@@ -196,7 +236,15 @@ fun EventCard(event: VolunteerEvent, onClick: () -> Unit) {
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(text = event.description, style = MaterialTheme.typography.titleLarge)
-            Text(text = event.date, style = MaterialTheme.typography.bodyMedium)
+            val parsedDate = try {
+                SimpleDateFormat("MM/dd/yyyy", Locale.getDefault()).parse(event.date)
+            } catch (e: Exception) {
+                null
+            }
+            val formattedDate = parsedDate?.let {
+                SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()).format(it)
+            } ?: event.date
+            Text(text = formattedDate, style = MaterialTheme.typography.bodyMedium)
             Text(text = event.district, style = MaterialTheme.typography.bodySmall)
         }
     }

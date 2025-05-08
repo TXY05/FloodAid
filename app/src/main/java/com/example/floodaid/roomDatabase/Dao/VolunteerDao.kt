@@ -8,6 +8,7 @@ import androidx.room.Query
 import androidx.room.Update
 import com.example.floodaid.models.VolunteerEvent
 import com.example.floodaid.models.VolunteerEventHistory
+import com.example.floodaid.models.VolunteerProfile
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -24,9 +25,6 @@ interface VolunteerDao {
 
     @Query("SELECT * FROM event WHERE event_id =:eventId")
     fun getEvent(eventId:String):Flow<VolunteerEvent>
-
-    @Query("SELECT * FROM event WHERE date =:filterDate")
-    fun getFilteredEvent(filterDate:String):Flow<VolunteerEvent>
 
     // For room and firebase sync
     @Query("SELECT * FROM event")
@@ -71,4 +69,23 @@ interface VolunteerEventHistoryDao {
 
     @Query("DELETE FROM event_history")
     suspend fun deleteAllEventHistory()
+}
+
+@Dao
+interface VolunteerProfileDao{
+    // For Volunteer Profile
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insert(volunteer: VolunteerProfile)
+
+    @Update(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun update(volunteer: VolunteerProfile)
+
+    @Delete
+    suspend fun delete(volunteer: VolunteerProfile)
+
+    @Query("SELECT * FROM volunteer_profile WHERE volunteer_id = :userId")
+    fun getVolunteerProfile(userId: String): Flow<VolunteerProfile?>
+
+    @Query("DELETE FROM volunteer_profile")
+    suspend fun deleteAllVolunteerProfile()
 }

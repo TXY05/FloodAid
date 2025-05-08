@@ -8,11 +8,13 @@ import androidx.room.TypeConverters
 import com.example.floodaid.models.UserProfile
 import com.example.floodaid.models.VolunteerEvent
 import com.example.floodaid.models.VolunteerEventHistory
+import com.example.floodaid.models.VolunteerProfile
 import com.example.floodaid.utils.Converter
 import com.example.floodaid.roomDatabase.Dao.MapDao
 import com.example.floodaid.roomDatabase.Dao.UserProfileDao
 import com.example.floodaid.roomDatabase.Dao.VolunteerDao
 import com.example.floodaid.roomDatabase.Dao.VolunteerEventHistoryDao
+import com.example.floodaid.roomDatabase.Dao.VolunteerProfileDao
 import com.example.floodaid.roomDatabase.Entities.District
 import com.example.floodaid.roomDatabase.Entities.FloodMarker
 import com.example.floodaid.roomDatabase.Entities.Shelter
@@ -31,6 +33,7 @@ import com.example.floodaid.screen.forum.ForumPost
         FloodMarker::class,
         VolunteerEvent::class,
         VolunteerEventHistory::class,
+        VolunteerProfile::class,
         LocationStatusEntity::class,
         FloodHistoryEntity::class,
         UserProfile::class,
@@ -45,6 +48,7 @@ abstract class FloodAidDatabase : RoomDatabase() {
     abstract fun MapDao(): MapDao
     abstract fun volunteerDao(): VolunteerDao
     abstract fun volunteerEventHistoryDao(): VolunteerEventHistoryDao
+    abstract fun volunteerProfileDao(): VolunteerProfileDao
     abstract fun userProfileDao(): UserProfileDao
     abstract fun forumDao(): ForumDao
     abstract fun floodStatusDao(): FloodStatusDao
