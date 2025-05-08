@@ -105,6 +105,10 @@ class MapRepository(
     fun listenToSheltersUpdates(): Flow<List<Shelter>> = FirestoreRepository.listenToShelters()
     fun listenToFloodMarkersUpdates(): Flow<List<FloodMarker>> = FirestoreRepository.listenToFloodMarkers()
 
+    suspend fun fetchAllDistricts(): List<District> {
+        val district = FirestoreRepository.fetchAllDistricts()
+        return district
+    }
     suspend fun pushDistricts(district: List<District>) {
         FirestoreRepository.pushDistricts(district)
     }

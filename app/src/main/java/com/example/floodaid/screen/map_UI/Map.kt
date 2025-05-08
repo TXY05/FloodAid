@@ -38,6 +38,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -147,6 +148,16 @@ fun Map(
     }
 
     var savedDistrict by rememberSaveable { mutableStateOf<Long?>(null) }
+    var savedBorderCoordinates by rememberSaveable { mutableStateOf<List<List<Double>>?>(null) }
+    var needsRestore by rememberSaveable { mutableStateOf(false) }
+
+    // Add permission state tracking
+    var locationPermissionGranted by rememberSaveable { mutableStateOf(
+        ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.ACCESS_FINE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
+    )}
 
     val mapViewSaver = run {
         Saver<MapView, Bundle>(
@@ -175,61 +186,106 @@ fun Map(
     val locationPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted ->
+        locationPermissionGranted = isGranted
         if (isGranted) {
-            viewModel.stopLocationUpdates()
-            // Refresh map to enable location layer
-            mapView?.getMapAsync { googleMap ->
-                googleMap.isMyLocationEnabled = true
-                googleMap.uiSettings.isMyLocationButtonEnabled = true
-            }
+            viewModel.startLocationUpdates()
         }
     }
 
     // Initialize Data
     LaunchedEffect(Unit) {
-        if (ContextCompat.checkSelfPermission(
-                context,
-                Manifest.permission.ACCESS_FINE_LOCATION
-            ) == PackageManager.PERMISSION_DENIED
-        ) {
+        if (!locationPermissionGranted) {
             locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
-        }else {
-            viewModel.stopLocationUpdates()
+        } else {
+            viewModel.startLocationUpdates()
         }
 
-        if (savedDistrict != null) {
-            Log.d("MapDebug", "Saved Data Success: $savedDistrict")
-            delay(10 * 1000)
-
-            viewModel.restoreDistrict(savedDistrict!!)
-        }else {
+        if (savedDistrict == null) {
             viewModel.loadStates()
         }
     }
 
-    LaunchedEffect(showBottomSheet) {
-        if (showBottomSheet == null) {
-            // Get the previously selected marker ID
-            val markerId = viewModel.selectedMarkerId.value
-            markerId?.let { id ->
-                map?.let { googleMap ->
-                    val shelterIcon = createTeardropMarker(
-                        context,
-                        R.drawable.icon,
-                        SHELTER_MARKER_SIZE.toInt(),
-                        Color(0xFF4CAF50).toArgb(),
-                        isShelter = true
-                    )
-                    markerMap[id]?.setIcon(BitmapDescriptorFactory.fromBitmap(shelterIcon))
+    // Apply location settings when both map is ready AND permission is granted
+    LaunchedEffect(map, locationPermissionGranted) {
+        if (map != null && locationPermissionGranted) {
+            Log.d("MapDebug", "Map is ready and location permission granted - enabling location features")
+            try {
+                map?.isMyLocationEnabled = true
+                map?.uiSettings?.isMyLocationButtonEnabled = true
+            } catch (e: SecurityException) {
+                Log.e("MapDebug", "Security exception enabling location: ${e.message}")
+            }
+        }
+    }
+
+    // Specialized LaunchedEffect to handle district restoration ONLY after map is available
+    LaunchedEffect(map) {
+        if (map != null && savedDistrict != null) {
+            Log.d("MapDebug", "Map is ready, now restoring saved district: $savedDistrict")
+            needsRestore = true // Set flag to true when restoring from saved district
+            viewModel.restoreDistrict(savedDistrict!!)
+        }
+    }
+
+    // Collect district with border updates
+    val districtWithBorder = viewModel.districtWithBorderFlow.collectAsState(initial = null)
+
+    // Force redraw when we get border data update from Firestore
+    LaunchedEffect(districtWithBorder.value, map) {
+        districtWithBorder.value?.let { district ->
+            if (district.borderCoordinates != null && map != null) {
+                // Save coordinates for future use
+                savedBorderCoordinates = district.borderCoordinates.coordinates
+
+                // Only redraw if we need to restore
+                if (needsRestore) {
+                    Log.d("MapDebug", "Map is ready and we have border data, drawing polygon with ${district.borderCoordinates.coordinates.size} points")
+                    // Redraw the polygon immediately
+                    // Remove existing polygon if any
+                    currentPolygon?.remove()
+
+                    try {
+                        val polygonOptions = PolygonOptions()
+                            .addAll(district.borderCoordinates.coordinates.map { LatLng(it[0], it[1]) })
+                            .strokeColor(getColor(context, R.color.marker_border))
+                            .strokeWidth(5f)
+                            .fillColor(getColor(context, R.color.marker_fill) and 0x1AFFFFFF)
+
+                        currentPolygon = map?.addPolygon(polygonOptions)
+
+                        // Apply dash pattern
+                        currentPolygon?.strokePattern = listOf(
+                            Dash(20f),
+                            Gap(20f)
+                        )
+
+                        // Reset the flag after successful restoration
+                        needsRestore = false
+                        Log.d("MapDebug", "Successfully drew polygon for district ${district.id}")
+                    } catch (e: Exception) {
+                        Log.e("MapDebug", "Error in border update polygon drawing: ${e.message}", e)
+                    }
                 }
             }
-            viewModel.clearSelectedMarker()
         }
     }
 
     // Handle District Selection
     LaunchedEffect(uiState.selectedDistrict) {
         uiState.selectedDistrict?.let { district ->
+            Log.d("MapDebug", "District selected: ${district.id}")
+
+            // Always save the district ID when a district is selected
+            savedDistrict = district.id
+
+            // Reset any pending restore when manually selecting a district
+            needsRestore = false
+
+            // If this district has border coordinates, save them
+            district.borderCoordinates?.let { borders ->
+                savedBorderCoordinates = borders.coordinates
+            }
+
             map?.let { googleMap ->
                 // Clear previous markers and polygons
                 markerMap.values.forEach { it.remove() }
@@ -239,35 +295,55 @@ fun Map(
 
                 // Move camera
                 val districtLatLng = LatLng(district.latitude, district.longitude)
+
                 googleMap.animateCamera(
                     CameraUpdateFactory.newLatLngZoom(districtLatLng, 10f),
                     object : GoogleMap.CancelableCallback {
                         override fun onFinish() {
                             // Draw border after camera movement
-                            district.borderCoordinates?.let { border ->
-                                val polygonOptions = PolygonOptions()
-                                    .addAll(border.coordinates.map { LatLng(it[0], it[1]) })
-                                    .strokeColor(getColor(context, R.color.marker_border))
-                                    .strokeWidth(5f) // Make the border slightly thicker
-                                    .fillColor(getColor(context, R.color.marker_fill) and 0x1AFFFFFF) // Make fill very transparent (10% opacity)
+                            val borderCoordinates = district.borderCoordinates?.coordinates
+                            val savedCoords = savedBorderCoordinates
 
-                                currentPolygon = googleMap.addPolygon(polygonOptions)
+                            val coordsToUse = borderCoordinates ?: savedCoords
 
-                                // Apply dash pattern to the polygon
-                                currentPolygon?.let { polygon ->
-                                    val pattern = listOf(
-                                        Dash(20f),  // 20 pixels dash
-                                        Gap(20f)   // 20 pixels gap
-                                    )
-                                    polygon.strokePattern = pattern
+                            if (coordsToUse != null) {
+                                Log.d("MapDebug", "Drawing polygon with ${coordsToUse.size} points")
+                                // Save border coordinates for future use
+                                savedBorderCoordinates = coordsToUse
+
+                                try {
+                                    val polygonOptions = PolygonOptions()
+                                        .addAll(coordsToUse.map { LatLng(it[0], it[1]) })
+                                        .strokeColor(getColor(context, R.color.marker_border))
+                                        .strokeWidth(5f) // Make the border slightly thicker
+                                        .fillColor(getColor(context, R.color.marker_fill) and 0x1AFFFFFF) // Make fill very transparent (10% opacity)
+
+                                    currentPolygon = googleMap.addPolygon(polygonOptions)
+
+                                    // Apply dash pattern to the polygon
+                                    currentPolygon?.let { polygon ->
+                                        val pattern = listOf(
+                                            Dash(20f),  // 20 pixels dash
+                                            Gap(20f)   // 20 pixels gap
+                                        )
+                                        polygon.strokePattern = pattern
+                                    }
+                                } catch (e: Exception) {
+                                    Log.e("MapDebug", "Error drawing polygon: ${e.message}", e)
                                 }
+                            } else {
+                                Log.d("MapDebug", "No border coordinates available for district")
                             }
+                            // Load marker data for this district
                             viewModel.loadDistrictData(district.id)
                         }
-                        override fun onCancel() {}
+
+                        override fun onCancel() {
+                            Log.d("MapDebug", "Camera animation cancelled")
+                        }
                     }
                 )
-            }
+            } ?: Log.e("MapDebug", "Google Map is null")
         }
     }
 
@@ -365,12 +441,75 @@ fun Map(
         }
     }
 
-//    DisposableEffect(Unit) {
-//        onDispose {
-//            mapView?.onDestroy()
-//            viewModel.stopLocationUpdates()
-//        }
-//    }
+    // Handle reset of marker appearance when bottom sheet is dismissed
+    LaunchedEffect(showBottomSheet) {
+        if (showBottomSheet == null) {
+            // Get the previously selected marker ID
+            val markerId = viewModel.selectedMarkerId.value
+            markerId?.let { id ->
+                map?.let { googleMap ->
+                    val shelterIcon = createTeardropMarker(
+                        context,
+                        R.drawable.icon,
+                        SHELTER_MARKER_SIZE.toInt(),
+                        Color(0xFF4CAF50).toArgb(),
+                        isShelter = true
+                    )
+                    markerMap[id]?.setIcon(BitmapDescriptorFactory.fromBitmap(shelterIcon))
+                }
+            }
+            viewModel.clearSelectedMarker()
+        }
+    }
+
+    // Restore polygon when map becomes available
+    LaunchedEffect(map, savedBorderCoordinates) {
+        // Only restore polygon if map is ready and we have coordinates
+        if (map != null && savedBorderCoordinates != null && needsRestore) {
+            Log.d("MapDebug", "Map is ready, redrawing polygon with saved coordinates")
+            try {
+                // Remove any existing polygon
+                currentPolygon?.remove()
+
+                // Create a new polygon with saved coordinates
+                val polygonOptions = PolygonOptions()
+                    .addAll(savedBorderCoordinates!!.map { LatLng(it[0], it[1]) })
+                    .strokeColor(getColor(context, R.color.marker_border))
+                    .strokeWidth(5f)
+                    .fillColor(getColor(context, R.color.marker_fill) and 0x1AFFFFFF)
+
+                currentPolygon = map!!.addPolygon(polygonOptions)
+
+                // Apply dash pattern
+                currentPolygon?.strokePattern = listOf(
+                    Dash(20f),
+                    Gap(20f)
+                )
+
+                Log.d("MapDebug", "Successfully restored polygon with ${savedBorderCoordinates!!.size} points")
+
+                // Reset the flag after successful restoration
+                needsRestore = false
+            } catch (e: Exception) {
+                Log.e("MapDebug", "Error redrawing polygon: ${e.message}", e)
+            }
+        }
+    }
+
+    // Handle proper cleanup of map resources
+    DisposableEffect(lifecycleOwner) {
+        onDispose {
+            Log.d("MapDebug", "Disposing map resources")
+            // Don't clear the map - just destroy mapView
+            mapView?.onDestroy()
+            viewModel.stopLocationUpdates()
+
+            // Ensure we'll need to restore next time
+            if (savedDistrict != null) {
+                needsRestore = true
+            }
+        }
+    }
 
 // Drawer Content
     ModalNavigationDrawer(
@@ -412,7 +551,6 @@ fun Map(
                                 onClick = {
                                     if (!isProcessing && !isSelected) {
                                         isProcessing = true
-                                        savedDistrict = district.id
                                         viewModel.onDistrictSelected(district)
                                         scope.launch {
                                             drawerState.close()
@@ -472,14 +610,6 @@ fun Map(
                         ).apply {
                             onCreate(null)
                             getMapAsync { googleMap ->
-//                                if (ContextCompat.checkSelfPermission(
-//                                        context,
-//                                        Manifest.permission.ACCESS_FINE_LOCATION
-//                                    ) == PackageManager.PERMISSION_GRANTED
-//                                ) {
-//                                    googleMap.isMyLocationEnabled = true
-//                                    googleMap.uiSettings.isMyLocationButtonEnabled = true
-//                                }
                                 map = googleMap
                                 with(googleMap.uiSettings) {
                                     isZoomControlsEnabled = true
@@ -492,19 +622,6 @@ fun Map(
                                 googleMap.setOnCameraMoveListener {
                                     savedCameraPosition = googleMap.cameraPosition
                                 }
-//
-//                                // After initial position is set, check for user location
-//                                if (currentLocation != null) {
-//                                    // Move to User Location
-//                                    currentLocation?.let { loc ->
-//                                        googleMap.animateCamera(
-//                                            CameraUpdateFactory.newLatLngZoom(
-//                                                LatLng(loc.latitude, loc.longitude),
-//                                                12f
-//                                            )
-//                                        )
-//                                    }
-//                                }
                             }
                         }.also { mapView = it }
                     },

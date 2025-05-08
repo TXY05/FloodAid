@@ -20,11 +20,7 @@ import com.google.android.gms.maps.model.LatLng
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import androidx.lifecycle.ViewModel
-import com.example.floodaid.roomDatabase.Repository.FirestoreRepository
 import java.time.Instant
-import android.net.ConnectivityManager
-import android.net.NetworkCapabilities
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.time.temporal.ChronoUnit
@@ -44,6 +40,10 @@ class MapViewModel(
 
     private val _savedDistrict = MutableStateFlow<District?>(null)
     val savedDistrict: StateFlow<District?> = _savedDistrict.asStateFlow()
+
+    // Add a specific flow for districts with border updates
+    private val _districtWithBorderFlow = MutableStateFlow<District?>(null)
+    val districtWithBorderFlow: StateFlow<District?> = _districtWithBorderFlow.asStateFlow()
 
     private val _selectedShelter = MutableStateFlow<Shelter?>(null)
     val selectedShelter: StateFlow<Shelter?> = _selectedShelter.asStateFlow()
@@ -151,6 +151,7 @@ class MapViewModel(
             // Observe states updates first
             repository.listenToStatesUpdates().collect { states ->
                 try {
+                    repository.deleteAllStates()
                     repository.insertAllStates(states)
                     _uiState.update { it.copy(states = states) }
                 } catch (e: Exception) {
@@ -163,6 +164,7 @@ class MapViewModel(
             // Observe districts updates after states
             repository.listenToDistrictsUpdates().collect { districts ->
                 try {
+                    repository.deleteAllDistricts()
                     repository.insertAllDistricts(districts)
                     _uiState.update { it.copy(districts = districts) }
                 } catch (e: Exception) {
@@ -176,6 +178,7 @@ class MapViewModel(
             repository.listenToSheltersUpdates().collect { shelters ->
                 try {
                     if (shelters.isNotEmpty()) {
+                        repository.deleteAllShelter()
                         repository.insertAllShelters(shelters)
                         uiState.value.selectedDistrict?.let { district ->
                             // Filter shelters for the current district
@@ -194,6 +197,7 @@ class MapViewModel(
             repository.listenToFloodMarkersUpdates().collect { markers ->
                 try {
                     if (markers.isNotEmpty()) {
+                        repository.deleteAllMarkers()
                         repository.insertAllMarkers(markers)
                         uiState.value.selectedDistrict?.let { district ->
                             // Filter markers for the current district
@@ -268,8 +272,8 @@ class MapViewModel(
                 _uiState.update {
                     it.copy(
                         districts = districts,
-//                        currentShelters = emptyList(), // Clear previous shelters
-//                        currentMarkers = emptyList(),   // Clear previous markers
+                        currentShelters = emptyList(), // Clear previous shelters
+                        currentMarkers = emptyList(),   // Clear previous markers
                         isLoading = false
                     )
                 }
@@ -286,15 +290,49 @@ class MapViewModel(
     }
 
     suspend fun restoreDistrict(districtId: Long) {
-        var district = repository.getDistrictsByID(districtId)
-        Log.d("MapDebug", "Restoring: $districtId")
-        delay(5 * 1000)
-        onDistrictSelected(district)
-        Log.d("MapDebug", "Restoring Initiated")
+        try {
+            Log.d("MapDebug", "Fetching district data for restoration")
+            val district = repository.getDistrictsByID(districtId)
+
+            // Load the district data first
+            onDistrictSelected(district)
+
+            // Then check if we need to fetch border data from Firestore
+            if (district.borderCoordinates == null) {
+                Log.d("MapDebug", "District has no border coordinates, fetching from Firestore")
+                viewModelScope.launch {
+                    try {
+                        // Try to get border data from Firestore
+                        val allDistricts = repository.fetchAllDistricts()
+                        val freshDistrict = allDistricts.find { it.id == districtId }
+
+                        if (freshDistrict != null && freshDistrict.borderCoordinates != null) {
+                            Log.d("MapDebug", "Found district with border data in Firestore")
+                            // Update the district in Room database
+                            repository.insertAllDistricts(listOf(freshDistrict))
+
+                            // Update the UI
+                            _uiState.update { current ->
+                                current.copy(selectedDistrict = freshDistrict)
+                            }
+
+                            // Update border flow for direct polygon drawing
+                            _districtWithBorderFlow.value = freshDistrict
+                        } else {
+                            Log.d("MapDebug", "No border data found in Firestore for district $districtId")
+                        }
+                    } catch (e: Exception) {
+                        Log.e("MapDebug", "Error fetching district border data: ${e.message}")
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("MapDebug", "Error restoring district: ${e.message}")
+            loadStates() // Fallback to loading states if restoration fails
+        }
     }
 
     fun onDistrictSelected(district: District) {
-        Log.d("MapDebug", "Trouble Shooting 1:")
         _uiState.update { current ->
             current.copy(
                 selectedDistrict = district,
@@ -302,14 +340,10 @@ class MapViewModel(
                 currentMarkers = emptyList()   // Clear previous markers
             )
         }
-//        _savedDistrict.value = district
-        Log.d("MapDebug", "Trouble Shooting 2:")
         loadDistrictData(district.id)
-        Log.d("MapDebug", "Trouble Shooting 3:")
     }
 
     fun loadDistrictData(districtId: Long) {
-        Log.d("MapDebug", "Trouble Shooting 4:")
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             try {
@@ -332,7 +366,6 @@ class MapViewModel(
                 }
             }
         }
-        Log.d("MapDebug", "Trouble Shooting 5:")
     }
 
     // Shelter
@@ -549,229 +582,229 @@ class MapViewModel(
         viewModelScope.launch {
             val markers = mutableListOf<FloodMarker>()
 
-            // Gombak (ID: 1)
-            markers.addAll(listOf(
-                FloodMarker(
-                    id = "gombak_1",
-                    floodStatus = "flood",
-                    districtId = 1,
-                    latitude = 3.2550,
-                    longitude = 101.5800,
-                    expiryTime = Instant.now().plus(4, ChronoUnit.DAYS)
-                ),
-                FloodMarker(
-                    id = "gombak_2",
-                    floodStatus = "safe",
-                    districtId = 1,
-                    latitude = 3.2333,
-                    longitude = 101.6833,
-                    expiryTime = Instant.now().plus(4, ChronoUnit.DAYS)
-                ),
-                FloodMarker(
-                    id = "gombak_3",
-                    floodStatus = "flood",
-                    districtId = 1,
-                    latitude = 3.3000,
-                    longitude = 101.5667,
-                    expiryTime = Instant.now().plus(4, ChronoUnit.DAYS)
-                )
-            ))
-
-            // Hulu Langat (ID: 2)
-            markers.addAll(listOf(
-                FloodMarker(
-                    id = "hulu_langat_1",
-                    floodStatus = "flood",
-                    districtId = 2,
-                    latitude = 3.1400,
-                    longitude = 101.8500,
-                    expiryTime = Instant.now().plus(4, ChronoUnit.DAYS)
-                ),
-                FloodMarker(
-                    id = "hulu_langat_2",
-                    floodStatus = "safe",
-                    districtId = 2,
-                    latitude = 3.0833,
-                    longitude = 101.7833,
-                    expiryTime = Instant.now().plus(4, ChronoUnit.DAYS)
-                ),
-                FloodMarker(
-                    id = "hulu_langat_3",
-                    floodStatus = "flood",
-                    districtId = 2,
-                    latitude = 3.1500,
-                    longitude = 101.8167,
-                    expiryTime = Instant.now().plus(4, ChronoUnit.DAYS)
-                )
-            ))
-
-            // Hulu Selangor (ID: 3)
-            markers.addAll(listOf(
-                FloodMarker(
-                    id = "hulu_selangor_1",
-                    floodStatus = "safe",
-                    districtId = 3,
-                    latitude = 3.5058,
-                    longitude = 101.6349,
-                    expiryTime = Instant.now().plus(4, ChronoUnit.DAYS)
-                ),
-                FloodMarker(
-                    id = "hulu_selangor_2",
-                    floodStatus = "flood",
-                    districtId = 3,
-                    latitude = 3.6333,
-                    longitude = 101.6167,
-                    expiryTime = Instant.now().plus(4, ChronoUnit.DAYS)
-                ),
-                FloodMarker(
-                    id = "hulu_selangor_3",
-                    floodStatus = "safe",
-                    districtId = 3,
-                    latitude = 3.5500,
-                    longitude = 101.6333,
-                    expiryTime = Instant.now().plus(4, ChronoUnit.DAYS)
-                )
-            ))
-
-            // Klang (ID: 4)
-            markers.addAll(listOf(
-                FloodMarker(
-                    id = "klang_1",
-                    floodStatus = "flood",
-                    districtId = 4,
-                    latitude = 3.1500,
-                    longitude = 101.4000,
-                    expiryTime = Instant.now().plus(4, ChronoUnit.DAYS)
-                ),
-                FloodMarker(
-                    id = "klang_2",
-                    floodStatus = "safe",
-                    districtId = 4,
-                    latitude = 3.0833,
-                    longitude = 101.4333,
-                    expiryTime = Instant.now().plus(4, ChronoUnit.DAYS)
-                ),
-                FloodMarker(
-                    id = "klang_3",
-                    floodStatus = "flood",
-                    districtId = 4,
-                    latitude = 3.0167,
-                    longitude = 101.4500,
-                    expiryTime = Instant.now().plus(4, ChronoUnit.DAYS)
-                )
-            ))
-
-            // Kuala Langat (ID: 5)
-            markers.addAll(listOf(
-                FloodMarker(
-                    id = "kuala_langat_1",
-                    floodStatus = "safe",
-                    districtId = 5,
-                    latitude = 2.9000,
-                    longitude = 101.4500,
-                    expiryTime = Instant.now().plus(4, ChronoUnit.DAYS)
-                ),
-                FloodMarker(
-                    id = "kuala_langat_2",
-                    floodStatus = "flood",
-                    districtId = 5,
-                    latitude = 2.8333,
-                    longitude = 101.4833,
-                    expiryTime = Instant.now().plus(4, ChronoUnit.DAYS)
-                ),
-                FloodMarker(
-                    id = "kuala_langat_3",
-                    floodStatus = "safe",
-                    districtId = 5,
-                    latitude = 2.7500,
-                    longitude = 101.4500,
-                    expiryTime = Instant.now().plus(4, ChronoUnit.DAYS)
-                )
-            ))
-
-            // Kuala Selangor (ID: 6)
-            markers.addAll(listOf(
-                FloodMarker(
-                    id = "kuala_selangor_1",
-                    floodStatus = "flood",
-                    districtId = 6,
-                    latitude = 3.3667,
-                    longitude = 101.2500,
-                    expiryTime = Instant.now().plus(4, ChronoUnit.DAYS)
-                ),
-                FloodMarker(
-                    id = "kuala_selangor_2",
-                    floodStatus = "safe",
-                    districtId = 6,
-                    latitude = 3.3000,
-                    longitude = 101.2333,
-                    expiryTime = Instant.now().plus(4, ChronoUnit.DAYS)
-                ),
-                FloodMarker(
-                    id = "kuala_selangor_3",
-                    floodStatus = "flood",
-                    districtId = 6,
-                    latitude = 3.2500,
-                    longitude = 101.1500,
-                    expiryTime = Instant.now().plus(4, ChronoUnit.DAYS)
-                )
-            ))
-
-            // Petaling (ID: 7)
-            markers.addAll(listOf(
-                FloodMarker(
-                    id = "petaling_1",
-                    floodStatus = "safe",
-                    districtId = 7,
-                    latitude = 3.1833,
-                    longitude = 101.6000,
-                    expiryTime = Instant.now().plus(4, ChronoUnit.DAYS)
-                ),
-                FloodMarker(
-                    id = "petaling_2",
-                    floodStatus = "flood",
-                    districtId = 7,
-                    latitude = 3.1333,
-                    longitude = 101.6167,
-                    expiryTime = Instant.now().plus(4, ChronoUnit.DAYS)
-                ),
-                FloodMarker(
-                    id = "petaling_3",
-                    floodStatus = "safe",
-                    districtId = 7,
-                    latitude = 3.0333,
-                    longitude = 101.6500,
-                    expiryTime = Instant.now().plus(4, ChronoUnit.DAYS)
-                )
-            ))
-
-            // Sabak Bernam (ID: 8)
-            markers.addAll(listOf(
-                FloodMarker(
-                    id = "sabak_bernam_1",
-                    floodStatus = "flood",
-                    districtId = 8,
-                    latitude = 3.7333,
-                    longitude = 101.0333,
-                    expiryTime = Instant.now().plus(4, ChronoUnit.DAYS)
-                ),
-                FloodMarker(
-                    id = "sabak_bernam_2",
-                    floodStatus = "safe",
-                    districtId = 8,
-                    latitude = 3.6667,
-                    longitude = 101.0833,
-                    expiryTime = Instant.now().plus(4, ChronoUnit.DAYS)
-                ),
-                FloodMarker(
-                    id = "sabak_bernam_3",
-                    floodStatus = "flood",
-                    districtId = 8,
-                    latitude = 3.5833,
-                    longitude = 101.1667,
-                    expiryTime = Instant.now().plus(4, ChronoUnit.DAYS)
-                )
-            ))
+//            // Gombak (ID: 1)
+//            markers.addAll(listOf(
+//                FloodMarker(
+//                    id = "gombak_1",
+//                    floodStatus = "flood",
+//                    districtId = 1,
+//                    latitude = 3.2550,
+//                    longitude = 101.5800,
+//                    expiryTime = Instant.now().plus(4, ChronoUnit.DAYS)
+//                ),
+//                FloodMarker(
+//                    id = "gombak_2",
+//                    floodStatus = "safe",
+//                    districtId = 1,
+//                    latitude = 3.2333,
+//                    longitude = 101.6833,
+//                    expiryTime = Instant.now().plus(4, ChronoUnit.DAYS)
+//                ),
+//                FloodMarker(
+//                    id = "gombak_3",
+//                    floodStatus = "flood",
+//                    districtId = 1,
+//                    latitude = 3.3000,
+//                    longitude = 101.5667,
+//                    expiryTime = Instant.now().plus(4, ChronoUnit.DAYS)
+//                )
+//            ))
+//
+//            // Hulu Langat (ID: 2)
+//            markers.addAll(listOf(
+//                FloodMarker(
+//                    id = "hulu_langat_1",
+//                    floodStatus = "flood",
+//                    districtId = 2,
+//                    latitude = 3.1400,
+//                    longitude = 101.8500,
+//                    expiryTime = Instant.now().plus(4, ChronoUnit.DAYS)
+//                ),
+//                FloodMarker(
+//                    id = "hulu_langat_2",
+//                    floodStatus = "safe",
+//                    districtId = 2,
+//                    latitude = 3.0833,
+//                    longitude = 101.7833,
+//                    expiryTime = Instant.now().plus(4, ChronoUnit.DAYS)
+//                ),
+//                FloodMarker(
+//                    id = "hulu_langat_3",
+//                    floodStatus = "flood",
+//                    districtId = 2,
+//                    latitude = 3.1500,
+//                    longitude = 101.8167,
+//                    expiryTime = Instant.now().plus(4, ChronoUnit.DAYS)
+//                )
+//            ))
+//
+//            // Hulu Selangor (ID: 3)
+//            markers.addAll(listOf(
+//                FloodMarker(
+//                    id = "hulu_selangor_1",
+//                    floodStatus = "safe",
+//                    districtId = 3,
+//                    latitude = 3.5058,
+//                    longitude = 101.6349,
+//                    expiryTime = Instant.now().plus(4, ChronoUnit.DAYS)
+//                ),
+//                FloodMarker(
+//                    id = "hulu_selangor_2",
+//                    floodStatus = "flood",
+//                    districtId = 3,
+//                    latitude = 3.6333,
+//                    longitude = 101.6167,
+//                    expiryTime = Instant.now().plus(4, ChronoUnit.DAYS)
+//                ),
+//                FloodMarker(
+//                    id = "hulu_selangor_3",
+//                    floodStatus = "safe",
+//                    districtId = 3,
+//                    latitude = 3.5500,
+//                    longitude = 101.6333,
+//                    expiryTime = Instant.now().plus(4, ChronoUnit.DAYS)
+//                )
+//            ))
+//
+//            // Klang (ID: 4)
+//            markers.addAll(listOf(
+//                FloodMarker(
+//                    id = "klang_1",
+//                    floodStatus = "flood",
+//                    districtId = 4,
+//                    latitude = 3.1500,
+//                    longitude = 101.4000,
+//                    expiryTime = Instant.now().plus(4, ChronoUnit.DAYS)
+//                ),
+//                FloodMarker(
+//                    id = "klang_2",
+//                    floodStatus = "safe",
+//                    districtId = 4,
+//                    latitude = 3.0833,
+//                    longitude = 101.4333,
+//                    expiryTime = Instant.now().plus(4, ChronoUnit.DAYS)
+//                ),
+//                FloodMarker(
+//                    id = "klang_3",
+//                    floodStatus = "flood",
+//                    districtId = 4,
+//                    latitude = 3.0167,
+//                    longitude = 101.4500,
+//                    expiryTime = Instant.now().plus(4, ChronoUnit.DAYS)
+//                )
+//            ))
+//
+//            // Kuala Langat (ID: 5)
+//            markers.addAll(listOf(
+//                FloodMarker(
+//                    id = "kuala_langat_1",
+//                    floodStatus = "safe",
+//                    districtId = 5,
+//                    latitude = 2.9000,
+//                    longitude = 101.4500,
+//                    expiryTime = Instant.now().plus(4, ChronoUnit.DAYS)
+//                ),
+//                FloodMarker(
+//                    id = "kuala_langat_2",
+//                    floodStatus = "flood",
+//                    districtId = 5,
+//                    latitude = 2.8333,
+//                    longitude = 101.4833,
+//                    expiryTime = Instant.now().plus(4, ChronoUnit.DAYS)
+//                ),
+//                FloodMarker(
+//                    id = "kuala_langat_3",
+//                    floodStatus = "safe",
+//                    districtId = 5,
+//                    latitude = 2.7500,
+//                    longitude = 101.4500,
+//                    expiryTime = Instant.now().plus(4, ChronoUnit.DAYS)
+//                )
+//            ))
+//
+//            // Kuala Selangor (ID: 6)
+//            markers.addAll(listOf(
+//                FloodMarker(
+//                    id = "kuala_selangor_1",
+//                    floodStatus = "flood",
+//                    districtId = 6,
+//                    latitude = 3.3667,
+//                    longitude = 101.2500,
+//                    expiryTime = Instant.now().plus(4, ChronoUnit.DAYS)
+//                ),
+//                FloodMarker(
+//                    id = "kuala_selangor_2",
+//                    floodStatus = "safe",
+//                    districtId = 6,
+//                    latitude = 3.3000,
+//                    longitude = 101.2333,
+//                    expiryTime = Instant.now().plus(4, ChronoUnit.DAYS)
+//                ),
+//                FloodMarker(
+//                    id = "kuala_selangor_3",
+//                    floodStatus = "flood",
+//                    districtId = 6,
+//                    latitude = 3.2500,
+//                    longitude = 101.1500,
+//                    expiryTime = Instant.now().plus(4, ChronoUnit.DAYS)
+//                )
+//            ))
+//
+//            // Petaling (ID: 7)
+//            markers.addAll(listOf(
+//                FloodMarker(
+//                    id = "petaling_1",
+//                    floodStatus = "safe",
+//                    districtId = 7,
+//                    latitude = 3.1833,
+//                    longitude = 101.6000,
+//                    expiryTime = Instant.now().plus(4, ChronoUnit.DAYS)
+//                ),
+//                FloodMarker(
+//                    id = "petaling_2",
+//                    floodStatus = "flood",
+//                    districtId = 7,
+//                    latitude = 3.1333,
+//                    longitude = 101.6167,
+//                    expiryTime = Instant.now().plus(4, ChronoUnit.DAYS)
+//                ),
+//                FloodMarker(
+//                    id = "petaling_3",
+//                    floodStatus = "safe",
+//                    districtId = 7,
+//                    latitude = 3.0333,
+//                    longitude = 101.6500,
+//                    expiryTime = Instant.now().plus(4, ChronoUnit.DAYS)
+//                )
+//            ))
+//
+//            // Sabak Bernam (ID: 8)
+//            markers.addAll(listOf(
+//                FloodMarker(
+//                    id = "sabak_bernam_1",
+//                    floodStatus = "flood",
+//                    districtId = 8,
+//                    latitude = 3.7333,
+//                    longitude = 101.0333,
+//                    expiryTime = Instant.now().plus(4, ChronoUnit.DAYS)
+//                ),
+//                FloodMarker(
+//                    id = "sabak_bernam_2",
+//                    floodStatus = "safe",
+//                    districtId = 8,
+//                    latitude = 3.6667,
+//                    longitude = 101.0833,
+//                    expiryTime = Instant.now().plus(4, ChronoUnit.DAYS)
+//                ),
+//                FloodMarker(
+//                    id = "sabak_bernam_3",
+//                    floodStatus = "flood",
+//                    districtId = 8,
+//                    latitude = 3.5833,
+//                    longitude = 101.1667,
+//                    expiryTime = Instant.now().plus(4, ChronoUnit.DAYS)
+//                )
+//            ))
 
             // Sepang (ID: 9)
             markers.addAll(listOf(
@@ -779,26 +812,26 @@ class MapViewModel(
                     id = "sepang_1",
                     floodStatus = "safe",
                     districtId = 9,
-                    latitude = 2.9000,
-                    longitude = 101.7667,
+                    latitude = 2.757951,
+                    longitude =  101.691473,
                     expiryTime = Instant.now().plus(4, ChronoUnit.DAYS)
                 ),
-                FloodMarker(
-                    id = "sepang_2",
-                    floodStatus = "flood",
-                    districtId = 9,
-                    latitude = 2.8167,
-                    longitude = 101.7500,
-                    expiryTime = Instant.now().plus(4, ChronoUnit.DAYS)
-                ),
-                FloodMarker(
-                    id = "sepang_3",
-                    floodStatus = "safe",
-                    districtId = 9,
-                    latitude = 2.6833,
-                    longitude = 101.7000,
-                    expiryTime = Instant.now().plus(4, ChronoUnit.DAYS)
-                )
+//                FloodMarker(
+//                    id = "sepang_2",
+//                    floodStatus = "flood",
+//                    districtId = 9,
+//                    latitude = 2.8167,
+//                    longitude = 101.7500,
+//                    expiryTime = Instant.now().plus(4, ChronoUnit.DAYS)
+//                ),
+//                FloodMarker(
+//                    id = "sepang_3",
+//                    floodStatus = "safe",
+//                    districtId = 9,
+//                    latitude = 2.6833,
+//                    longitude = 101.7000,
+//                    expiryTime = Instant.now().plus(4, ChronoUnit.DAYS)
+//                )
             ))
 
             // Insert all markers

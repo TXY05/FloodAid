@@ -48,6 +48,9 @@ interface MapDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAllDistricts(districts: List<District>)
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertDistrict(districts: District)
+
     @Query("DELETE FROM District")
     suspend fun deleteAllDistricts()
 
