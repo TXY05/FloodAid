@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.key
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -15,9 +14,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.example.floodaid.models.Screen
-import com.example.floodaid.models.VolunteerProfile
 import com.example.floodaid.repository.FirestoreRepository
-import com.example.floodaid.roomDatabase.Database.FloodAidDatabase
+import com.example.floodaid.roomDatabase.database.FloodAidDatabase
 import com.example.floodaid.screen.Dashboard
 import com.example.floodaid.screen.FloodStatus
 import com.example.floodaid.screen.Notification

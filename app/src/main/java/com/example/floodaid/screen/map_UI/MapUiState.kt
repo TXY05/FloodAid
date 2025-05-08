@@ -1,9 +1,9 @@
 package com.example.floodaid.screen.map_UI
 
-import com.example.floodaid.roomDatabase.Entities.District
-import com.example.floodaid.roomDatabase.Entities.FloodMarker
-import com.example.floodaid.roomDatabase.Entities.Shelter
-import com.example.floodaid.roomDatabase.Entities.State
+import com.example.floodaid.roomDatabase.entities.District
+import com.example.floodaid.roomDatabase.entities.FloodMarker
+import com.example.floodaid.roomDatabase.entities.Shelter
+import com.example.floodaid.roomDatabase.entities.State
 
 // UI State Class
 data class MapUiState(

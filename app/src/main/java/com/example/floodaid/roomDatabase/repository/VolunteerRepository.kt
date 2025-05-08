@@ -1,20 +1,14 @@
-package com.example.floodaid.roomDatabase.Repository
+package com.example.floodaid.roomDatabase.repository
 
 import android.util.Log
-import androidx.room.Delete
-import androidx.room.Insert
-import androidx.room.OnConflictStrategy
-import androidx.room.Query
-import androidx.room.Update
 import com.example.floodaid.models.VolunteerEvent
 import com.example.floodaid.models.VolunteerEventHistory
 import com.example.floodaid.models.VolunteerProfile
-import com.example.floodaid.roomDatabase.Dao.VolunteerDao
-import com.example.floodaid.roomDatabase.Dao.VolunteerEventHistoryDao
-import com.example.floodaid.roomDatabase.Dao.VolunteerProfileDao
+import com.example.floodaid.roomDatabase.dao.VolunteerDao
+import com.example.floodaid.roomDatabase.dao.VolunteerEventHistoryDao
+import com.example.floodaid.roomDatabase.dao.VolunteerProfileDao
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.snapshots
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.tasks.await

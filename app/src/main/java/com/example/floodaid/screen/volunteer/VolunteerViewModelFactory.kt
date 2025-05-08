@@ -2,7 +2,7 @@ package com.example.floodaid.screen.volunteer
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
-import com.example.floodaid.roomDatabase.Repository.VolunteerRepository
+import com.example.floodaid.roomDatabase.repository.VolunteerRepository
 import com.google.firebase.auth.FirebaseAuth
 
 class VolunteerViewModelFactory(

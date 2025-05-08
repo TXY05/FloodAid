@@ -1,6 +1,6 @@
 package com.example.floodaid.utils
 
-import com.example.floodaid.roomDatabase.Entities.FloodMarker
+import com.example.floodaid.roomDatabase.entities.FloodMarker
 import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.clustering.ClusterItem
 

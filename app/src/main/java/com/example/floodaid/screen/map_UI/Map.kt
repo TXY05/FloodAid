@@ -81,8 +81,8 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.core.content.ContextCompat.getColor
 import androidx.lifecycle.LifecycleOwner
 import com.example.floodaid.repository.FirestoreRepository
-import com.example.floodaid.roomDatabase.Database.FloodAidDatabase
-import com.example.floodaid.roomDatabase.Repository.MapRepository
+import com.example.floodaid.roomDatabase.database.FloodAidDatabase
+import com.example.floodaid.roomDatabase.repository.MapRepository
 import com.example.floodaid.utils.FloodClusterItem
 import com.google.android.gms.maps.model.Dash
 import com.google.android.gms.maps.model.Gap

@@ -1,4 +1,4 @@
-package com.example.floodaid.roomDatabase.Database
+package com.example.floodaid.roomDatabase.database
 
 import android.content.Context
 import androidx.room.Database
@@ -10,15 +10,15 @@ import com.example.floodaid.models.VolunteerEvent
 import com.example.floodaid.models.VolunteerEventHistory
 import com.example.floodaid.models.VolunteerProfile
 import com.example.floodaid.utils.Converter
-import com.example.floodaid.roomDatabase.Dao.MapDao
-import com.example.floodaid.roomDatabase.Dao.UserProfileDao
-import com.example.floodaid.roomDatabase.Dao.VolunteerDao
-import com.example.floodaid.roomDatabase.Dao.VolunteerEventHistoryDao
-import com.example.floodaid.roomDatabase.Dao.VolunteerProfileDao
-import com.example.floodaid.roomDatabase.Entities.District
-import com.example.floodaid.roomDatabase.Entities.FloodMarker
-import com.example.floodaid.roomDatabase.Entities.Shelter
-import com.example.floodaid.roomDatabase.Entities.State
+import com.example.floodaid.roomDatabase.dao.MapDao
+import com.example.floodaid.roomDatabase.dao.UserProfileDao
+import com.example.floodaid.roomDatabase.dao.VolunteerDao
+import com.example.floodaid.roomDatabase.dao.VolunteerEventHistoryDao
+import com.example.floodaid.roomDatabase.dao.VolunteerProfileDao
+import com.example.floodaid.roomDatabase.entities.District
+import com.example.floodaid.roomDatabase.entities.FloodMarker
+import com.example.floodaid.roomDatabase.entities.Shelter
+import com.example.floodaid.roomDatabase.entities.State
 import com.example.floodaid.screen.forum.ForumDao
 import com.example.floodaid.screen.floodstatus.FloodHistoryEntity
 import com.example.floodaid.screen.floodstatus.FloodStatusDao

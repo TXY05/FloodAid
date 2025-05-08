@@ -1,11 +1,10 @@
-package com.example.floodaid.roomDatabase.Entities
+package com.example.floodaid.roomDatabase.entities
 
 import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
-import java.time.Duration
 import java.time.Instant
 
 

@@ -2,18 +2,14 @@ package com.example.floodaid.screen.map_UI
 
 import android.Manifest
 import android.app.Application
-import android.content.Context
 import android.content.pm.PackageManager
-import android.location.LocationManager
 import android.os.Looper
 import android.util.Log
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.floodaid.roomDatabase.Database.FloodAidDatabase
-import com.example.floodaid.roomDatabase.Entities.*
-import com.example.floodaid.roomDatabase.Repository.MapRepository
-import com.example.floodaid.utils.DistanceCalculator
+import com.example.floodaid.roomDatabase.entities.*
+import com.example.floodaid.roomDatabase.repository.MapRepository
 import com.example.floodaid.utils.GeocodingHelper
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
@@ -21,15 +17,10 @@ import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import com.google.android.gms.maps.model.LatLng
-import com.google.firebase.BuildConfig
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import androidx.lifecycle.ViewModel
-import com.example.floodaid.repository.FirestoreRepository
 import java.time.Instant
-import android.net.ConnectivityManager
-import android.net.NetworkCapabilities
 import java.time.temporal.ChronoUnit
 
 //class MapViewModel(application: Application) : AndroidViewModel(application) {

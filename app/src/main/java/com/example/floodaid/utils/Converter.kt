@@ -1,8 +1,8 @@
 package com.example.floodaid.utils
 
 import androidx.room.TypeConverter
-import com.example.floodaid.roomDatabase.Entities.Border
-import com.example.floodaid.roomDatabase.Entities.ImageURL
+import com.example.floodaid.roomDatabase.entities.Border
+import com.example.floodaid.roomDatabase.entities.ImageURL
 import com.google.firebase.Timestamp
 import com.google.gson.Gson
 import java.time.Instant

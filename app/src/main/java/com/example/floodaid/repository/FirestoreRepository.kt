@@ -8,7 +8,7 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
-import com.example.floodaid.roomDatabase.Entities.*
+import com.example.floodaid.roomDatabase.entities.*
 import java.time.Instant
 
 class FirestoreRepository {

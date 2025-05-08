@@ -3,7 +3,7 @@ package com.example.floodaid.screen.map_UI
 import android.app.Application
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
-import com.example.floodaid.roomDatabase.Repository.MapRepository
+import com.example.floodaid.roomDatabase.repository.MapRepository
 
 class MapViewModelFactory(
     private val application: Application,

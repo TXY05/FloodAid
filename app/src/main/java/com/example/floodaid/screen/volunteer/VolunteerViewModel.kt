@@ -6,7 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.floodaid.models.VolunteerEvent
 import com.example.floodaid.models.VolunteerEventHistory
 import com.example.floodaid.models.VolunteerProfile
-import com.example.floodaid.roomDatabase.Repository.VolunteerRepository
+import com.example.floodaid.roomDatabase.repository.VolunteerRepository
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted

@@ -1,11 +1,11 @@
-package com.example.floodaid.roomDatabase.Relationships
+package com.example.floodaid.roomDatabase.relationships
 
 import androidx.room.Embedded
 import androidx.room.Relation
-import com.example.floodaid.roomDatabase.Entities.District
-import com.example.floodaid.roomDatabase.Entities.FloodMarker
-import com.example.floodaid.roomDatabase.Entities.Shelter
-import com.example.floodaid.roomDatabase.Entities.State
+import com.example.floodaid.roomDatabase.entities.District
+import com.example.floodaid.roomDatabase.entities.FloodMarker
+import com.example.floodaid.roomDatabase.entities.Shelter
+import com.example.floodaid.roomDatabase.entities.State
 
 // Might Delete
 data class StateWithDistricts(

@@ -1,14 +1,12 @@
-package com.example.floodaid.roomDatabase.Repository
+package com.example.floodaid.roomDatabase.repository
 
 import com.example.floodaid.repository.FirestoreRepository
-import com.example.floodaid.roomDatabase.Dao.MapDao
-import com.example.floodaid.roomDatabase.Entities.District
-import com.example.floodaid.roomDatabase.Entities.FloodMarker
-import com.example.floodaid.roomDatabase.Entities.Shelter
-import com.example.floodaid.roomDatabase.Entities.State
+import com.example.floodaid.roomDatabase.dao.MapDao
+import com.example.floodaid.roomDatabase.entities.District
+import com.example.floodaid.roomDatabase.entities.FloodMarker
+import com.example.floodaid.roomDatabase.entities.Shelter
+import com.example.floodaid.roomDatabase.entities.State
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flow
-import java.time.Instant
 import android.util.Log
 
 class MapRepository(

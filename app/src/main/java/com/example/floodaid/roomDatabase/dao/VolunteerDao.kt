@@ -1,4 +1,4 @@
-package com.example.floodaid.roomDatabase.Dao
+package com.example.floodaid.roomDatabase.dao
 
 import androidx.room.Dao
 import androidx.room.Delete

@@ -1,18 +1,16 @@
-package com.example.floodaid.roomDatabase.Dao
+package com.example.floodaid.roomDatabase.dao
 
-import android.util.Log
 import androidx.room.Dao
-import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
 import androidx.room.Update
-import com.example.floodaid.roomDatabase.Entities.District
-import com.example.floodaid.roomDatabase.Entities.FloodMarker
-import com.example.floodaid.roomDatabase.Entities.Shelter
-import com.example.floodaid.roomDatabase.Entities.State
-import com.example.floodaid.roomDatabase.Relationships.DistrictWithShelters
+import com.example.floodaid.roomDatabase.entities.District
+import com.example.floodaid.roomDatabase.entities.FloodMarker
+import com.example.floodaid.roomDatabase.entities.Shelter
+import com.example.floodaid.roomDatabase.entities.State
+import com.example.floodaid.roomDatabase.relationships.DistrictWithShelters
 import kotlinx.coroutines.flow.Flow
 import java.time.Instant
 

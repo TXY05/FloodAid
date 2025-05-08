@@ -73,7 +73,7 @@ import coil3.compose.rememberAsyncImagePainter
 import com.example.floodaid.R
 import com.example.floodaid.models.Screen
 import com.example.floodaid.models.UserProfile
-import com.example.floodaid.roomDatabase.Database.FloodAidDatabase
+import com.example.floodaid.roomDatabase.database.FloodAidDatabase
 import com.example.floodaid.ui.theme.AlegreyaSansFontFamily
 import com.example.jetpackcomposeauthui.components.CTextField
 import com.google.firebase.auth.FirebaseAuth

@@ -58,15 +58,12 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import com.example.floodaid.models.Screen
 import com.example.floodaid.repository.FirestoreRepository
-import com.example.floodaid.roomDatabase.Database.FloodAidDatabase
+import com.example.floodaid.roomDatabase.database.FloodAidDatabase
 import com.example.floodaid.screen.floodstatus.FloodStatusRepository
 import com.example.floodaid.screen.floodstatus.FloodStatusViewModelFactory
 import com.example.floodaid.viewmodel.FloodStatusViewModel
 import com.google.firebase.auth.FirebaseAuth
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.lifecycle.SavedStateHandle
-import androidx.navigation.navOptions
-import androidx.navigation.navArgument
 
 @Composable
 fun FloodStatus(navController: NavHostController, viewModel: FloodStatusViewModel, database: FloodAidDatabase) {
