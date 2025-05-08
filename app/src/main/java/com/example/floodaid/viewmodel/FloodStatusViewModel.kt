@@ -1,13 +1,16 @@
 package com.example.floodaid.viewmodel
 
 import androidx.lifecycle.SavedStateHandle
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.asLiveData
 import androidx.lifecycle.viewModelScope
-import com.example.floodaid.repository.FirestoreRepository
+import com.example.floodaid.roomDatabase.Entities.FloodMarker
+import com.example.floodaid.roomDatabase.Repository.FirestoreRepository
 import com.example.floodaid.screen.floodstatus.FloodHistoryEntity
 import com.example.floodaid.screen.floodstatus.FloodStatusDao
 import com.example.floodaid.screen.floodstatus.FloodStatusRepository
+import com.example.floodaid.screen.map_UI.MapViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
@@ -15,6 +18,19 @@ import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
+import java.time.Instant
+import java.time.temporal.ChronoUnit
+
+// Add a SaveState enum to track saving status
+enum class SaveState {
+    IDLE,
+    SAVING,
+    SUCCESS,
+    ERROR
+}
 
 data class LocationStatus(
     val location: String,
@@ -25,7 +41,9 @@ data class FloodStatusUiState(
     val floodData: List<LocationStatus> = emptyList(),
     val selectedLocation: String? = null,
     val showDialog: Boolean = false,
-    val currentStatus: String
+    val currentStatus: String = "Unknown",
+    val saveState: SaveState = SaveState.IDLE,
+    val errorMessage: String = ""
 )
 
 class FloodStatusViewModel(
@@ -89,11 +107,11 @@ class FloodStatusViewModel(
     }
 
     fun showDialog() {
-        _uiState.value = _uiState.value.copy(showDialog = true)
+        _uiState.value = _uiState.value.copy(showDialog = true, saveState = SaveState.IDLE, errorMessage = "")
     }
 
     fun dismissDialog() {
-        _uiState.value = _uiState.value.copy(showDialog = false)
+        _uiState.value = _uiState.value.copy(showDialog = false, saveState = SaveState.IDLE, errorMessage = "")
     }
 
     private val _snackbarMessage = MutableStateFlow<String?>(null)
@@ -136,4 +154,61 @@ class FloodStatusViewModel(
         }
     }
 
+    // Changed to use state management instead of callbacks
+    fun saveFloodMarker(location: String, status: String, mapViewModel: MapViewModel) {
+        // Update state to saving
+        _uiState.value = _uiState.value.copy(saveState = SaveState.SAVING, errorMessage = "")
+
+        viewModelScope.launch {
+            try {
+                Log.d("MapDebug", "Starting save process in ViewModel")
+                // First update local status
+                updateFloodStatus(location, status)
+
+                // Get district data
+                val district = mapViewModel.getDistrictsByName(location)
+                Log.d("MapDebug", "Fetched district: $district")
+
+                // Create flood marker with proper ID
+                val reportMarker = FloodMarker(
+                    id = FloodMarker.TEMP_ID,
+                    floodStatus = status.lowercase(),
+                    districtId = district.id,
+                    latitude = 4.2105,
+                    longitude = 101.9758,
+//                    latitude = district.latitude,
+//                    longitude = district.longitude,
+                    expiryTime = Instant.now().plus(2, ChronoUnit.MINUTES)
+                )
+
+                // Let MapViewModel handle the saving to both databases
+                mapViewModel.addNewFloodMarker(reportMarker)
+
+                // Update state to success
+                _uiState.value = _uiState.value.copy(saveState = SaveState.SUCCESS)
+
+                // After successful save, close the dialog
+                delay(200) // Small delay to ensure state is updated
+                dismissDialog()
+                showSnackbar("Flood status updated successfully!")
+
+            } catch (e: Exception) {
+                Log.e("MapDebug", "Error saving flood status", e)
+            _uiState.value = _uiState.value.copy(
+                saveState = SaveState.ERROR,
+                errorMessage = "Error: ${e.message ?: "Unknown error"}"
+                )
+            }
+        }
+    }
+
+    // Reset the save state
+    fun resetSaveState() {
+        _uiState.value = _uiState.value.copy(saveState = SaveState.IDLE, errorMessage = "")
+    }
+
+    // Set error message
+    fun setErrorMessage(message: String) {
+        _uiState.value = _uiState.value.copy(errorMessage = message)
+    }
 }

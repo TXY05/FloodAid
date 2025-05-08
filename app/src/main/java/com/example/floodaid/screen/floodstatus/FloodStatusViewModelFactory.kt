@@ -3,7 +3,7 @@ package com.example.floodaid.screen.floodstatus
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
-import com.example.floodaid.repository.FirestoreRepository
+import com.example.floodaid.roomDatabase.Repository.FirestoreRepository
 import com.example.floodaid.viewmodel.FloodStatusViewModel
 
 class FloodStatusViewModelFactory(

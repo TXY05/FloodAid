@@ -1,7 +1,14 @@
-package com.example.floodaid.repository
+package com.example.floodaid.roomDatabase.Repository
 
+import com.example.floodaid.roomDatabase.Entities.Border
+import com.example.floodaid.roomDatabase.Entities.District
+import com.example.floodaid.roomDatabase.Entities.FloodMarker
+import com.example.floodaid.roomDatabase.Entities.ImageURL
+import com.example.floodaid.roomDatabase.Entities.Shelter
+import com.example.floodaid.roomDatabase.Entities.State
 import com.example.floodaid.screen.floodstatus.FloodHistoryEntity
 import com.example.floodaid.screen.floodstatus.LocationStatusEntity
+import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import kotlinx.coroutines.channels.awaitClose
@@ -40,7 +47,7 @@ class FirestoreRepository {
                 "status" to status,
                 "date" to date,
                 "time" to time,
-                "timestamp" to com.google.firebase.Timestamp.now()
+                "timestamp" to Timestamp.now()
             )
         ).await()
     }
@@ -68,7 +75,12 @@ class FirestoreRepository {
                     val status = doc.getString("status") ?: return@mapNotNull null
                     val date = doc.getString("date") ?: return@mapNotNull null
                     val time = doc.getString("time") ?: "00:00"
-                    FloodHistoryEntity(location = location, status = status, date = date, time = time)
+                    FloodHistoryEntity(
+                        location = location,
+                        status = status,
+                        date = date,
+                        time = time
+                    )
                 }
                 trySend(historyList)
             }
@@ -172,8 +184,11 @@ class FirestoreRepository {
                                 id = doc.getLong("id") ?: 0L,
                                 name = doc.getString("name") ?: return@addOnSuccessListener,
                                 latitude = doc.getDouble("latitude") ?: return@addOnSuccessListener,
-                                longitude = doc.getDouble("longitude") ?: return@addOnSuccessListener,
-                                borderCoordinates = if (borderCoordinates.isNotEmpty()) Border(borderCoordinates) else null,
+                                longitude = doc.getDouble("longitude")
+                                    ?: return@addOnSuccessListener,
+                                borderCoordinates = if (borderCoordinates.isNotEmpty()) Border(
+                                    borderCoordinates
+                                ) else null,
                                 stateId = doc.getLong("stateId") ?: return@addOnSuccessListener
                             )
                         )
@@ -261,11 +276,14 @@ class FirestoreRepository {
                         shelters.add(
                             Shelter(
                                 id = doc.getLong("id") ?: 0L,
-                                helpCenterName = doc.getString("helpCenterName") ?: return@addOnSuccessListener,
+                                helpCenterName = doc.getString("helpCenterName")
+                                    ?: return@addOnSuccessListener,
                                 descriptions = doc.getString("descriptions") ?: "",
                                 latitude = doc.getDouble("latitude") ?: return@addOnSuccessListener,
-                                longitude = doc.getDouble("longitude") ?: return@addOnSuccessListener,
-                                districtId = doc.getLong("districtId") ?: return@addOnSuccessListener,
+                                longitude = doc.getDouble("longitude")
+                                    ?: return@addOnSuccessListener,
+                                districtId = doc.getLong("districtId")
+                                    ?: return@addOnSuccessListener,
                                 address = doc.getString("address"),
                                 imageUrlList = if (urlList.isNotEmpty()) ImageURL(urlList) else null
                             )
@@ -320,7 +338,9 @@ class FirestoreRepository {
                 districtId = doc.getLong("districtId") ?: return@mapNotNull null,
                 latitude = doc.getDouble("latitude") ?: return@mapNotNull null,
                 longitude = doc.getDouble("longitude") ?: return@mapNotNull null,
-                expiryTime = Instant.ofEpochMilli(doc.getLong("expiryTime") ?: return@mapNotNull null)
+                expiryTime = Instant.ofEpochMilli(
+                    doc.getLong("expiryTime") ?: return@mapNotNull null
+                )
             )
         }
     }
@@ -355,7 +375,9 @@ class FirestoreRepository {
                         districtId = doc.getLong("districtId") ?: return@mapNotNull null,
                         latitude = doc.getDouble("latitude") ?: return@mapNotNull null,
                         longitude = doc.getDouble("longitude") ?: return@mapNotNull null,
-                        expiryTime = Instant.ofEpochMilli(doc.getLong("expiryTime") ?: return@mapNotNull null)
+                        expiryTime = Instant.ofEpochMilli(
+                            doc.getLong("expiryTime") ?: return@mapNotNull null
+                        )
                     )
                 }
                 trySend(markers)

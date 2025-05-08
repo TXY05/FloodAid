@@ -20,10 +20,15 @@ import com.google.android.gms.maps.model.LatLng
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import androidx.lifecycle.ViewModel
+import com.example.floodaid.roomDatabase.Repository.FirestoreRepository
 import java.time.Instant
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.time.temporal.ChronoUnit
 
-//class MapViewModel(application: Application) : AndroidViewModel(application) {
 class MapViewModel(
     application: Application,
     private val repository: MapRepository
@@ -37,13 +42,15 @@ class MapViewModel(
     private val _currentLocation = MutableStateFlow<LatLng?>(null)
     val currentLocation: StateFlow<LatLng?> = _currentLocation.asStateFlow()
 
+    private val _savedDistrict = MutableStateFlow<District?>(null)
+    val savedDistrict: StateFlow<District?> = _savedDistrict.asStateFlow()
+
     private val _selectedShelter = MutableStateFlow<Shelter?>(null)
     val selectedShelter: StateFlow<Shelter?> = _selectedShelter.asStateFlow()
 
     private val _selectedMarkerId = MutableStateFlow<Long?>(null)
     val selectedMarkerId: StateFlow<Long?> = _selectedMarkerId.asStateFlow()
 
-    private val locationClient = LocationServices.getFusedLocationProviderClient(application)
     private val locationCallback = object : LocationCallback() {
         override fun onLocationResult(result: LocationResult) {
             result.lastLocation?.let { location ->
@@ -206,7 +213,6 @@ class MapViewModel(
             _uiState.update { it.copy(isLoading = true) }
             try {
                 repository.pushFloodMarker(marker)
-                repository.insertAllMarkers(listOf(marker))
                 _uiState.update { it.copy(isLoading = false) }
             } catch (e: Exception) {
                 _uiState.update { it.copy(isLoading = false) }
@@ -262,8 +268,8 @@ class MapViewModel(
                 _uiState.update {
                     it.copy(
                         districts = districts,
-                        currentShelters = emptyList(), // Clear previous shelters
-                        currentMarkers = emptyList(),   // Clear previous markers
+//                        currentShelters = emptyList(), // Clear previous shelters
+//                        currentMarkers = emptyList(),   // Clear previous markers
                         isLoading = false
                     )
                 }
@@ -279,7 +285,16 @@ class MapViewModel(
         }
     }
 
+    suspend fun restoreDistrict(districtId: Long) {
+        var district = repository.getDistrictsByID(districtId)
+        Log.d("MapDebug", "Restoring: $districtId")
+        delay(5 * 1000)
+        onDistrictSelected(district)
+        Log.d("MapDebug", "Restoring Initiated")
+    }
+
     fun onDistrictSelected(district: District) {
+        Log.d("MapDebug", "Trouble Shooting 1:")
         _uiState.update { current ->
             current.copy(
                 selectedDistrict = district,
@@ -287,10 +302,14 @@ class MapViewModel(
                 currentMarkers = emptyList()   // Clear previous markers
             )
         }
+//        _savedDistrict.value = district
+        Log.d("MapDebug", "Trouble Shooting 2:")
         loadDistrictData(district.id)
+        Log.d("MapDebug", "Trouble Shooting 3:")
     }
 
     fun loadDistrictData(districtId: Long) {
+        Log.d("MapDebug", "Trouble Shooting 4:")
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             try {
@@ -311,9 +330,9 @@ class MapViewModel(
                         currentMarkers = emptyList()    // Clear on error
                     )
                 }
-                // Consider adding error logging/handling here
             }
         }
+        Log.d("MapDebug", "Trouble Shooting 5:")
     }
 
     // Shelter
@@ -444,6 +463,12 @@ class MapViewModel(
             uiState.value.selectedState?.let {
                 loadDistrictsForState(it.id)
             }
+        }
+    }
+
+    suspend fun getDistrictsByName(districtName: String): District {
+        return withContext(Dispatchers.IO) { // Run in background
+            repository.getDistrictsByName(districtName)
         }
     }
 

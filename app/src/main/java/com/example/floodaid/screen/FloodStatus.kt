@@ -1,6 +1,7 @@
 package com.example.floodaid.screen
 
 import BottomBar
+import android.util.Log
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -26,6 +27,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -59,14 +61,26 @@ import androidx.navigation.compose.rememberNavController
 import com.example.floodaid.models.Screen
 import com.example.floodaid.repository.FirestoreRepository
 import com.example.floodaid.roomDatabase.database.FloodAidDatabase
+import com.example.floodaid.roomDatabase.Entities.*
+import com.example.floodaid.roomDatabase.Repository.FirestoreRepository
+import com.example.floodaid.roomDatabase.Database.FloodAidDatabase
+import com.example.floodaid.roomDatabase.Entities.FloodMarker
 import com.example.floodaid.screen.floodstatus.FloodStatusRepository
 import com.example.floodaid.screen.floodstatus.FloodStatusViewModelFactory
+import com.example.floodaid.screen.map_UI.MapViewModel
 import com.example.floodaid.viewmodel.FloodStatusViewModel
+import com.example.floodaid.viewmodel.SaveState
 import com.google.firebase.auth.FirebaseAuth
 import androidx.lifecycle.SavedStateHandle
+import androidx.navigation.navOptions
+import androidx.navigation.navArgument
+import kotlinx.coroutines.launch
+import java.time.Instant
+import java.time.temporal.ChronoUnit
+import kotlin.time.Duration
 
 @Composable
-fun FloodStatus(navController: NavHostController, viewModel: FloodStatusViewModel, database: FloodAidDatabase) {
+fun FloodStatus(navController: NavHostController, viewModel: FloodStatusViewModel, database: FloodAidDatabase, mapViewModel: MapViewModel) {
     val uiState by viewModel.uiState.collectAsState()
     val user = FirebaseAuth.getInstance().currentUser
     val snackbarMessage by viewModel.snackbarMessage.collectAsState()
@@ -234,7 +248,9 @@ fun FloodStatus(navController: NavHostController, viewModel: FloodStatusViewMode
                 onSave = { location, status ->
                     viewModel.updateFloodStatus(location, status)
                     viewModel.dismissDialog()
-                }
+                },
+                mapViewModel,
+                viewModel
             )
         }
     }
@@ -245,13 +261,22 @@ fun FloodStatus(navController: NavHostController, viewModel: FloodStatusViewMode
 fun AddFloodStatusDialog(
     floodData: List<Pair<String, String>>,
     onDismiss: () -> Unit,
-    onSave: (String, String) -> Unit
+    onSave: (String, String) -> Unit,
+    mapViewModel: MapViewModel,
+    viewModel: FloodStatusViewModel
 ) {
     val locations = floodData.map { it.first }
     var selectedLocation by remember { mutableStateOf(locations.firstOrNull() ?: "") }
     var status by remember { mutableStateOf("Safe") }
     var isDropdownExpanded by remember { mutableStateOf(false) }
-    var errorMessage by remember { mutableStateOf("") }
+    val uiState by viewModel.uiState.collectAsState()
+
+    // Observe save state changes
+    LaunchedEffect(uiState.saveState) {
+        if (uiState.saveState == SaveState.SUCCESS) {
+            // Dialog will be dismissed by the ViewModel
+        }
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -272,7 +297,7 @@ fun AddFloodStatusDialog(
                                 onClick = {
                                     selectedLocation = location
                                     isDropdownExpanded = false
-                                    errorMessage = "" // Clear error when a location is selected
+                                    viewModel.resetSaveState() // Reset error when location changes
                                 },
                                 text = { Text(location) }
                             )
@@ -280,9 +305,9 @@ fun AddFloodStatusDialog(
                     }
                 }
 
-                if (errorMessage.isNotEmpty()) {
+                if (uiState.errorMessage.isNotEmpty()) {
                     Text(
-                        text = errorMessage,
+                        text = uiState.errorMessage,
                         color = Color.Red,
                         style = MaterialTheme.typography.bodySmall,
                         modifier = Modifier.padding(top = 8.dp)
@@ -310,19 +335,30 @@ fun AddFloodStatusDialog(
             }
         },
         confirmButton = {
-            Button(onClick = {
-                if (selectedLocation.isEmpty()) {
-                    errorMessage = "Please select a location."
+            Button(
+                onClick = {
+                    if (selectedLocation.isEmpty()) {
+                        viewModel.setErrorMessage("Please select a location.")
+                    } else {
+                        // Use ViewModel's method with state management
+                        viewModel.saveFloodMarker(
+                            location = selectedLocation,
+                            status = status,
+                            mapViewModel = mapViewModel
+                        )
+                    }
+                },
+                enabled = uiState.saveState != SaveState.SAVING
+            ) {
+                if (uiState.saveState == SaveState.SAVING) {
+                    CircularProgressIndicator(modifier = Modifier.size(16.dp))
                 } else {
-                    onSave(selectedLocation, status)
-                    onDismiss()
+                    Text("Save")
                 }
-            }) {
-                Text("Save")
             }
         },
         dismissButton = {
-            Button(onClick = onDismiss) {
+            Button(onClick = onDismiss, enabled = uiState.saveState != SaveState.SAVING) {
                 Text("Cancel")
             }
         }
@@ -421,7 +457,7 @@ fun FloodStatusPreview() {
     val viewModelFactory = FloodStatusViewModelFactory(roomRepository, dao, firestoreRepository, savedStateHandle)
     val viewModel: FloodStatusViewModel = viewModel(factory = viewModelFactory)
 
-    FloodStatus(navController = rememberNavController(), viewModel = viewModel, database = database)
+//    FloodStatus(navController = rememberNavController(), viewModel = viewModel, database = database)
 }
 
 @Preview(showBackground = true)
