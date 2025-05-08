@@ -1,37 +1,34 @@
 package com.example.floodaid
 
 import android.Manifest
-import android.app.Application
 import android.content.pm.PackageManager
 import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.navigation.compose.rememberNavController
-import com.example.floodaid.ui.theme.FloodAidTheme
-import androidx.lifecycle.ViewModelProvider
-import com.example.floodaid.viewmodel.ForumViewModel
-import kotlin.getValue
-import androidx.appcompat.app.AppCompatActivity
-import androidx.compose.ui.platform.LocalContext
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import com.example.floodaid.roomDatabase.repository.VolunteerRepository
-import com.example.floodaid.roomDatabase.database.FloodAidDatabase
+import androidx.lifecycle.ViewModelProvider
+import androidx.navigation.compose.rememberNavController
 import com.example.floodaid.roomDatabase.Repository.FirestoreRepository
+import com.example.floodaid.roomDatabase.database.FloodAidDatabase
 import com.example.floodaid.roomDatabase.repository.MapRepository
+import com.example.floodaid.roomDatabase.repository.VolunteerRepository
 import com.example.floodaid.screen.forum.ForumViewModelFactory
-import com.example.floodaid.viewmodel.AuthViewModel
-import com.google.firebase.auth.FirebaseAuth
 import com.example.floodaid.screen.login.AuthRepository
 import com.example.floodaid.screen.login.AuthViewModelFactory
 import com.example.floodaid.screen.map_UI.MapViewModel
 import com.example.floodaid.screen.map_UI.MapViewModelFactory
 import com.example.floodaid.screen.volunteer.VolunteerViewModel
 import com.example.floodaid.screen.volunteer.VolunteerViewModelFactory
+import com.example.floodaid.ui.theme.FloodAidTheme
+import com.example.floodaid.viewmodel.AuthViewModel
+import com.example.floodaid.viewmodel.ForumViewModel
+import com.google.firebase.auth.FirebaseAuth
 
 private const val LOCATION_PERMISSION_REQUEST_CODE = 1001
 
