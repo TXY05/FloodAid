@@ -71,6 +71,8 @@ import com.google.maps.android.clustering.view.DefaultClusterRenderer
 import android.graphics.Canvas
 import android.graphics.Path
 import android.graphics.RectF
+import android.os.Bundle
+import android.util.Log
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -79,9 +81,11 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.core.content.ContextCompat.getColor
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.LifecycleOwner
-import com.example.floodaid.repository.FirestoreRepository
+import com.example.floodaid.roomDatabase.Repository.FirestoreRepository
 import com.example.floodaid.roomDatabase.Database.FloodAidDatabase
+import com.example.floodaid.roomDatabase.Entities.District
 import com.example.floodaid.roomDatabase.Repository.MapRepository
 import com.example.floodaid.utils.FloodClusterItem
 import com.google.android.gms.maps.model.Dash
@@ -90,12 +94,10 @@ import com.google.android.gms.maps.model.Gap
 // Cluster and Maintain Marker ratio
 //// Marker size and zoom limit constants
 private const val SHELTER_MIN_ZOOM = 10f
-private const val SHELTER_MAX_ZOOM = 22f
-private const val FLOOD_MIN_ZOOM = 8f
-private const val FLOOD_MAX_ZOOM = 22f
-private const val FLOOD_CLUSTER_ZOOM = 12f
-private const val SHELTER_MARKER_SIZE = 150f // Consistent size for shelter markers
-private const val FLOOD_MARKER_SIZE = 100f   // Consistent size for flood markers
+private const val FLOOD_MIN_ZOOM = 9.5f
+private const val FLOOD_CLUSTER_ZOOM = 10f
+private const val SHELTER_MARKER_SIZE = 160f // Consistent size for shelter markers
+private const val FLOOD_MARKER_SIZE = 120f   // Consistent size for flood markers
 
 val CameraPositionSaver = run {
     val latLngSaver = Saver<LatLng, List<Double>>(
@@ -128,33 +130,25 @@ val CameraPositionSaver = run {
 @Composable
 fun Map(
     navController: NavHostController,
-    viewModel: MapViewModel = viewModel(
-        factory = MapViewModelFactory(
-            application = LocalContext.current.applicationContext as Application,
-            repository = MapRepository(
-                dao = FloodAidDatabase.getInstance(LocalContext.current.applicationContext as Application).MapDao(),
-                FirestoreRepository = FirestoreRepository()
-            )
-        )
-    )
+    viewModel: MapViewModel
 ) {
     // State and References
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     var isProcessing by remember { mutableStateOf(false) }
+
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
     val currentLocation by viewModel.currentLocation.collectAsState()
+
     var map by remember { mutableStateOf<GoogleMap?>(null) }
-    var mapView by remember { mutableStateOf<MapView?>(null) }
     var currentPolygon by remember { mutableStateOf<Polygon?>(null) }
-    val markerMap = remember { mutableStateMapOf<Long, Marker>() }
+
+    var markerMap = remember { mutableStateMapOf<Long, Marker>() }
     var currentZoom by remember { mutableFloatStateOf(7f) } // Default zoom
     var clusterManager by remember { mutableStateOf<ClusterManager<FloodClusterItem>?>(null) }
 
-    val sheetState = rememberModalBottomSheetState()
     val showBottomSheet by viewModel.selectedShelter.collectAsState()
-
     val lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current
 
     // Camera Position
@@ -162,19 +156,67 @@ fun Map(
         mutableStateOf(CameraPosition(LatLng(4.2105, 101.9758), 7f, 0f, 0f))
     }
 
+    var savedDistrict by rememberSaveable { mutableStateOf<Long?>(null) }
+
+    val mapViewSaver = run {
+        Saver<MapView, Bundle>(
+            save = { mapView ->
+                Bundle().apply {
+                    // Save minimal state (camera position is handled separately)
+                    mapView.onSaveInstanceState(this)
+                }
+            },
+            restore = { bundle ->
+                MapView(context, GoogleMapOptions().mapId(context.getString(R.string.map_id))).apply {
+                    onCreate(bundle)
+                }
+            }
+        )
+    }
+
+// 2. Use rememberSaveable with the saver
+    var mapView = rememberSaveable(saver = mapViewSaver) {
+        MapView(context, GoogleMapOptions().mapId(context.getString(R.string.map_id))).apply {
+            onCreate(null)
+            Log.d("MapDebug", "Creating NEW MapView instance")
+        }
+    }
+
     val locationPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         if (isGranted) {
-            viewModel.startLocationUpdates()
+            viewModel.stopLocationUpdates()
             // Refresh map to enable location layer
             mapView?.getMapAsync { googleMap ->
                 googleMap.isMyLocationEnabled = true
+                googleMap.uiSettings.isMyLocationButtonEnabled = true
             }
         }
     }
 
     // Initialize Data
+    LaunchedEffect(Unit) {
+        if (ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) == PackageManager.PERMISSION_DENIED
+        ) {
+            locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+        }else {
+            viewModel.stopLocationUpdates()
+        }
+
+        if (savedDistrict != null) {
+            Log.d("MapDebug", "Saved Data Success: $savedDistrict")
+            delay(10 * 1000)
+
+            viewModel.restoreDistrict(savedDistrict!!)
+        }else {
+            viewModel.loadStates()
+        }
+    }
+
     LaunchedEffect(showBottomSheet) {
         if (showBottomSheet == null) {
             // Get the previously selected marker ID
@@ -192,20 +234,6 @@ fun Map(
                 }
             }
             viewModel.clearSelectedMarker()
-        }
-    }
-
-    LaunchedEffect(Unit) {
-        viewModel.loadStates()
-
-        if (ContextCompat.checkSelfPermission(
-                context,
-                Manifest.permission.ACCESS_FINE_LOCATION
-            ) == PackageManager.PERMISSION_GRANTED
-        ) {
-            viewModel.startLocationUpdates()
-        } else {
-            locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
         }
     }
 
@@ -246,7 +274,6 @@ fun Map(
                             }
                             viewModel.loadDistrictData(district.id)
                         }
-
                         override fun onCancel() {}
                     }
                 )
@@ -348,14 +375,14 @@ fun Map(
         }
     }
 
-    DisposableEffect(Unit) {
-        onDispose {
-            mapView?.onDestroy()
-            viewModel.stopLocationUpdates()
-        }
-    }
+//    DisposableEffect(Unit) {
+//        onDispose {
+//            mapView?.onDestroy()
+//            viewModel.stopLocationUpdates()
+//        }
+//    }
 
-    // Drawer Content
+// Drawer Content
     ModalNavigationDrawer(
         drawerState = drawerState,
         gesturesEnabled = drawerState.isOpen,
@@ -376,9 +403,7 @@ fun Map(
                         items(uiState.states.distinctBy { it.id }) { state ->
                             TextButton(
                                 onClick = {
-                                    if (uiState.selectedState?.id != state.id) {
                                         viewModel.onStateSelected(state)
-                                    }
                                 },
                                 modifier = Modifier.fillMaxWidth()
                             ) {
@@ -397,12 +422,14 @@ fun Map(
                                 onClick = {
                                     if (!isProcessing && !isSelected) {
                                         isProcessing = true
+                                        savedDistrict = district.id
                                         viewModel.onDistrictSelected(district)
                                         scope.launch {
                                             drawerState.close()
                                             delay(200)
                                             isProcessing = false
                                         }
+                                        Log.d("MapDebug", "Try To save data")
                                     }
                                 },
                                 modifier = Modifier
@@ -424,26 +451,8 @@ fun Map(
                             ) {
                                 Text("← Back to States")
                             }
+                            HorizontalDivider()
                         }
-
-//                        // Add button to create flood markers
-//                        item {
-//                            TextButton(
-//                                onClick = { viewModel.createSelangorFloodMarkers() },
-//                                modifier = Modifier.fillMaxWidth()
-//                            ) {
-//                                Text("Create Flood Markers")
-//                            }
-//                        }
-//
-//                        item {
-//                            TextButton(
-//                                onClick = { viewModel.createAndPushSampleShelterMarkers() },
-//                                modifier = Modifier.fillMaxWidth()
-//                            ) {
-//                                Text("Create Shelters")
-//                            }
-//                        }
                     }
                 }
             }
@@ -473,14 +482,14 @@ fun Map(
                         ).apply {
                             onCreate(null)
                             getMapAsync { googleMap ->
-                                if (ContextCompat.checkSelfPermission(
-                                        context,
-                                        Manifest.permission.ACCESS_FINE_LOCATION
-                                    ) == PackageManager.PERMISSION_GRANTED
-                                ) {
-                                    googleMap.isMyLocationEnabled = true
-                                    googleMap.uiSettings.isMyLocationButtonEnabled = true
-                                }
+//                                if (ContextCompat.checkSelfPermission(
+//                                        context,
+//                                        Manifest.permission.ACCESS_FINE_LOCATION
+//                                    ) == PackageManager.PERMISSION_GRANTED
+//                                ) {
+//                                    googleMap.isMyLocationEnabled = true
+//                                    googleMap.uiSettings.isMyLocationButtonEnabled = true
+//                                }
                                 map = googleMap
                                 with(googleMap.uiSettings) {
                                     isZoomControlsEnabled = true
@@ -490,23 +499,22 @@ fun Map(
                                 googleMap.moveCamera(CameraUpdateFactory.newCameraPosition(savedCameraPosition))
 
                                 // Set up camera idle listener to save position
-                                googleMap.setOnCameraIdleListener {
+                                googleMap.setOnCameraMoveListener {
                                     savedCameraPosition = googleMap.cameraPosition
                                 }
-
-                                // After initial position is set, check for user location
-                                if (currentLocation != null) {
-                                    // Move to User Location
-                                    currentLocation?.let { loc ->
-                                        googleMap.animateCamera(
-                                            CameraUpdateFactory.newLatLngZoom(
-                                                LatLng(loc.latitude, loc.longitude),
-                                                12f
-                                            )
-                                        )
-                                    }
-                                }
-
+//
+//                                // After initial position is set, check for user location
+//                                if (currentLocation != null) {
+//                                    // Move to User Location
+//                                    currentLocation?.let { loc ->
+//                                        googleMap.animateCamera(
+//                                            CameraUpdateFactory.newLatLngZoom(
+//                                                LatLng(loc.latitude, loc.longitude),
+//                                                12f
+//                                            )
+//                                        )
+//                                    }
+//                                }
                             }
                         }.also { mapView = it }
                     },
@@ -569,7 +577,6 @@ private fun createTeardropMarker(context: Context, drawableId: Int, size: Int, b
         isAntiAlias = true
         style = android.graphics.Paint.Style.FILL
     }
-    canvas.drawCircle(centerX, centerY, circleRadius, paint)
 
     // Draw circle border
     val borderPaint = android.graphics.Paint().apply {
@@ -578,7 +585,6 @@ private fun createTeardropMarker(context: Context, drawableId: Int, size: Int, b
         style = android.graphics.Paint.Style.STROKE
         strokeWidth = borderWidth
     }
-    canvas.drawCircle(centerX, centerY, circleRadius, borderPaint)
 
     // Draw the pointer triangle
     val trianglePath = Path().apply {
@@ -587,10 +593,15 @@ private fun createTeardropMarker(context: Context, drawableId: Int, size: Int, b
         lineTo(centerX, size.toFloat()) // tip
         close()
     }
-    canvas.drawPath(trianglePath, paint)
 
+    // Draw Pointer Triangle
+    canvas.drawPath(trianglePath, paint)
     // Draw triangle border
     canvas.drawPath(trianglePath, borderPaint)
+    // Draw Main Circle
+    canvas.drawCircle(centerX, centerY, circleRadius, paint)
+    // Draw Circle Border
+    canvas.drawCircle(centerX, centerY, circleRadius, borderPaint)
 
     // Draw the icon bitmap in the center of the circle
     val iconLeft = (centerX - circleRadius)

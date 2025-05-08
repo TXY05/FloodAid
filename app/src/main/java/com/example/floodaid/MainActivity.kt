@@ -1,6 +1,7 @@
 package com.example.floodaid
 
 import android.Manifest
+import android.app.Application
 import android.content.pm.PackageManager
 import android.os.Bundle
 import androidx.activity.compose.setContent
@@ -15,15 +16,21 @@ import androidx.lifecycle.ViewModelProvider
 import com.example.floodaid.viewmodel.ForumViewModel
 import kotlin.getValue
 import androidx.appcompat.app.AppCompatActivity
+import androidx.compose.ui.platform.LocalContext
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.floodaid.roomDatabase.Repository.FirestoreRepository
 import com.example.floodaid.roomDatabase.Repository.VolunteerRepository
 import com.example.floodaid.roomDatabase.Database.FloodAidDatabase
+import com.example.floodaid.roomDatabase.Repository.MapRepository
 import com.example.floodaid.screen.forum.ForumViewModelFactory
 import com.example.floodaid.viewmodel.AuthViewModel
 import com.google.firebase.auth.FirebaseAuth
 import com.example.floodaid.screen.login.AuthRepository
 import com.example.floodaid.screen.login.AuthViewModelFactory
+import com.example.floodaid.screen.map_UI.MapViewModel
+import com.example.floodaid.screen.map_UI.MapViewModelFactory
 import com.example.floodaid.screen.volunteer.VolunteerViewModel
 import com.example.floodaid.screen.volunteer.VolunteerViewModelFactory
 
@@ -61,6 +68,13 @@ class MainActivity : AppCompatActivity() {
             VolunteerViewModelFactory(volunteerRepository, firebaseAuth)
         }
 
+        // Map ViewModel
+        val repository = MapRepository(
+            dao = FloodAidDatabase.getInstance(application).MapDao(),
+            FirestoreRepository = FirestoreRepository()
+        )
+        val factory = MapViewModelFactory(application, repository)
+        val mapViewModel = ViewModelProvider(this, factory)[MapViewModel::class.java]
 
         setContent {
             val navController = rememberNavController()
@@ -72,6 +86,7 @@ class MainActivity : AppCompatActivity() {
                     authViewModel = authViewModel,
                     volunteerViewModel = volunteerViewModel,
                     forumViewModel = forumViewModel,
+                    mapViewModel = mapViewModel
                 )
             }
         }

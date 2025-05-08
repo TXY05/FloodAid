@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="NONE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="ae6cd497-c424-4abd-9062-4da8da5aadf1" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/example/floodaid/screen/map_UI/ShelterDetail.kt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/example/floodaid/utils/DistanceCalculator.kt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/example/floodaid/utils/GeocodingHelper.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../.idea/.name" beforeDir="false" afterPath="$PROJECT_DIR$/../.idea/.name" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../.idea/deploymentTargetSelector.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../.idea/deploymentTargetSelector.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/example/floodaid/MainActivity.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/example/floodaid/MainActivity.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/example/floodaid/NavGraph.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/example/floodaid/NavGraph.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/example/floodaid/roomDatabase/Dao/MapDao.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/example/floodaid/roomDatabase/Dao/MapDao.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/example/floodaid/roomDatabase/Entities/MapEntities.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/example/floodaid/roomDatabase/Entities/MapEntities.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/example/floodaid/roomDatabase/Repository/MapRepository.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/example/floodaid/roomDatabase/Repository/MapRepository.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/example/floodaid/screen/Profile.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/example/floodaid/screen/Profile.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/example/floodaid/screen/map_UI/Map.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/example/floodaid/screen/map_UI/Map.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/example/floodaid/screen/map_UI/MapViewModel.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/example/floodaid/screen/map_UI/MapViewModel.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/example/floodaid/ui/theme/Color.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/example/floodaid/ui/theme/Color.kt" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="ClangdSettings">
+    <option name="formatViaClangd" value="false" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/.." />
+  </component>
+  <component name="GitHubPullRequestSearchHistory"><![CDATA[{
+  "lastFilter": {
+    "state": "OPEN",
+    "assignee": "CTH111"
+  }
+}]]></component>
+  <component name="GithubPullRequestsUISettings"><![CDATA[{
+  "selectedUrlAndAccountId": {
+    "url": "https://github.com/TXY05/FloodAid.git",
+    "accountId": "18f9fd0c-60a9-4194-b7e0-87fd9832f2c6"
+  }
+}]]></component>
+  <component name="ProjectColorInfo"><![CDATA[{
+  "customColor": "",
+  "associatedIndex": 3
+}]]></component>
+  <component name="ProjectId" id="2wWi6cshk2BkHShukQZRRNMA36O" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.cidr.known.project.marker": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "RunOnceActivity.readMode.enableVisualFormatting": "true",
+    "android.gradle.sync.needed": "true",
+    "cf.first.check.clang-format": "false",
+    "cidr.known.project.marker": "true",
+    "git-widget-placeholder": "master"
+  }
+}]]></component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="ae6cd497-c424-4abd-9062-4da8da5aadf1" name="Changes" comment="" />
+      <created>1746163557327</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1746163557327</updated>
+    </task>
+    <servers />
+  </component>
+</project>

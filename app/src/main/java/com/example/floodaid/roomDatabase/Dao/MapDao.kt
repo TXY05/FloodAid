@@ -39,6 +39,14 @@ interface MapDao {
     @Query("SELECT * FROM District WHERE stateId = :stateId")
     suspend fun getDistrictsByState(stateId: Long): List<DistrictWithShelters>
 
+    @Transaction
+    @Query("SELECT * FROM District WHERE id = :districtId")
+    suspend fun getDistrictsByID(districtId: Long): District
+
+    @Transaction
+    @Query("SELECT * FROM District WHERE name = :districtName")
+    suspend fun getDistrictsByName(districtName: String): District
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAllDistricts(districts: List<District>)
 
@@ -95,17 +103,6 @@ interface MapDao {
 
     @Query("DELETE FROM FloodMarker")
     suspend fun deleteAllMarkers()
-
-//    // Add a new function to safely delete markers
-//    @Transaction
-//    suspend fun safeDeleteExpiredMarkers(currentTime: Instant = Instant.now()) {
-//        try {
-//            cleanupExpiredMarkers(currentTime)
-//        } catch (e: Exception) {
-//            Log.e("MapDao", "Error cleaning up expired markers: ${e.message}")
-//            // Continue execution even if cleanup fails
-//        }
-//    }
 
 //    // Complex relationships
 //    @Transaction

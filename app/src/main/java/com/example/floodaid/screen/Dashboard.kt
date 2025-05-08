@@ -54,7 +54,7 @@ import com.example.floodaid.models.Screen
 import com.example.floodaid.ui.theme.FloodAidTheme
 import com.example.floodaid.viewmodel.AuthViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.floodaid.repository.FirestoreRepository
+import com.example.floodaid.roomDatabase.Repository.FirestoreRepository
 import com.example.floodaid.screen.floodstatus.FloodStatusDao
 import com.example.floodaid.screen.floodstatus.FloodStatusRepository
 import com.example.floodaid.screen.floodstatus.FloodStatusViewModelFactory

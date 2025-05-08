@@ -1,7 +1,7 @@
 package com.example.floodaid.screen.floodstatus
 
 import android.util.Log
-import com.example.floodaid.repository.FirestoreRepository
+import com.example.floodaid.roomDatabase.Repository.FirestoreRepository
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow

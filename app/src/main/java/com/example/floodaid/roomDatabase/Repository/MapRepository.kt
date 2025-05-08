@@ -1,6 +1,6 @@
 package com.example.floodaid.roomDatabase.Repository
 
-import com.example.floodaid.repository.FirestoreRepository
+import com.example.floodaid.roomDatabase.Repository.FirestoreRepository
 import com.example.floodaid.roomDatabase.Dao.MapDao
 import com.example.floodaid.roomDatabase.Entities.District
 import com.example.floodaid.roomDatabase.Entities.FloodMarker
@@ -29,6 +29,10 @@ class MapRepository(
         return dao.getAllDistricts()
     }
     suspend fun getDistrictsByState(stateId: Long) = dao.getDistrictsByState(stateId)
+    suspend fun getDistrictsByID(districtId: Long) = dao.getDistrictsByID(districtId)
+    suspend fun getDistrictsByName(districtName: String): District {
+        return dao.getDistrictsByName(districtName)
+    }
     suspend fun insertAllDistricts(districts: List<District>) = dao.insertAllDistricts(districts)
     suspend fun deleteAllDistricts() = dao.deleteAllDistricts()
 

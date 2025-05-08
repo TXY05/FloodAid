@@ -15,8 +15,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.example.floodaid.models.Screen
-import com.example.floodaid.models.VolunteerProfile
-import com.example.floodaid.repository.FirestoreRepository
+import com.example.floodaid.roomDatabase.Repository.FirestoreRepository
 import com.example.floodaid.roomDatabase.Database.FloodAidDatabase
 import com.example.floodaid.screen.Dashboard
 import com.example.floodaid.screen.FloodStatus
@@ -24,6 +23,7 @@ import com.example.floodaid.screen.Notification
 import com.example.floodaid.screen.Profile
 import com.example.floodaid.screen.floodstatus.FloodStatusRepository
 import com.example.floodaid.screen.floodstatus.FloodStatusViewModelFactory
+//import com.example.floodaid.screen.forum.CreateForumPost
 import com.example.floodaid.screen.forum.Forum
 import com.example.floodaid.screen.forum.ForumEvent
 import com.example.floodaid.screen.forum.PostEditor
@@ -33,6 +33,7 @@ import com.example.floodaid.screen.login.Signup
 import com.example.floodaid.screen.login.Welcome
 import com.example.floodaid.screen.login.WelcomeLoading
 import com.example.floodaid.screen.map_UI.Map
+import com.example.floodaid.screen.map_UI.MapViewModel
 import com.example.floodaid.screen.map_UI.SOSButton
 import com.example.floodaid.screen.map_UI.SOSButtonPlacement
 import com.example.floodaid.screen.map_UI.SOSViewModel
@@ -52,7 +53,8 @@ fun NavGraph(
     onEvent: (ForumEvent) -> Unit,
     authViewModel: AuthViewModel,
     volunteerViewModel: VolunteerViewModel,
-    forumViewModel: ForumViewModel
+    forumViewModel: ForumViewModel,
+    mapViewModel: MapViewModel
 ) {
     val sosViewModel: SOSViewModel = viewModel()
 
@@ -91,16 +93,18 @@ fun NavGraph(
                     SavedStateHandle()
                 )
             )
-            FloodStatus(navController = navController, viewModel = viewModel, database = database)
+            FloodStatus(navController = navController, viewModel = viewModel, database = database, mapViewModel)
             LaunchedEffect(Unit) {
                 repository.initializePredefinedDistricts()
             }
         }
 
+
+
         composable(route = Screen.Map.route) {
             key("persistent_map") {
                 Box {
-                    Map(navController = navController)
+                    Map(navController = navController, mapViewModel)
                     SOSButton(
                         viewModel = sosViewModel,
                         placement = SOSButtonPlacement.MAP

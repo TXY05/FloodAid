@@ -7,24 +7,24 @@ import com.example.floodaid.roomDatabase.Entities.FloodMarker
 import com.example.floodaid.roomDatabase.Entities.Shelter
 import com.example.floodaid.roomDatabase.Entities.State
 
-// Might Delete
-data class StateWithDistricts(
-    @Embedded val state: State,
-    @Relation(
-        parentColumn = "id",
-        entityColumn = "stateId"
-    )
-    val districts: List<District>
-)
-
-data class DistrictWithMarkers(
-    @Embedded val district: District,
-    @Relation(
-        parentColumn = "id",
-        entityColumn = "districtId"
-    )
-    val markers: List<FloodMarker>
-)
+//// Might Delete
+//data class StateWithDistricts(
+//    @Embedded val state: State,
+//    @Relation(
+//        parentColumn = "id",
+//        entityColumn = "stateId"
+//    )
+//    val districts: List<District>
+//)
+//
+//data class DistrictWithMarkers(
+//    @Embedded val district: District,
+//    @Relation(
+//        parentColumn = "id",
+//        entityColumn = "districtId"
+//    )
+//    val markers: List<FloodMarker>
+//)
 
 data class DistrictWithShelters(
     @Embedded val district: District,
