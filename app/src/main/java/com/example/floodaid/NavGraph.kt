@@ -5,7 +5,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.key
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -21,6 +23,7 @@ import com.example.floodaid.screen.FloodStatus
 import com.example.floodaid.screen.Notification
 import com.example.floodaid.screen.Profile
 import com.example.floodaid.screen.floodstatus.FloodStatusRepository
+import com.example.floodaid.screen.floodstatus.FloodStatusViewModelFactory
 import com.example.floodaid.screen.forum.Forum
 import com.example.floodaid.screen.forum.ForumEvent
 import com.example.floodaid.screen.forum.PostEditor
@@ -79,14 +82,19 @@ fun NavGraph(
             val dao = database.floodStatusDao()
             val repository = FloodStatusRepository(dao, FirestoreRepository())
             val firestoreRepository = FirestoreRepository()
-            val viewModel = FloodStatusViewModel(repository, dao, firestoreRepository)
+            val viewModel: FloodStatusViewModel = viewModel(
+                factory = FloodStatusViewModelFactory(
+                    repository,
+                    dao,
+                    firestoreRepository,
+                    SavedStateHandle()
+                )
+            )
             FloodStatus(navController = navController, viewModel = viewModel, database = database)
             LaunchedEffect(Unit) {
                 repository.initializePredefinedDistricts()
             }
         }
-
-
 
         composable(route = Screen.Map.route) {
             key("persistent_map") {

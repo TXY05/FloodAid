@@ -1,5 +1,6 @@
 package com.example.floodaid.viewmodel
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.asLiveData
 import androidx.lifecycle.viewModelScope
@@ -30,11 +31,17 @@ data class FloodStatusUiState(
 class FloodStatusViewModel(
     private val repository: FloodStatusRepository,
     private val dao: FloodStatusDao,
-    private val firestoreRepository: FirestoreRepository
+    private val firestoreRepository: FirestoreRepository,
+    private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
     val locations = repository.getAllLocations().asLiveData()
-    private val _uiState = MutableStateFlow(FloodStatusUiState(currentStatus = "Unknown"))
+    private val _uiState = MutableStateFlow(
+        FloodStatusUiState(
+            currentStatus = "Unknown",
+            selectedLocation = savedStateHandle.get<String>("selectedLocation")
+        )
+    )
     val uiState: StateFlow<FloodStatusUiState> = _uiState
 
     private val _historyState = MutableStateFlow<List<FloodHistoryEntity>>(emptyList())
@@ -42,6 +49,10 @@ class FloodStatusViewModel(
 
     init {
         observeFirestoreStatus()
+        // Restore selected location if it exists
+        savedStateHandle.get<String>("selectedLocation")?.let { location ->
+            selectLocation(location)
+        }
     }
 
     private fun observeFirestoreStatus() {
@@ -60,18 +71,20 @@ class FloodStatusViewModel(
     }
 
     fun selectLocation(location: String) {
+        savedStateHandle["selectedLocation"] = location
         _uiState.value = _uiState.value.copy(selectedLocation = location)
         fetchFloodStatusForLocation(location)
     }
 
     private fun fetchFloodStatusForLocation(location: String) {
         viewModelScope.launch {
-            val status = repository.getFloodStatusForLocation(location) // Fetch from repository
+            val status = repository.getFloodStatusForLocation(location)
             _uiState.value = _uiState.value.copy(currentStatus = status)
         }
     }
 
     fun clearSelectedLocation() {
+        savedStateHandle.remove<String>("selectedLocation")
         _uiState.value = _uiState.value.copy(selectedLocation = null)
     }
 

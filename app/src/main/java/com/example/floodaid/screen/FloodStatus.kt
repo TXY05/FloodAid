@@ -63,6 +63,10 @@ import com.example.floodaid.screen.floodstatus.FloodStatusRepository
 import com.example.floodaid.screen.floodstatus.FloodStatusViewModelFactory
 import com.example.floodaid.viewmodel.FloodStatusViewModel
 import com.google.firebase.auth.FirebaseAuth
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.lifecycle.SavedStateHandle
+import androidx.navigation.navOptions
+import androidx.navigation.navArgument
 
 @Composable
 fun FloodStatus(navController: NavHostController, viewModel: FloodStatusViewModel, database: FloodAidDatabase) {
@@ -415,8 +419,9 @@ fun FloodStatusPreview() {
     val roomRepository = FloodStatusRepository(database.floodStatusDao(), FirestoreRepository())
     val firestoreRepository = FirestoreRepository()
     val dao = database.floodStatusDao()
+    val savedStateHandle = SavedStateHandle()
 
-    val viewModelFactory = FloodStatusViewModelFactory(roomRepository, dao, firestoreRepository)
+    val viewModelFactory = FloodStatusViewModelFactory(roomRepository, dao, firestoreRepository, savedStateHandle)
     val viewModel: FloodStatusViewModel = viewModel(factory = viewModelFactory)
 
     FloodStatus(navController = rememberNavController(), viewModel = viewModel, database = database)
@@ -429,7 +434,8 @@ fun FloodStatusDetailPreview() {
     val mockDao = mockDatabase.floodStatusDao()
     val mockRepository = FloodStatusRepository(mockDao, FirestoreRepository())
     val mockFirestoreRepository = FirestoreRepository()
-    val mockViewModel = FloodStatusViewModel(mockRepository, mockDao, mockFirestoreRepository)
+    val savedStateHandle = SavedStateHandle()
+    val mockViewModel = FloodStatusViewModel(mockRepository, mockDao, mockFirestoreRepository, savedStateHandle)
 
     FloodStatusDetail(
         location = "Gombak",

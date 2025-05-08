@@ -59,6 +59,8 @@ import com.example.floodaid.screen.floodstatus.FloodStatusDao
 import com.example.floodaid.screen.floodstatus.FloodStatusRepository
 import com.example.floodaid.screen.floodstatus.FloodStatusViewModelFactory
 import com.example.floodaid.viewmodel.FloodStatusViewModel
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.lifecycle.SavedStateHandle
 
 @OptIn(ExperimentalMaterial3Api::class)
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
@@ -95,8 +97,14 @@ fun DashboardScreen(
     dao: FloodStatusDao,
     firestoreRepository: FirestoreRepository
 ) {
-    val factory = FloodStatusViewModelFactory(repository, dao, firestoreRepository)
-    val viewModel: FloodStatusViewModel = viewModel(factory = factory)
+    val viewModel: FloodStatusViewModel = viewModel(
+        factory = FloodStatusViewModelFactory(
+            repository,
+            dao,
+            firestoreRepository,
+            SavedStateHandle()
+        )
+    )
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
     val uiState by viewModel.uiState.collectAsState()
