@@ -11,8 +11,8 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface ForumDao {
 
-    @Insert
-    suspend fun insertForumPost(forumPost: ForumPost)
+    @Upsert
+    suspend fun upsertForumPost(post: ForumPost)
 
     @Upsert
     suspend fun upsertForumPost(posts: List<ForumPost>)

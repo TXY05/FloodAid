@@ -86,8 +86,8 @@ sealed class Screen(
         icon = null
     )
 
-    data object CreateForumPost : Screen(
-        route = "createforumpost",
+    data object ForumPostEditor : Screen(
+        route = "forumposteditor",
         title = null,
         icon = null
     )

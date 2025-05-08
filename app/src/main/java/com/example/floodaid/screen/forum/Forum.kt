@@ -2,6 +2,7 @@ package com.example.floodaid.screen.forum
 
 import BottomBar
 import android.annotation.SuppressLint
+import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -14,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -23,6 +25,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
@@ -62,6 +66,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.constraintlayout.compose.ConstraintLayout
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
 import com.example.floodaid.R
@@ -71,6 +76,8 @@ import com.example.floodaid.ui.theme.AlegreyaFontFamily
 import com.example.floodaid.ui.theme.AlegreyaSansFontFamily
 import com.example.floodaid.viewmodel.ForumViewModel
 import com.google.firebase.Timestamp
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -134,7 +141,9 @@ fun ForumScreen(
 
                 SocialMediaPost(
                     forumPost = post,
-                    onShowCommentSheetChanged = { showCommentSheet = it }
+                    onShowCommentSheetChanged = { showCommentSheet = it },
+                    navController,
+                    viewModel
                 )
                 HorizontalDivider(
                     modifier = Modifier.fillMaxWidth(),
@@ -153,7 +162,8 @@ fun ForumScreen(
         ) {
             FloatingActionButton(
                 onClick = {
-                    navController.navigate(Screen.CreateForumPost.route)
+                    viewModel.setPostToEdit(null)
+                    navController.navigate(Screen.ForumPostEditor.route)
                 },
                 containerColor = Color.Blue,
                 contentColor = Color.White
@@ -169,17 +179,22 @@ fun ForumScreen(
 fun SocialMediaPost(
     forumPost: ForumPost,
     onShowCommentSheetChanged: (Boolean) -> Unit,
+    navController: NavHostController,
+    viewModel: ForumViewModel
 ) {
+
+    val scope = rememberCoroutineScope()
+
     ConstraintLayout(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 16.dp)
     ) {
-        val (avatar, name, time, area, image, comment, content, comments) = createRefs()
+        val (avatar, name, time, area, image, comment, content, comments, moreOptions) = createRefs()
         var selectedImageUrl by remember { mutableStateOf<String?>(null) }
         var scale by remember { mutableFloatStateOf(1f) }
         var offset by remember { mutableStateOf(Offset(0f, 0f)) }
-
+        val userId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
 
         // Avatar
         AsyncImage(
@@ -213,6 +228,67 @@ fun SocialMediaPost(
                 start.linkTo(avatar.end, margin = 8.dp)
             }
         )
+
+
+        var expanded by remember { mutableStateOf(false) }
+
+        if (forumPost.authorId == userId) {
+            Box(
+                modifier = Modifier
+                    .wrapContentSize()
+                    .constrainAs(moreOptions) {
+                        end.linkTo(parent.end)
+                        top.linkTo(avatar.top)
+                        bottom.linkTo(avatar.bottom)
+                    }
+            ) {
+                IconButton(
+                    onClick = {
+                        expanded = true
+                    },
+                    modifier = Modifier
+                        .padding(end = 16.dp)
+                        .size(24.dp)
+                ) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_more_vertical),
+                        contentDescription = "More options"
+                    )
+                }
+
+                DropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("Edit") },
+                        onClick = {
+                            expanded = false
+                            viewModel.setPostToEdit(forumPost)
+                            navController.navigate(Screen.ForumPostEditor.route)
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Delete") },
+                        onClick = {
+                            expanded = false
+
+                            scope.launch {
+                                try {
+                                    viewModel.deleteForumPost(forumPost)
+                                    Toast.makeText(navController.context, "Post deleted successfully", Toast.LENGTH_SHORT).show()
+                                    navController.navigate(Screen.Forum.route)
+                                } catch (e: Exception) {
+                                    Toast.makeText(navController.context, "Failed to delete post: ${e.message}", Toast.LENGTH_LONG).show()
+                                }
+                            }
+                        }
+                    )
+                }
+            }
+        }
+
+
 
         // Area
         Text(
@@ -259,6 +335,9 @@ fun SocialMediaPost(
                     })
         }
         if (forumPost.imageUrls.any { it.isNotBlank() }) {
+            // Filter out empty URLs
+            val validImageUrls = forumPost.imageUrls.filter { it.isNotBlank() }
+
             LazyRow(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -271,7 +350,7 @@ fun SocialMediaPost(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 contentPadding = PaddingValues(horizontal = 16.dp)
             ) {
-                items(forumPost.imageUrls) { imageUrl ->
+                items(validImageUrls) { imageUrl ->
                     AsyncImage(
                         model = imageUrl,
                         contentDescription = null,
@@ -285,7 +364,6 @@ fun SocialMediaPost(
                     )
                 }
             }
-
 
             if (selectedImageUrl != null) {
                 Dialog(onDismissRequest = { selectedImageUrl = null }) {
@@ -312,20 +390,12 @@ fun SocialMediaPost(
                                 )
                                 .pointerInput(Unit) {
                                     detectTransformGestures { _, pan, zoom, _ ->
-                                        scale =
-                                            (scale * zoom).coerceIn(
-                                                1f,
-                                                3f
-                                            )  // Limit the zoom range
-                                        offset = Offset(
-                                            offset.x + pan.x,
-                                            offset.y + pan.y
-                                        )
+                                        scale = (scale * zoom).coerceIn(1f, 3f)  // Limit the zoom range
+                                        offset = Offset(offset.x + pan.x, offset.y + pan.y)
                                     }
                                 }
                         )
                     }
-
                 }
             }
         } else {
@@ -339,6 +409,7 @@ fun SocialMediaPost(
                     }
             )
         }
+
 
         // Comment Button
         IconButton(
@@ -409,3 +480,4 @@ fun formatTimestamp(timestamp: Timestamp): String {
     val sdf = SimpleDateFormat("dd MMM yyyy, hh:mm a", Locale.getDefault())
     return sdf.format(Date(timestamp.seconds * 1000)) // Convert to milliseconds
 }
+

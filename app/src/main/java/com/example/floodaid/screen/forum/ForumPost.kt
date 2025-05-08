@@ -8,7 +8,7 @@ import java.util.UUID
 @Entity
 data class ForumPost(
     @PrimaryKey
-    val id: String ,
+    val id: String,
     val imageUrls: List<String> = listOf(),
     val content: String = "",
     val authorId: String = "",
@@ -17,8 +17,8 @@ data class ForumPost(
     val region: String = "",
     val authorImageUrl: String = "",
     val commentsCount: Int = 0,
-)
- {
+    val edited: Boolean = false,
+) {
     constructor() : this(
         id = UUID.randomUUID().toString(),
         content = "",
@@ -29,5 +29,6 @@ data class ForumPost(
         authorImageUrl = "",
         imageUrls = listOf(),
         commentsCount = 0,
+        edited = false
     )
 }

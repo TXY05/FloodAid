@@ -21,9 +21,9 @@ import com.example.floodaid.screen.FloodStatus
 import com.example.floodaid.screen.Notification
 import com.example.floodaid.screen.Profile
 import com.example.floodaid.screen.floodstatus.FloodStatusRepository
-import com.example.floodaid.screen.forum.CreateForumPost
 import com.example.floodaid.screen.forum.Forum
 import com.example.floodaid.screen.forum.ForumEvent
+import com.example.floodaid.screen.forum.PostEditor
 import com.example.floodaid.screen.login.Login
 import com.example.floodaid.screen.login.RegisterProfile
 import com.example.floodaid.screen.login.Signup
@@ -192,11 +192,11 @@ fun NavGraph(
             )
         }
 
-        composable(route = Screen.CreateForumPost.route) {
-            CreateForumPost(
+        composable(route = Screen.ForumPostEditor.route) {
+            PostEditor(
                 navController = navController,
                 onEvent = onEvent,
-                forumViewModel
+                viewModel = forumViewModel
             )
         }
     }

@@ -6,6 +6,7 @@ import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.Build
 import android.util.Log
+import androidx.compose.runtime.mutableStateOf
 import androidx.core.content.ContextCompat.getSystemService
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -26,6 +27,8 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import androidx.compose.runtime.State
+
 
 @Suppress("DEPRECATION")
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -48,6 +51,17 @@ class ForumViewModel(
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ForumState())
 
     val uid = FirebaseAuth.getInstance().currentUser?.uid?: ""
+
+    private val _postToEdit = mutableStateOf<ForumPost?>(null)
+    val postToEdit: State<ForumPost?> = _postToEdit
+
+    fun setPostToEdit(post: ForumPost?) {
+        _postToEdit.value = post?.copy(imageUrls = post.imageUrls.filter { it.isNotBlank() })
+    }
+
+    val isEditMode: Boolean
+        get() = postToEdit.value != null
+
 
     fun onEvent(event: ForumEvent) {
         when (event) {
@@ -87,9 +101,11 @@ class ForumViewModel(
                         authorName = forumPost.authorName,
                         timestamp = forumPost.timestamp,
                         region = forumPost.region,
-                        authorImageUrl = forumPost.authorImageUrl, // Assuming photoUrl is already set
-                        imageUrls = forumPost.imageUrls // List of image URLs
+                        authorImageUrl = forumPost.authorImageUrl,
+                        imageUrls = forumPost.imageUrls,
+                        edited = forumPost.edited
                     )
+
 
                     // Upsert the post into the local database (DAO)
                     dao.upsertForumPost(listOf(postWithAuthorImage)) // Wrap postWithAuthorImage in a List
@@ -115,21 +131,17 @@ class ForumViewModel(
 
 
 
-            ForumEvent.EditForumPost -> {
-                val currentState = state.value
-                val forumPost = ForumPost(
-                    id=currentState.id,
-                    content = currentState.content,
-                    authorId = currentState.authorId, // Assign current user ID here
-                    timestamp = Timestamp.now(),
-                    region = currentState.region,
-                    imageUrls = currentState.imageUrls
-                )
+            is ForumEvent.EditForumPost -> {
                 viewModelScope.launch {
-                    //dao.upsertForumPost(event.fo)
+                    try {
+                        dao.upsertForumPost(event.forumPost) // Update or insert post
+                        _state.update { ForumState() } // Clear state after success
+                    } catch (e: Exception) {
+                        // Handle error (e.g., show snackbar or log)
+                    }
                 }
-                _state.update { ForumState() } // Reset all fields
             }
+
 
             is ForumEvent.SetContent -> {
                 _state.update {
@@ -187,6 +199,26 @@ class ForumViewModel(
             }
         }
     }
+
+
+    fun deleteForumPost(forumPost: ForumPost) {
+        viewModelScope.launch {
+            try {
+                // Delete from Firestore
+                val postRef = FirebaseFirestore.getInstance().collection("forumPosts").document(forumPost.id)
+                postRef.delete()
+
+                // Delete from Room
+                dao.deleteForumPost(forumPost)
+
+                // Optionally: refresh UI state by fetching updated posts
+                fetchAndSaveForumPosts()
+            } catch (e: Exception) {
+                println("Error deleting post: ${e.message}")
+            }
+        }
+    }
+
 
 }
 

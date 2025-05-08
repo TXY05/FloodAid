@@ -39,7 +39,6 @@ import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -68,35 +67,55 @@ import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import java.util.UUID
+import androidx.compose.runtime.State
+import androidx.lifecycle.viewmodel.compose.viewModel
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CreateForumPost(
+fun PostEditor(
     navController: NavHostController = rememberNavController(),
     onEvent: (ForumEvent) -> Unit,
+    viewModel: ForumViewModel,
 ) {
+    val postToEdit by viewModel.postToEdit
 
     Scaffold(
         bottomBar = { BottomBar(navController = navController) }) { paddingValues ->
-        CreateForumPostScreen(paddingValues, navController, onEvent)
+        ForumPostEditorScreen(paddingValues, navController, onEvent, postToEdit, viewModel,postToEdit != null)
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CreateForumPostScreen(
+fun ForumPostEditorScreen(
     paddingValues: PaddingValues,
     navController: NavHostController,
     onEvent: (ForumEvent) -> Unit,
+    forumPostToEdit: ForumPost? = null,
+    viewModel: ForumViewModel,
+    isEditMode: Boolean
 ) {
+
     // State for content in the TextField
-    var forumContent by remember { mutableStateOf("") }
-    var currentDistrict by remember { mutableStateOf("") }
+    var forumContent by remember { mutableStateOf(forumPostToEdit?.content ?: "") }
+    var currentDistrict by remember { mutableStateOf(forumPostToEdit?.region ?: "") }
 
     val userId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
 
+
     // State for selected images (using mutableStateListOf for a list of URIs)
-    val selectedImageUris = remember { mutableStateListOf<Uri>() }
+    val selectedImageUris = remember {
+        mutableStateListOf<Uri>().apply {
+            forumPostToEdit?.imageUrls?.forEach { url ->
+                if (url != null) {  // Check if the URL is not null
+                    add(Uri.parse(url))
+                }
+            }
+        }
+    }
+
+
     val context = LocalContext.current
 
     // This will hold the launcher for picking multiple images
@@ -106,7 +125,7 @@ fun CreateForumPostScreen(
             if (uris.isNotEmpty()) {
                 val availableSlots = 5 - selectedImageUris.size
                 val urisToAdd = uris.take(availableSlots)
-                selectedImageUris.addAll(urisToAdd) // Add the selected URIs
+                selectedImageUris.addAll(urisToAdd)
                 if (uris.size > availableSlots) {
                     Toast.makeText(context, "Only 5 images allowed", Toast.LENGTH_SHORT).show()
                 }
@@ -114,11 +133,12 @@ fun CreateForumPostScreen(
         }
     )
 
+
     // Scaffold to manage UI structure
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Create Forum Post") },
+                title = { Text(if (isEditMode) "Edit Post" else "Create Forum Post") },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -135,28 +155,52 @@ fun CreateForumPostScreen(
                                 try {
                                     val name = getUserName(userId) ?: ""
                                     val photoUrl = getCurrentUserProfileImageUrl() ?: ""
-                                    val downloadUrls = uploadImagesToFirebaseStorage(selectedImageUris)
 
-                                    val forumPost = ForumPost(
+                                    // Separate new images (picked from device) from existing ones (already URLs)
+                                    val (newUris, existingUris) = selectedImageUris.partition {
+                                        it.scheme == "content" || it.scheme == "file"
+                                    }
+
+// Upload only the new ones
+                                    val uploadedImages = if (newUris.isNotEmpty()) {
+                                        uploadImagesToFirebaseStorage(newUris)
+                                    } else {
+                                        emptyList()
+                                    }
+
+// Combine uploaded new images and kept existing ones
+                                    val finalImageUrls = existingUris.map { it.toString() }.toMutableList()
+                                    finalImageUrls.addAll(uploadedImages)
+
+
+// Build the post
+                                    val forumPost = forumPostToEdit?.copy(
+                                        content = forumContent,
+                                        region = currentDistrict.uppercase(),
+                                        imageUrls = finalImageUrls,
+                                        timestamp = Timestamp.now(),
+                                        edited = true
+                                    ) ?: ForumPost(
                                         id = UUID.randomUUID().toString(),
                                         content = forumContent,
+                                        region = currentDistrict.uppercase(),
                                         authorId = userId,
                                         authorName = name,
-                                        timestamp = Timestamp.now(),
-                                        region = currentDistrict.uppercase(),
                                         authorImageUrl = photoUrl,
-                                        imageUrls = downloadUrls
+                                        imageUrls = finalImageUrls,
+                                        timestamp = Timestamp.now(),
+                                        edited = false
                                     )
 
+// Save post regardless of image change
                                     onEvent(ForumEvent.SaveForumPost(forumPost))
                                     navController.navigate(Screen.Forum.route)
 
+
+
+
                                 } catch (e: Exception) {
-                                    Toast.makeText(
-                                        context,
-                                        "Upload failed: ${e.message}",
-                                        Toast.LENGTH_LONG
-                                    ).show()
+                                    Toast.makeText(context, "Upload failed: ${e.message}", Toast.LENGTH_LONG).show()
                                 } finally {
                                     isUploading = false
                                 }
@@ -171,7 +215,7 @@ fun CreateForumPostScreen(
                                 color = Color.White
                             )
                         } else {
-                            Text("Post")
+                            Text(if (isEditMode) "Update" else "Post")
                         }
                     }
 
@@ -305,7 +349,8 @@ fun CreateForumPostScreen(
                             AsyncImage(
                                 model = selectedImageUris[index],
                                 contentDescription = null,
-                                modifier = Modifier.height(150.dp)
+                                modifier = Modifier
+                                    .height(150.dp)
                                     .padding(horizontal = 8.dp)
                             )
                             IconButton(
@@ -315,7 +360,11 @@ fun CreateForumPostScreen(
                                     .background(Color.Black.copy(alpha = 0.5f), shape = CircleShape)
                                     .size(24.dp)
                             ) {
-                                Icon(Icons.Default.Close, contentDescription = "Remove", tint = Color.White)
+                                Icon(
+                                    Icons.Default.Close,
+                                    contentDescription = "Remove",
+                                    tint = Color.White
+                                )
                             }
                         }
                     }
@@ -362,17 +411,42 @@ suspend fun uploadImagesToFirebaseStorage(imageUris: List<Uri>): List<String> {
     val storage = FirebaseStorage.getInstance()
     val userId = FirebaseAuth.getInstance().currentUser?.uid ?: throw Exception("User not logged in")
 
-    return imageUris.map { uri ->
+    val uploadedImageUrls = mutableListOf<String>()
+
+    imageUris.forEach { uri ->
+        // Check if URI is a valid local file URI
+        if (uri.scheme != "content" && uri.scheme != "file") {
+            Log.e("Upload", "Invalid URI, skipping: $uri")
+            return@forEach
+        }
+
         val fileName = "${UUID.randomUUID()}.jpg"
         val ref = storage.reference.child("forumImages/$userId/$fileName")
 
-        // Upload the file
-        ref.putFile(uri).await()
+        try {
+            // Log before uploading
+            Log.d("Upload", "Uploading image: $uri")
+            val uploadTask = ref.putFile(uri).await()
 
-        // Get download URL after upload
-        ref.downloadUrl.await().toString()
+            // Log after upload success
+            Log.d("Upload", "Image uploaded successfully: $uri")
+
+            // Get the download URL after successful upload
+            val downloadUrl = ref.downloadUrl.await().toString()
+            uploadedImageUrls.add(downloadUrl)
+
+            // Log the download URL
+            Log.d("Upload", "Download URL: $downloadUrl")
+        } catch (e: Exception) {
+            // Log the error
+            Log.e("Upload", "Upload failed for $uri", e)
+            throw e // Re-throw the exception to propagate it to the caller
+        }
     }
+
+    return uploadedImageUrls
 }
+
 
 
 suspend fun getCurrentUserProfileImageUrl(): String? {

@@ -20,7 +20,7 @@ fun VolunteerRegister(
     val registration by viewModel.volunteer.collectAsState()
     val userId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
 
-    LaunchedEffect(Unit) {
+    /*LaunchedEffect(userId) {
         viewModel.isVolunteerRegistered { isRegistered ->
             if (isRegistered) {
                 navController.popBackStack()
@@ -29,7 +29,7 @@ fun VolunteerRegister(
                 }
             }
         }
-    }
+    }*/
 
     Column(
         modifier = Modifier

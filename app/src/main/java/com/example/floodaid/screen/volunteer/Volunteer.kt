@@ -30,10 +30,12 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -45,6 +47,10 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.navigation.NavHostController
 import com.example.floodaid.composable.VolunteerTopBar
 import com.example.floodaid.models.VolunteerEvent
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
@@ -54,13 +60,26 @@ import java.util.Locale
 @Composable
 fun Volunteer(
     navController: NavHostController,
-    viewModel: VolunteerViewModel
+    viewModel: VolunteerViewModel,
 ) {
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(
         state = rememberTopAppBarState()
     )
     val listState = rememberLazyListState()
     val events by viewModel.events.collectAsState()
+
+    val userId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
+    val coroutineScope = rememberCoroutineScope()
+
+    LaunchedEffect(Unit) {
+        coroutineScope.launch {
+            val isRegistered = checkIfUserIsVolunteer(userId)
+            if (!isRegistered) {
+                navController.navigate("volunteerRegister")
+            }
+        }
+    }
+
 
     Scaffold(
         modifier = Modifier
@@ -129,14 +148,16 @@ fun Volunteer(
 @Composable
 fun CalendarViewComposable(
     viewModel: VolunteerViewModel,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     AndroidView(
         factory = { context ->
             CalendarView(context).apply {
                 setOnDateChangeListener { _, year, month, day ->
-                    val formattedDate = String.format(Locale.getDefault(), "%02d/%02d/%04d",
-                        month + 1, day, year)
+                    val formattedDate = String.format(
+                        Locale.getDefault(), "%02d/%02d/%04d",
+                        month + 1, day, year
+                    )
                     viewModel.setSelectedDate(formattedDate)
                 }
             }
@@ -148,7 +169,7 @@ fun CalendarViewComposable(
 @Composable
 fun CalendarScreen(
     viewModel: VolunteerViewModel,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val selectedDate by viewModel.selectedDate.collectAsState()
 
@@ -182,7 +203,7 @@ fun EventListScreen(
     viewModel: VolunteerViewModel,
     onEventClick: (VolunteerEvent) -> Unit,
     listState: LazyListState,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val filteredEvents by viewModel.filteredEvents.collectAsState()
     val selectedDate by viewModel.selectedDate.collectAsState()
@@ -247,5 +268,15 @@ fun EventCard(event: VolunteerEvent, onClick: () -> Unit) {
             Text(text = formattedDate, style = MaterialTheme.typography.bodyMedium)
             Text(text = event.district, style = MaterialTheme.typography.bodySmall)
         }
+    }
+}
+
+suspend fun checkIfUserIsVolunteer(userId: String): Boolean {
+    val db = FirebaseFirestore.getInstance()
+    return try {
+        val document = db.collection("volunteer_profile").document(userId).get().await()
+        document.exists() // If the document exists, the user is registered
+    } catch (e: Exception) {
+        false // If an error occurs, treat it as unregistered
     }
 }
