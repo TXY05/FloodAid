@@ -24,6 +24,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.util.concurrent.TimeUnit
 
@@ -66,18 +67,33 @@ class SOSViewModel(
     // Call this to use location data from another ViewModel (e.g., MapViewModel)
     fun useExternalLocationSource(locationFlow: StateFlow<LatLng?>) {
         usingExternalLocation = true
+        Log.d("SOSLocation", "Using external location source")
 
         // Cancel our own location updates if they're active
         stopOwnLocationUpdates()
 
         // Start collecting from external source
         viewModelScope.launch {
-            locationFlow.collect { location ->
-                _currentLocation.value = location
+            try {
+                locationFlow.collect { location ->
+                    _currentLocation.value = location
 
-                // If SOS is active, save this externally-provided location
-                if (_isSOSActive.value && location != null) {
-                    saveUserLocation(location.latitude, location.longitude)
+                    // Log that we received location update
+                    if (location != null) {
+                        Log.d("SOSLocation", "Received external location: ${location.latitude}, ${location.longitude}")
+                    }
+
+                    // If SOS is active, save this externally-provided location
+                    if (_isSOSActive.value && location != null) {
+                        Log.d("SOSLocation", "SOS is active, saving external location...")
+                        saveUserLocation(location.latitude, location.longitude)
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("SOSLocation", "Error collecting external location: ${e.message}", e)
+                // If external location fails, start our own updates as fallback
+                if (_isSOSActive.value && !usingExternalLocation) {
+                    startLocationUpdates()
                 }
             }
         }
@@ -101,6 +117,11 @@ class SOSViewModel(
 
     private fun saveUserLocation(latitude: Double, longitude: Double) {
         viewModelScope.launch {
+            if (profileRepository == null) {
+                Log.e("SOSLocation", "ERROR: ProfileRepository is null, can't save location")
+                return@launch
+            }
+
             currentUser?.uid?.let { uid ->
                 val userLocation = UserLocation(
                     uid = uid,
@@ -110,10 +131,14 @@ class SOSViewModel(
                     isSOSActive = true
                 )
 
-                // Save to repository if available
-                profileRepository?.updateUserLocation(userLocation)
-                Log.d("SOSLocation", "Location updated: $latitude, $longitude")
-            }
+                try {
+                    // Save to repository if available
+                    profileRepository.updateUserLocation(userLocation)
+                    Log.d("SOSLocation", "Location successfully updated: $latitude, $longitude")
+                } catch (e: Exception) {
+                    Log.e("SOSLocation", "Failed to update location: ${e.message}", e)
+                }
+            } ?: Log.e("SOSLocation", "ERROR: Current user is null, can't save location")
         }
     }
 
@@ -143,19 +168,35 @@ class SOSViewModel(
     }
 
     fun activateSOS() {
+        Log.d("SOSLocation", "Activating SOS...")
+
         // Set active state
         _isSOSActive.value = true
 
-        // Ensure the MapViewModel is starting location updates if we're using it
-        if (usingExternalLocation) {
-            mapViewModel?.startLocationUpdates()
-        } else {
-            // If we're not using an external location source, start our own updates
-            startLocationUpdates()
-        }
+        try {
+            // Ensure the MapViewModel is starting location updates if we're using it
+            if (usingExternalLocation) {
+                Log.d("SOSLocation", "Using external location source for SOS")
+                mapViewModel?.startLocationUpdates()
 
-        // Always start periodic updates to ensure regular database updates
-        startPeriodicLocationUpdates()
+                // Check if we have a current location and save it immediately
+                _currentLocation.value?.let { location ->
+                    Log.d("SOSLocation", "Initial external location available, saving immediately")
+                    saveUserLocation(location.latitude, location.longitude)
+                }
+            } else {
+                // If we're not using an external location source, start our own updates
+                Log.d("SOSLocation", "Using own location provider for SOS")
+                startLocationUpdates()
+            }
+
+            // Always start periodic updates to ensure regular database updates
+            startPeriodicLocationUpdates()
+
+            Log.d("SOSLocation", "SOS activated successfully")
+        } catch (e: Exception) {
+            Log.e("SOSLocation", "Error activating SOS: ${e.message}", e)
+        }
     }
 
     private fun deactivateSOS() {
@@ -183,15 +224,26 @@ class SOSViewModel(
         // Cancel any existing job
         locationUpdateJob?.cancel()
 
+        Log.d("SOSLocation", "Starting periodic location updates every ${LOCATION_UPDATE_INTERVAL/1000} seconds")
+
         // Start new periodic update job
         locationUpdateJob = viewModelScope.launch {
-            while (_isSOSActive.value) {
-                delay(LOCATION_UPDATE_INTERVAL)
+            try {
+                while (_isSOSActive.value && isActive) {
+                    delay(LOCATION_UPDATE_INTERVAL)
 
-                // Update location periodically
-                _currentLocation.value?.let { location ->
-                    saveUserLocation(location.latitude, location.longitude)
-                    Log.d("SOSLocation", "Periodic update - Location: ${location.latitude}, ${location.longitude}")
+                    // Update location periodically
+                    _currentLocation.value?.let { location ->
+                        Log.d("SOSLocation", "Periodic update - Location: ${location.latitude}, ${location.longitude}")
+                        saveUserLocation(location.latitude, location.longitude)
+                    } ?: Log.w("SOSLocation", "No location available for periodic update")
+                }
+            } catch (e: Exception) {
+                Log.e("SOSLocation", "Error in periodic location updates: ${e.message}", e)
+                // Try to restart if SOS is still active
+                if (_isSOSActive.value) {
+                    delay(5000) // Wait 5 seconds before attempting restart
+                    startPeriodicLocationUpdates()
                 }
             }
         }

@@ -126,7 +126,11 @@ fun NavGraph(
         composable(route = Screen.Map.route) {
             key("persistent_map") {
                 Box {
-                    Map(navController = navController, mapViewModel)
+                    Map(
+                        navController = navController,
+                        viewModel = mapViewModel,
+                        sosViewModel = sosViewModel
+                    )
                     SOSButton(
                         viewModel = sosViewModel,
                         placement = SOSButtonPlacement.MAP
