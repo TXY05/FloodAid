@@ -66,7 +66,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.constraintlayout.compose.ConstraintLayout
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
 import com.example.floodaid.R
@@ -77,7 +76,6 @@ import com.example.floodaid.ui.theme.AlegreyaSansFontFamily
 import com.example.floodaid.viewmodel.ForumViewModel
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -115,6 +113,13 @@ fun ForumScreen(
     val uiState by viewModel.state.collectAsState()
     val forumPosts = uiState.forumPosts
 
+    var searchQuery by rememberSaveable { mutableStateOf("") }
+
+    val filteredPosts = forumPosts.filter {
+        it.authorName.contains(searchQuery, ignoreCase = true) ||
+                it.content.contains(searchQuery, ignoreCase = true) ||
+                it.region.contains(searchQuery, ignoreCase = true)
+    }
 
 
 
@@ -130,14 +135,18 @@ fun ForumScreen(
     Scaffold(
         modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
-            ForumTopBar(scrollBehavior = scrollBehavior)
+            ForumTopBar(
+                scrollBehavior = scrollBehavior,
+                searchQuery = searchQuery,
+                onSearchQueryChanged = { searchQuery = it } // Pass the query to the top bar
+            )
         }
     ) { paddingValues ->
         LazyColumn(
             contentPadding = paddingValues,
             modifier = Modifier.fillMaxSize()
         ) {
-            items(forumPosts) { post ->
+            items(filteredPosts) { post ->
 
                 SocialMediaPost(
                     forumPost = post,
