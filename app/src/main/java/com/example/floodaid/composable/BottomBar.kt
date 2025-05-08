@@ -8,7 +8,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.layout.ModifierLocalBeyondBoundsLayout
 import androidx.navigation.NavDestination
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavHostController
@@ -17,7 +16,7 @@ import com.example.floodaid.models.Screen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun BottomBar(navController: NavHostController,scaleDown:Float=1f) {
+fun BottomBar(navController: NavHostController) {
     val screens = listOf(
         Screen.Dashboard,
         Screen.Forum,
@@ -29,7 +28,7 @@ fun BottomBar(navController: NavHostController,scaleDown:Float=1f) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
 
-    NavigationBar(modifier = Modifier.fillMaxWidth(scaleDown)) {
+    NavigationBar(modifier = Modifier.fillMaxWidth()) {
 
         screens.forEach { screen ->
             AddItem(

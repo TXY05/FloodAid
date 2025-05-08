@@ -1,6 +1,5 @@
 package com.example.floodaid.screen.profile
 
-import BottomBar
 import android.annotation.SuppressLint
 import android.content.res.Configuration
 import android.net.Uri
@@ -14,7 +13,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -35,12 +33,8 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -62,9 +56,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
-import coil3.compose.rememberAsyncImagePainter
 import com.example.floodaid.R
-import com.example.floodaid.composable.TopBar
 import com.example.floodaid.models.UserProfile
 import com.example.floodaid.screen.login.GenderSelector
 import com.example.floodaid.screen.login.StateSelector
@@ -80,13 +72,12 @@ import com.google.firebase.storage.FirebaseStorage
 @Composable
 fun Profile(
     navController: NavHostController,
-    viewModel: ProfileViewModel
+    viewModel: ProfileViewModel,
 ) {
     val imageUri = rememberSaveable { mutableStateOf<Uri?>(null) }
     val launcher = rememberLauncherForActivityResult(
         ActivityResultContracts.GetContent()
     ) { uri: Uri? -> imageUri.value = uri }
-
     val profileState by viewModel.profile.collectAsState()
 
     var fullName by rememberSaveable { mutableStateOf("") }
@@ -97,17 +88,25 @@ fun Profile(
     var currentDistrict by rememberSaveable { mutableStateOf("") }
     var imageUrl by rememberSaveable { mutableStateOf("") }
 
+    var isProfileInitialized by rememberSaveable { mutableStateOf(false) }
+
     LaunchedEffect(profileState) {
-        profileState?.let { profile ->
-            fullName = profile.fullName
-            username = profile.userName
-            myKadOrPassport = profile.myKadOrPassport
-            selectedGender = profile.gender
-            birthOfDate = profile.birthOfDate
-            currentDistrict = profile.location
-            imageUrl = profile.profilePictureUrl
+        if (!isProfileInitialized && profileState != null) {
+            val profile = profileState // local val enables smart cast
+            if (profile != null) {
+                fullName = profile.fullName
+                username = profile.userName
+                myKadOrPassport = profile.myKadOrPassport
+                selectedGender = profile.gender
+                birthOfDate = profile.birthOfDate
+                currentDistrict = profile.location
+                imageUrl = profile.profilePictureUrl
+            }
+            isProfileInitialized = true
         }
     }
+
+
     val context = LocalContext.current
 
     val configuration = LocalConfiguration.current
@@ -152,7 +151,7 @@ fun Profile(
                                 .clickable { launcher.launch("image/*") }
                         ) {
                             AsyncImage(
-                                model = imageUrl,
+                                model = imageUri.value ?: imageUrl,
                                 error = painterResource(R.drawable.ic_user),
                                 contentDescription = "Profile Picture",
                                 modifier = Modifier.fillMaxSize(),
@@ -200,7 +199,7 @@ fun Profile(
                         scaleDown = .5f
                     )
                     CTextField(
-                        hint = "Mykad / Passport Number",
+                        hint = "MyKad / Passport Number",
                         value = myKadOrPassport,
                         onValueChange = { myKadOrPassport = it }, scaleDown = .5f
                     )
@@ -264,6 +263,7 @@ fun Profile(
                                                     "Firebase",
                                                     "Image upload failed: ${e.message}"
                                                 )
+                                                isUploading = false
                                             }
                                     } else {
                                         // No image selected, save profile with empty image
@@ -276,7 +276,6 @@ fun Profile(
                                             gender = selectedGender,
                                             birthOfDate = birthOfDate,
                                             location = currentDistrict,
-                                            profilePictureUrl = imageUrl
                                         )
 
                                         saveProfileToFirebaseAndLocal(
@@ -285,6 +284,7 @@ fun Profile(
                                             context
                                         )
                                     }
+
                                 }
 
 
@@ -361,8 +361,8 @@ fun Profile(
                                 .clickable { launcher.launch("image/*") }
                         ) {
                             AsyncImage(
-                                model = imageUrl,
-                                    error = painterResource(R.drawable.ic_user),
+                                model = imageUri.value ?: imageUrl,
+                                error = painterResource(R.drawable.ic_user),
                                 contentDescription = "Profile Picture",
                                 modifier = Modifier.fillMaxSize(),
                                 contentScale = ContentScale.Crop
@@ -405,7 +405,7 @@ fun Profile(
                         value = username,
                         onValueChange = { username = it })
                     CTextField(
-                        hint = "Mykad / Passport Number",
+                        hint = "MyKad / Passport Number",
                         value = myKadOrPassport,
                         onValueChange = { myKadOrPassport = it })
                     GenderSelector(
@@ -423,8 +423,11 @@ fun Profile(
                         onTextChanged = { currentDistrict = it }
                     )
 
-                    Box(modifier = Modifier.fillMaxSize()
-                        .padding(top = 40.dp)) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(top = 40.dp)
+                    ) {
                         var isUploading by remember { mutableStateOf(false) }
 
                         Button(
@@ -461,12 +464,15 @@ fun Profile(
                                                         context
                                                     )
                                                 }
+
+
                                             }
                                             .addOnFailureListener { e ->
                                                 Log.e(
                                                     "Firebase",
                                                     "Image upload failed: ${e.message}"
                                                 )
+                                                isUploading = false
                                             }
                                     } else {
                                         // No image selected, save profile with empty image
@@ -479,7 +485,6 @@ fun Profile(
                                             gender = selectedGender,
                                             birthOfDate = birthOfDate,
                                             location = currentDistrict,
-                                            profilePictureUrl = imageUrl
                                         )
 
                                         saveProfileToFirebaseAndLocal(
