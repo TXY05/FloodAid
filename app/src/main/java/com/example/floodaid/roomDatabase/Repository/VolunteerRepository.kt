@@ -81,7 +81,15 @@ class VolunteerRepository(
     }
 
     suspend fun updateEvent(event: VolunteerEvent){
-        volunteerDao.update(event)
+        return try {
+            val docRef = firestore.collection("event").document(event.firestoreId)
+            docRef.set(event).await()
+            volunteerDao.update(event)
+
+        } catch (e: Exception) {
+            Log.e("VolunteerRepo", "Insert failed", e)
+            throw e
+        }
     }
 
     suspend fun deleteEvent(event: VolunteerEvent){

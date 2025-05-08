@@ -66,7 +66,6 @@ fun Volunteer(
         state = rememberTopAppBarState()
     )
     val listState = rememberLazyListState()
-    val events by viewModel.events.collectAsState()
 
     val userId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
     val coroutineScope = rememberCoroutineScope()
@@ -75,11 +74,11 @@ fun Volunteer(
         coroutineScope.launch {
             val isRegistered = checkIfUserIsVolunteer(userId)
             if (!isRegistered) {
+                navController.popBackStack()
                 navController.navigate("volunteerRegister")
             }
         }
     }
-
 
     Scaffold(
         modifier = Modifier
@@ -275,8 +274,8 @@ suspend fun checkIfUserIsVolunteer(userId: String): Boolean {
     val db = FirebaseFirestore.getInstance()
     return try {
         val document = db.collection("volunteer_profile").document(userId).get().await()
-        document.exists() // If the document exists, the user is registered
+        document.exists()
     } catch (e: Exception) {
-        false // If an error occurs, treat it as unregistered
+        false
     }
 }

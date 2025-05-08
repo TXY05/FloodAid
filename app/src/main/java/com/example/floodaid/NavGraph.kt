@@ -37,6 +37,7 @@ import com.example.floodaid.screen.map_UI.SOSButton
 import com.example.floodaid.screen.map_UI.SOSButtonPlacement
 import com.example.floodaid.screen.map_UI.SOSViewModel
 import com.example.floodaid.screen.volunteer.AddVolunteerEvent
+import com.example.floodaid.screen.volunteer.EditVolunteerEvent
 import com.example.floodaid.screen.volunteer.Volunteer
 import com.example.floodaid.screen.volunteer.VolunteerHistory
 import com.example.floodaid.screen.volunteer.VolunteerRegister
@@ -124,7 +125,7 @@ fun NavGraph(
         }
 
         composable(route = Screen.Volunteer.route) {
-            VolunteerRegister(navController = navController,
+            Volunteer(navController = navController,
                 viewModel = volunteerViewModel
             )
         }
@@ -155,6 +156,22 @@ fun NavGraph(
         composable("addVolunteerEvent") {
             AddVolunteerEvent(navController = navController,
                 viewModel = volunteerViewModel)
+        }
+
+        composable(
+            route = "editVolunteerEvent/{eventId}",
+            arguments =
+                listOf(
+                    navArgument("eventId") { type = NavType.StringType },
+                ),
+        ) { backStackEntry ->
+            val eventId = backStackEntry.arguments?.getString("eventId") ?: ""
+
+            EditVolunteerEvent(
+                eventId = eventId,
+                navController = navController,
+                viewModel = volunteerViewModel
+            )
         }
 
         composable("volunteerHistory") {

@@ -130,16 +130,6 @@ class VolunteerViewModel(
         }
     }
 
-    fun isVolunteerRegistered(callback: (Boolean) -> Unit) {
-        viewModelScope.launch {
-            val userId = auth.currentUser?.uid ?: return@launch callback(false)
-            repository.getVolunteerProfile(userId).collect { profile ->
-                callback(profile != null)
-                return@collect
-            }
-        }
-    }
-
 
     fun getVolunteerProfile(userId: String) {
         viewModelScope.launch {

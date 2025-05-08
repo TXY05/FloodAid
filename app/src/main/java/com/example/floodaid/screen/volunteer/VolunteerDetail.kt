@@ -50,10 +50,10 @@ fun VolunteerDetail(
             )
         },
         bottomBar = { BottomBar(navController = navController) }
-    ) { paddingValues ->
+    ) { innerPadding ->
         Box(
             modifier = Modifier
-                .padding(paddingValues)
+                .padding(innerPadding)
                 .padding(16.dp)
                 .fillMaxSize(),
             contentAlignment = Alignment.Center
@@ -65,6 +65,13 @@ fun VolunteerDetail(
                 Column(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
+                    if (userId == event.userId){
+                        Button(
+                            onClick = { navController.navigate("editVolunteerEvent/${event.firestoreId}") }
+                        ) {
+                            Text("Edit Event")
+                        }
+                    }
                     EventDetailItem(label = "Event ID", value = event.firestoreId)
                     EventDetailItem(label = "User ID", value = event.userId)
                     EventDetailItem(label = "Description", value = event.description)
