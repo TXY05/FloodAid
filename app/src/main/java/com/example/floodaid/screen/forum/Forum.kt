@@ -9,12 +9,16 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -24,7 +28,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Send
+import androidx.compose.material3.Divider
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -36,6 +43,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.rememberTopAppBarState
@@ -80,6 +89,7 @@ import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.UUID
 import kotlin.math.roundToInt
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
@@ -110,6 +120,8 @@ fun ForumScreen(
     )
 
     var showCommentSheet by rememberSaveable { mutableStateOf(false) }
+    var selectedPostId by rememberSaveable { mutableStateOf<String?>(null) }
+
     val uiState by viewModel.state.collectAsState()
     val forumPosts = uiState.forumPosts
 
@@ -121,16 +133,21 @@ fun ForumScreen(
                 it.region.contains(searchQuery, ignoreCase = true)
     }
 
-
-
     LaunchedEffect(Unit) {
         viewModel.fetchAndSaveForumPosts()
     }
 
-    CommentModalBottomSheet(
-        show = showCommentSheet,
-        onDismiss = { showCommentSheet = false }
-    )
+    if (showCommentSheet && selectedPostId != null) {
+        CommentModalBottomSheet(
+            show = true,
+            onDismiss = {
+                showCommentSheet = false
+                selectedPostId = null
+            },
+            postId = selectedPostId!!,
+            viewModel = viewModel
+        )
+    }
 
     Scaffold(
         modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
@@ -138,7 +155,7 @@ fun ForumScreen(
             ForumTopBar(
                 scrollBehavior = scrollBehavior,
                 searchQuery = searchQuery,
-                onSearchQueryChanged = { searchQuery = it } // Pass the query to the top bar
+                onSearchQueryChanged = { searchQuery = it }
             )
         }
     ) { paddingValues ->
@@ -147,13 +164,16 @@ fun ForumScreen(
             modifier = Modifier.fillMaxSize()
         ) {
             items(filteredPosts) { post ->
-
                 SocialMediaPost(
                     forumPost = post,
-                    onShowCommentSheetChanged = { showCommentSheet = it },
-                    navController,
-                    viewModel
+                    onShowCommentSheetChanged = { show ->
+                        selectedPostId = post.id
+                        showCommentSheet = show
+                    },
+                    navController = navController,
+                    viewModel = viewModel
                 )
+
                 HorizontalDivider(
                     modifier = Modifier.fillMaxWidth(),
                     color = Color.LightGray,
@@ -177,7 +197,7 @@ fun ForumScreen(
                 containerColor = Color.Blue,
                 contentColor = Color.White
             ) {
-                Icon(Icons.Filled.Add, contentDescription = "")
+                Icon(Icons.Filled.Add, contentDescription = "New Post")
             }
         }
     }
@@ -189,7 +209,7 @@ fun SocialMediaPost(
     forumPost: ForumPost,
     onShowCommentSheetChanged: (Boolean) -> Unit,
     navController: NavHostController,
-    viewModel: ForumViewModel
+    viewModel: ForumViewModel,
 ) {
 
     val scope = rememberCoroutineScope()
@@ -285,10 +305,18 @@ fun SocialMediaPost(
                             scope.launch {
                                 try {
                                     viewModel.deleteForumPost(forumPost)
-                                    Toast.makeText(navController.context, "Post deleted successfully", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(
+                                        navController.context,
+                                        "Post deleted successfully",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
                                     navController.navigate(Screen.Forum.route)
                                 } catch (e: Exception) {
-                                    Toast.makeText(navController.context, "Failed to delete post: ${e.message}", Toast.LENGTH_LONG).show()
+                                    Toast.makeText(
+                                        navController.context,
+                                        "Failed to delete post: ${e.message}",
+                                        Toast.LENGTH_LONG
+                                    ).show()
                                 }
                             }
                         }
@@ -296,7 +324,6 @@ fun SocialMediaPost(
                 }
             }
         }
-
 
 
         // Area
@@ -399,7 +426,8 @@ fun SocialMediaPost(
                                 )
                                 .pointerInput(Unit) {
                                     detectTransformGestures { _, pan, zoom, _ ->
-                                        scale = (scale * zoom).coerceIn(1f, 3f)  // Limit the zoom range
+                                        scale =
+                                            (scale * zoom).coerceIn(1f, 3f)  // Limit the zoom range
                                         offset = Offset(offset.x + pan.x, offset.y + pan.y)
                                     }
                                 }
@@ -422,7 +450,10 @@ fun SocialMediaPost(
 
         // Comment Button
         IconButton(
-            onClick = { onShowCommentSheetChanged(true) },
+            onClick = {
+                viewModel.refreshComments(forumPost.id)
+                onShowCommentSheetChanged(true)
+            },
             modifier = Modifier
                 .size(24.dp)
                 .constrainAs(comment) {
@@ -454,16 +485,19 @@ fun SocialMediaPost(
 fun CommentModalBottomSheet(
     show: Boolean,
     onDismiss: () -> Unit,
+    postId: String,
+    viewModel: ForumViewModel,
 ) {
     if (!show) return
 
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val scope = rememberCoroutineScope()
+    var commentText by rememberSaveable { mutableStateOf("") }
+    val comments by viewModel.comments.collectAsState()
 
-    LaunchedEffect(Unit) {
-        scope.launch {
-            sheetState.show()
-        }
+    LaunchedEffect(postId) {
+        viewModel.observeComments(postId)
+        scope.launch { sheetState.show() }
     }
 
     ModalBottomSheet(
@@ -471,19 +505,132 @@ fun CommentModalBottomSheet(
         sheetState = sheetState,
         modifier = Modifier.fillMaxWidth()
     ) {
-
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .fillMaxHeight(0.8f)
-                .verticalScroll(rememberScrollState())
                 .padding(16.dp)
         ) {
             Text("Comments", style = MaterialTheme.typography.titleLarge)
-            // Add more comment content here
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            LazyColumn(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+            ) {
+                items(comments) { comment ->
+                    Row(
+                        modifier = Modifier
+                            .padding(vertical = 8.dp)
+                    ) {
+                        AsyncImage(
+                            model = comment.authorImageUrl,
+                            contentDescription = "User Profile Image",
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clip(CircleShape)
+                        )
+
+                        Spacer(modifier = Modifier.width(8.dp))
+
+                        Column {
+                            Row {
+                                Text(
+                                    text = comment.authorName,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = Color.Black,
+                                    fontSize = 16.sp
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+
+                                Text(
+                                    text = formatTimestamp(comment.timestamp),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = Color.Gray,
+                                    fontSize = 12.sp
+                                )
+                            }
+                            Text(
+                                text = comment.content,
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
+                    }
+
+                }
+            }
+
+            Divider(modifier = Modifier.padding(vertical = 8.dp))
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                TextField(
+                    value = commentText,
+                    onValueChange = { commentText = it },
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(end = 8.dp),
+                    placeholder = { Text("Add a comment...") },
+                    colors = TextFieldDefaults.colors(
+                        focusedIndicatorColor = Color.Transparent,
+                        unfocusedIndicatorColor = Color.Transparent
+                    ),
+                    maxLines = 2
+                )
+                IconButton(
+                    onClick = {
+                        if (commentText.isNotBlank()) {
+                            viewModel.postComment(postId, commentText)
+                            commentText = ""
+                        }
+                    }, enabled = commentText.isNotBlank()
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Send,
+                        contentDescription = "Post comment",
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
         }
     }
 }
+
+
+@Composable
+fun CommentItem(comment: ForumComment) {
+    Column(modifier = Modifier.padding(vertical = 8.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            AsyncImage(
+                model = comment.authorImageUrl,
+                contentDescription = "Author Image",
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(CircleShape)
+            )
+            Column(modifier = Modifier.padding(start = 8.dp)) {
+                Text(text = comment.authorName, fontWeight = FontWeight.Bold)
+                Text(
+                    text = formatTimestamp(comment.timestamp),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.Gray
+                )
+            }
+        }
+        Text(
+            text = comment.content,
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.padding(start = 44.dp, top = 4.dp)
+        )
+    }
+}
+
 
 fun formatTimestamp(timestamp: Timestamp): String {
     val sdf = SimpleDateFormat("dd MMM yyyy, hh:mm a", Locale.getDefault())

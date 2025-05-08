@@ -6,10 +6,13 @@ import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.Build
 import android.util.Log
+import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.core.content.ContextCompat.getSystemService
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.floodaid.models.UserProfile
+import com.example.floodaid.screen.forum.ForumComment
 import com.example.floodaid.screen.forum.ForumDao
 import com.example.floodaid.screen.forum.ForumEvent
 import com.example.floodaid.screen.forum.ForumPost
@@ -18,16 +21,21 @@ import com.example.floodaid.screen.forum.ForumState
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.Query
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
-import androidx.compose.runtime.State
+import java.util.UUID
 
 
 @Suppress("DEPRECATION")
@@ -35,7 +43,7 @@ import androidx.compose.runtime.State
 class ForumViewModel(
     application: Application, // Pass the application context here
     private val dao: ForumDao,
-    private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance()
+    private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance(),
 ) : AndroidViewModel(application) {
     private val db = FirebaseFirestore.getInstance()
     private val _sortType = MutableStateFlow(ForumSortType.TIME_STAMP)
@@ -50,7 +58,7 @@ class ForumViewModel(
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ForumState())
 
-    val uid = FirebaseAuth.getInstance().currentUser?.uid?: ""
+    val uid = FirebaseAuth.getInstance().currentUser?.uid ?: ""
 
     private val _postToEdit = mutableStateOf<ForumPost?>(null)
     val postToEdit: State<ForumPost?> = _postToEdit
@@ -62,6 +70,114 @@ class ForumViewModel(
     val isEditMode: Boolean
         get() = postToEdit.value != null
 
+
+    private val _comments = MutableStateFlow<List<ForumComment>>(emptyList())
+    val comments: StateFlow<List<ForumComment>> = _comments
+
+    fun fetchComments(postId: String) {
+        FirebaseFirestore.getInstance().collection("forum_comments")
+            .whereEqualTo("postId", postId)
+            .orderBy("timestamp", Query.Direction.ASCENDING)
+            .addSnapshotListener { snapshot, _ ->
+                if (snapshot != null) {
+                    val list = snapshot.toObjects(ForumComment::class.java)
+                    _comments.value = list
+                }
+            }
+    }
+
+    fun observeComments(postId: String) {
+        viewModelScope.launch {
+            getCommentsFlow(postId).collectLatest { comments ->
+                _comments.value = comments
+            }
+        }
+    }
+
+    private fun getCommentsFlow(postId: String) = callbackFlow {
+        val listener = firestore.collection("forum_comments")
+            .whereEqualTo("postId", postId)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    close(error)
+                    return@addSnapshotListener
+                }
+
+                val comments = snapshot?.toObjects(ForumComment::class.java)
+                    ?.sortedBy { it.timestamp } ?: emptyList()
+
+                trySend(comments).isSuccess
+            }
+
+        awaitClose { listener.remove() }
+    }
+
+
+    fun postComment(postId: String, content: String) {
+        // Get the userId of the currently logged-in user
+        val userId = FirebaseAuth.getInstance().currentUser?.uid
+        if (userId == null) {
+            Log.e("ForumViewModel", "User is not logged in")
+            return
+        }
+        // Get the reference to the user document in Firestore
+        val userRef = FirebaseFirestore.getInstance().collection("users").document(userId)
+        val postRef = FirebaseFirestore.getInstance().collection("forumPosts").document(postId)
+
+        // Fetch the user data from Firestore
+        viewModelScope.launch {
+            try {
+                // Get the user data from Firestore
+                val userSnapshot = userRef.get().await()
+                val user = userSnapshot.toObject(UserProfile::class.java)
+
+                // If user data is found, create the comment
+                if (user != null) {
+                    val comment = ForumComment(
+                        id = UUID.randomUUID().toString(),
+                        postId = postId,
+                        authorId = userId,
+                        authorName = user.userName,
+                        authorImageUrl = user.profilePictureUrl,
+                        content = content,
+                        timestamp = Timestamp.now()
+                    )
+
+                    // Save the comment to Firestore
+                    FirebaseFirestore.getInstance().collection("forum_comments")
+                        .document(comment.id)
+                        .set(comment)
+                        .await() // Use await() to wait for the operation to complete
+
+                    // Now, increment the commentsCount in the post
+                    val postSnapshot = postRef.get().await()
+
+                    // Check if post exists and update commentsCount
+                    if (postSnapshot.exists()) {
+                        val currentCommentsCount =
+                            postSnapshot.getLong("commentsCount")?.toInt() ?: 0
+                        val updatedCommentsCount = currentCommentsCount + 1
+
+                        postRef.update("commentsCount", updatedCommentsCount).await()
+                    } else {
+                        Log.e("ForumViewModel", "Post not found")
+                    }
+                } else {
+                    Log.e("ForumViewModel", "User data not found in Firestore")
+                }
+            } catch (e: Exception) {
+                Log.e("ForumViewModel", "Error posting comment: ${e.message}")
+                // Handle error (e.g., show an error message)
+            }
+        }
+    }
+
+
+    fun refreshComments(postId: String) {
+        // Stop any ongoing listening to comments and fetch fresh data
+        _comments.value = emptyList() // Clear the old comments
+        observeComments(postId)  // Re-listen to the comments for the post
+    }
 
     fun onEvent(event: ForumEvent) {
         when (event) {
@@ -130,7 +246,6 @@ class ForumViewModel(
             }
 
 
-
             is ForumEvent.EditForumPost -> {
                 viewModelScope.launch {
                     try {
@@ -178,6 +293,7 @@ class ForumViewModel(
                 }
         }
     }
+
     fun isNetworkAvailable(context: Context): Boolean {
         val connectivityManager = getSystemService(context, ConnectivityManager::class.java)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -205,7 +321,8 @@ class ForumViewModel(
         viewModelScope.launch {
             try {
                 // Delete from Firestore
-                val postRef = FirebaseFirestore.getInstance().collection("forumPosts").document(forumPost.id)
+                val postRef =
+                    FirebaseFirestore.getInstance().collection("forumPosts").document(forumPost.id)
                 postRef.delete()
 
                 // Delete from Room
