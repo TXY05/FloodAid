@@ -8,6 +8,7 @@ import com.example.floodaid.models.VolunteerEventHistory
 import com.example.floodaid.models.VolunteerProfile
 import com.example.floodaid.roomDatabase.repository.VolunteerRepository
 import com.google.firebase.auth.FirebaseAuth
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -15,6 +16,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.Locale
 import kotlin.String
@@ -88,12 +90,6 @@ class VolunteerViewModel(
         }
     }
 
-    fun deleteEvent(event: VolunteerEvent) {
-        viewModelScope.launch {
-            repository.deleteEvent(event)
-        }
-    }
-
     fun getEvent(eventId: String): StateFlow<VolunteerEvent?> {
         return repository.getEvent(eventId)
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
@@ -124,12 +120,15 @@ class VolunteerViewModel(
         }
     }
 
-    fun deleteEventHistory(event: VolunteerEventHistory) {
-        viewModelScope.launch {
-            repository.deleteEventHistory(event)
+    fun deleteEventAndHistory(event: VolunteerEvent, onComplete: () -> Unit) {
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.deleteEvent(event)
+            repository.deleteEventHistory(event.firestoreId)
+            withContext(Dispatchers.Main) {
+                onComplete()
+            }
         }
     }
-
 
     fun getVolunteerProfile(userId: String) {
         viewModelScope.launch {

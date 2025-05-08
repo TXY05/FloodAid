@@ -87,7 +87,13 @@ class VolunteerRepository(
     }
 
     suspend fun deleteEvent(event: VolunteerEvent){
-        volunteerDao.delete(event)
+        try {
+            firestore.collection("event").document(event.firestoreId).delete().await()
+            volunteerDao.delete(event)
+        } catch (e: Exception) {
+            Log.e("VolunteerRepo", "Delete event failed", e)
+            throw e
+        }
     }
 
     fun getEvent(eventId:String): Flow<VolunteerEvent> =
@@ -116,8 +122,21 @@ class VolunteerRepository(
         }
     }
 
-    suspend fun deleteEventHistory(event: VolunteerEventHistory){
-        volunteerHistoryDao.delete(event)
+    suspend fun deleteEventHistory(eventId: String){
+        try {
+            val querySnapshot = firestore.collection("event_history")
+                .whereEqualTo("eventId", eventId)
+                .get()
+                .await()
+            for (doc in querySnapshot.documents) {
+                firestore.collection("event_history").document(doc.id).delete().await()
+            }
+            volunteerHistoryDao.deleteEventHistory(eventId)
+
+        } catch (e: Exception) {
+            Log.e("VolunteerRepo", "Delete event history failed", e)
+            throw e
+        }
     }
 
     suspend fun syncVolunteerProfile(userId: String) {

@@ -134,7 +134,8 @@ fun NavGraph(
 
         composable(route = Screen.Volunteer.route) {
             Volunteer(navController = navController,
-                viewModel = volunteerViewModel
+                viewModel = volunteerViewModel,
+                profileViewModel = profileViewModel
             )
         }
 
@@ -150,20 +151,24 @@ fun NavGraph(
             VolunteerDetail(
                 eventId = eventId,
                 navController = navController,
-                viewModel = volunteerViewModel
+                viewModel = volunteerViewModel,
+                profileViewModel = profileViewModel
             )
         }
 
         composable("volunteer_main") {
             Volunteer(
                 navController = navController,
-                viewModel = volunteerViewModel
+                viewModel = volunteerViewModel,
+                profileViewModel = profileViewModel
             )
         }
 
         composable("addVolunteerEvent") {
             AddVolunteerEvent(navController = navController,
-                viewModel = volunteerViewModel)
+                viewModel = volunteerViewModel,
+                profileViewModel = profileViewModel
+            )
         }
 
         composable(
@@ -178,18 +183,23 @@ fun NavGraph(
             EditVolunteerEvent(
                 eventId = eventId,
                 navController = navController,
-                viewModel = volunteerViewModel
+                viewModel = volunteerViewModel,
+                profileViewModel = profileViewModel
             )
         }
 
         composable("volunteerHistory") {
             VolunteerHistory(navController = navController,
-                viewModel = volunteerViewModel)
+                viewModel = volunteerViewModel,
+                profileViewModel = profileViewModel
+            )
         }
 
         composable("volunteerRegister") {
             VolunteerRegister(navController = navController,
-                viewModel = volunteerViewModel)
+                viewModel = volunteerViewModel,
+                profileViewModel = profileViewModel
+            )
         }
 
         composable(route = Screen.Welcome.route) {

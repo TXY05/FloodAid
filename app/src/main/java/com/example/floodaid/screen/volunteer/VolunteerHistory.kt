@@ -31,6 +31,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.example.floodaid.composable.VolunteerTopBar
 import com.example.floodaid.models.VolunteerEventHistory
+import com.example.floodaid.screen.profile.ProfileViewModel
 import java.text.SimpleDateFormat
 import java.util.Locale
 
@@ -38,7 +39,8 @@ import java.util.Locale
 @Composable
 fun VolunteerHistory(
     navController: NavHostController,
-    viewModel: VolunteerViewModel
+    viewModel: VolunteerViewModel,
+    profileViewModel: ProfileViewModel
 ) {
     val history by viewModel.history.collectAsState()
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(
@@ -52,7 +54,8 @@ fun VolunteerHistory(
             VolunteerTopBar(
                 scrollBehavior = scrollBehavior,
                 navController = navController,
-                onHistoryClick = { navController.navigate("volunteerHistory") }
+                onHistoryClick = { navController.navigate("volunteerHistory") },
+                viewModel = profileViewModel
             )
         },
         bottomBar = { BottomBar(navController = navController) }

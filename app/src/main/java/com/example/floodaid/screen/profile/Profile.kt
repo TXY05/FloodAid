@@ -77,6 +77,10 @@ fun Profile(
     navController: NavHostController,
     viewModel: ProfileViewModel
 ) {
+    val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(
+        state = rememberTopAppBarState()
+    )
+
     val imageUri = rememberSaveable { mutableStateOf<Uri?>(null) }
     val launcher = rememberLauncherForActivityResult(
         ActivityResultContracts.GetContent()
@@ -111,294 +115,324 @@ fun Profile(
     var isEditingDistrict by remember { mutableStateOf(false) }
     var isUploading by remember { mutableStateOf(false) }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(WindowInsets.statusBars.asPaddingValues())
-    ) {
-        // Background Image
-        Image(
-            painter = painterResource(id = R.drawable.loginbackground),
-            contentDescription = null,
-            modifier = Modifier.fillMaxSize(),
-            contentScale = ContentScale.Crop
-        )
+    Scaffold(
+        topBar = {
+            TopBar(
+                scrollBehavior = scrollBehavior,
+                navController = navController,
+                viewModel = viewModel
+            ) },
+    ) { innerPadding ->
 
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.SpaceBetween,
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 24.dp)
+                .padding(innerPadding)
         ) {
+            // Background Image
+            Image(
+                painter = painterResource(id = R.drawable.loginbackground),
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
+
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.fillMaxWidth()
+                verticalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 24.dp)
             ) {
-                Box(
-                    modifier = Modifier
-                        .padding(top = 50.dp, bottom = 20.dp)
-                        .size(90.dp)
-                        .align(Alignment.CenterHorizontally)
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    // Profile Image
-                    Card(
-                        shape = CircleShape,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .clickable { launcher.launch("image/*") }
-                    ) {
-                        AsyncImage(
-                            model = imageUri.value ?: R.drawable.ic_user,
-                            contentDescription = "Profile Picture",
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop,
-                            error = painterResource(id = R.drawable.ic_user),
-                            placeholder = painterResource(id = R.drawable.ic_user)
-                        )
-                    }
-
                     Box(
                         modifier = Modifier
-                            .size(50.dp)
-                            .align(Alignment.BottomEnd)
-                            .padding(8.dp)
-                            .offset(x = 10.dp, y = 10.dp)
-                            .background(Color.White, CircleShape)
-                            .border(1.dp, Color.Gray, CircleShape)
+                            .padding(top = 50.dp, bottom = 20.dp)
+                            .size(90.dp)
+                            .align(Alignment.CenterHorizontally)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Edit,
-                            contentDescription = "Camera Icon",
+                        // Profile Image
+                        Card(
+                            shape = CircleShape,
                             modifier = Modifier
-                                .align(Alignment.Center)
-                                .size(24.dp)
-                        )
+                                .fillMaxSize()
+                                .clickable { launcher.launch("image/*") }
+                        ) {
+                            AsyncImage(
+                                model = imageUri.value ?: R.drawable.ic_user,
+                                contentDescription = "Profile Picture",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop,
+                                error = painterResource(id = R.drawable.ic_user),
+                                placeholder = painterResource(id = R.drawable.ic_user)
+                            )
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .size(50.dp)
+                                .align(Alignment.BottomEnd)
+                                .padding(8.dp)
+                                .offset(x = 10.dp, y = 10.dp)
+                                .background(Color.White, CircleShape)
+                                .border(1.dp, Color.Gray, CircleShape)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Edit,
+                                contentDescription = "Camera Icon",
+                                modifier = Modifier
+                                    .align(Alignment.Center)
+                                    .size(24.dp)
+                            )
+                        }
                     }
-                }
 
-                Text(
-                    text = "Change Profile Picture",
-                    color = Color.White,
-                    fontFamily = AlegreyaSansFontFamily,
-                    fontSize = 20.sp,
-                    modifier = Modifier.padding(bottom = 15.dp)
-                )
+                    Text(
+                        text = "Change Profile Picture",
+                        color = Color.White,
+                        fontFamily = AlegreyaSansFontFamily,
+                        fontSize = 20.sp,
+                        modifier = Modifier.padding(bottom = 15.dp)
+                    )
 
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    if (isEditingFullName) {
-                        CTextField(
-                            value = fullName,
-                            onValueChange = { fullName = it },
-                            hint = "Full Name"
-                        )
-                    } else {
-                        Text(
-                            text = "Full Name: $fullName",
-                            modifier = Modifier.weight(1f),
-                            color = Color.White
-                        )
-                    }
-                    IconButton(onClick = { isEditingFullName = !isEditingFullName }) {
-                        Icon(imageVector = Icons.Default.Edit, contentDescription = "Edit Full Name")
-                    }
-                }
-
-                // Username
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    if (isEditingUsername) {
-                        CTextField(
-                            value = username,
-                            onValueChange = { username = it },
-                            hint = "Username"
-                        )
-                    } else {
-                        Text(
-                            text = "Username: $username",
-                            modifier = Modifier.weight(1f),
-                            color = Color.White
-                        )
-                    }
-                    IconButton(onClick = { isEditingUsername = !isEditingUsername }) {
-                        Icon(imageVector = Icons.Default.Edit, contentDescription = "Edit Username")
-                    }
-                }
-
-// MyKad / Passport Number
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    if (isEditingMyKad) {
-                        CTextField(
-                            value = myKadOrPassport,
-                            onValueChange = { myKadOrPassport = it },
-                            hint = "Mykad / Passport Number"
-                        )
-                    } else {
-                        Text(
-                            text = "Mykad / Passport Number: $myKadOrPassport",
-                            modifier = Modifier.weight(1f),
-                            color = Color.White
-                        )
-                    }
-                    IconButton(onClick = { isEditingMyKad = !isEditingMyKad }) {
-                        Icon(imageVector = Icons.Default.Edit, contentDescription = "Edit Mykad / Passport Number")
-                    }
-                }
-
-// Gender
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    if (isEditingGender) {
-                        GenderSelector(
-                            selectedGender = selectedGender,
-                            onGenderSelected = { selectedGender = it }
-                        )
-                    } else {
-                        Text(
-                            text = "Gender: $selectedGender",
-                            modifier = Modifier.weight(1f),
-                            color = Color.White
-                        )
-                    }
-                    IconButton(onClick = { isEditingGender = !isEditingGender }) {
-                        Icon(imageVector = Icons.Default.Edit, contentDescription = "Edit Gender")
-                    }
-                }
-
-// Date of Birth
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    if (isEditingBirthDate) {
-                        datePickerFieldToModal(
-                            birthOfDate = birthOfDate,
-                            onDateSelected = { birthOfDate = it }
-                        )
-                    } else {
-                        Text(
-                            text = "Date: $birthOfDate",
-                            modifier = Modifier.weight(1f),
-                            color = Color.White
-                        )
-                    }
-                    IconButton(onClick = { isEditingBirthDate = !isEditingBirthDate }) {
-                        Icon(imageVector = Icons.Default.Edit, contentDescription = "Edit Date")
-                    }
-                }
-
-// District
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    if (isEditingDistrict) {
-                        StateSelector(
-                            modifier = Modifier.weight(1f),
-                            currentDistrict = currentDistrict,
-                            onDistrictSelected = { currentDistrict = it },
-                            onTextChanged = { currentDistrict = it }
-                        )
-                    } else {
-                        Text(
-                            text = "District: $currentDistrict",
-                            modifier = Modifier.weight(1f),
-                            color = Color.White
-                        )
-                    }
-                    IconButton(onClick = { isEditingDistrict = !isEditingDistrict }) {
-                        Icon(imageVector = Icons.Default.Edit, contentDescription = "Edit District")
-                    }
-                }
-
-
-                Box(modifier = Modifier.fillMaxSize()) {
-
-                    Button(
-                        onClick = {
-                            Log.d("DEBUG", "Update button clicked")
-                            val uid = FirebaseAuth.getInstance().currentUser?.uid
-                            val email = FirebaseAuth.getInstance().currentUser?.email
-                            isUploading = true
-                            if (uid != null) {
-                                val storageRef = FirebaseStorage.getInstance().reference
-                                val fileName = "$uid-profile.jpg"
-                                val imageRef = storageRef.child("profileImages/$fileName")
-
-                                val uploadAndSaveProfile: (String) -> Unit = { imageUrl ->
-                                    val profile = UserProfile(
-                                        uid = uid,
-                                        fullName = fullName,
-                                        userName = username,
-                                        email = email ?: "",
-                                        myKadOrPassport = myKadOrPassport,
-                                        gender = selectedGender,
-                                        birthOfDate = birthOfDate,
-                                        location = currentDistrict,
-                                        profilePictureUrl = imageUrl
-                                    )
-                                    viewModel.updateProfile(profile)
-                                    isUploading = false
-                                    navController.popBackStack()
-                                    navController.navigate("profile")
-                                }
-
-                                if (imageUri.value != null && imageUri.value.toString().startsWith("content://")) {
-                                    // A new image has been picked
-                                    imageRef.putFile(imageUri.value!!)
-                                        .addOnSuccessListener {
-                                            imageRef.downloadUrl.addOnSuccessListener { downloadUrl ->
-                                                uploadAndSaveProfile(downloadUrl.toString())
-                                            }
-                                        }
-                                        .addOnFailureListener { e ->
-                                            Log.e("Firebase", "Image upload failed: ${e.message}")
-                                            isUploading = false
-                                        }
-                                } else {
-                                    // No new image selected, keep existing URL (or empty if null)
-                                    uploadAndSaveProfile(profileState?.profilePictureUrl ?: "")
-                                }
-                            }
-
-
-                        },
-                        shape = MaterialTheme.shapes.large,
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                        modifier = Modifier
-                            .padding(bottom = 16.dp)
-                            .fillMaxWidth()
-                            .height(52.dp)
-                            .align(alignment = Alignment.BottomCenter),
-                        enabled = !isUploading && fullName.isNotBlank() && username.isNotBlank() && myKadOrPassport.isNotBlank()
-                                && selectedGender.isNotBlank() && birthOfDate.isNotBlank() && currentDistrict.isNotBlank()
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        if (isUploading) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(22.dp),
-                                strokeWidth = 2.dp,
-                                color = Color.White
+                        if (isEditingFullName) {
+                            CTextField(
+                                value = fullName,
+                                onValueChange = { fullName = it },
+                                hint = "Full Name"
                             )
                         } else {
                             Text(
-                                "Update Profile",
-                                style = TextStyle(
-                                    fontSize = 22.sp,
-                                    fontFamily = AlegreyaSansFontFamily,
-                                    fontWeight = FontWeight(500),
+                                text = "Full Name: $fullName",
+                                modifier = Modifier.weight(1f),
+                                color = Color.White
+                            )
+                        }
+                        IconButton(onClick = { isEditingFullName = !isEditingFullName }) {
+                            Icon(
+                                imageVector = Icons.Default.Edit,
+                                contentDescription = "Edit Full Name"
+                            )
+                        }
+                    }
+
+                    // Username
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        if (isEditingUsername) {
+                            CTextField(
+                                value = username,
+                                onValueChange = { username = it },
+                                hint = "Username"
+                            )
+                        } else {
+                            Text(
+                                text = "Username: $username",
+                                modifier = Modifier.weight(1f),
+                                color = Color.White
+                            )
+                        }
+                        IconButton(onClick = { isEditingUsername = !isEditingUsername }) {
+                            Icon(
+                                imageVector = Icons.Default.Edit,
+                                contentDescription = "Edit Username"
+                            )
+                        }
+                    }
+
+// MyKad / Passport Number
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        if (isEditingMyKad) {
+                            CTextField(
+                                value = myKadOrPassport,
+                                onValueChange = { myKadOrPassport = it },
+                                hint = "Mykad / Passport Number"
+                            )
+                        } else {
+                            Text(
+                                text = "Mykad / Passport Number: $myKadOrPassport",
+                                modifier = Modifier.weight(1f),
+                                color = Color.White
+                            )
+                        }
+                        IconButton(onClick = { isEditingMyKad = !isEditingMyKad }) {
+                            Icon(
+                                imageVector = Icons.Default.Edit,
+                                contentDescription = "Edit Mykad / Passport Number"
+                            )
+                        }
+                    }
+
+// Gender
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        if (isEditingGender) {
+                            GenderSelector(
+                                selectedGender = selectedGender,
+                                onGenderSelected = { selectedGender = it }
+                            )
+                        } else {
+                            Text(
+                                text = "Gender: $selectedGender",
+                                modifier = Modifier.weight(1f),
+                                color = Color.White
+                            )
+                        }
+                        IconButton(onClick = { isEditingGender = !isEditingGender }) {
+                            Icon(
+                                imageVector = Icons.Default.Edit,
+                                contentDescription = "Edit Gender"
+                            )
+                        }
+                    }
+
+// Date of Birth
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        if (isEditingBirthDate) {
+                            datePickerFieldToModal(
+                                birthOfDate = birthOfDate,
+                                onDateSelected = { birthOfDate = it }
+                            )
+                        } else {
+                            Text(
+                                text = "Date: $birthOfDate",
+                                modifier = Modifier.weight(1f),
+                                color = Color.White
+                            )
+                        }
+                        IconButton(onClick = { isEditingBirthDate = !isEditingBirthDate }) {
+                            Icon(imageVector = Icons.Default.Edit, contentDescription = "Edit Date")
+                        }
+                    }
+
+// District
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        if (isEditingDistrict) {
+                            StateSelector(
+                                modifier = Modifier.weight(1f),
+                                currentDistrict = currentDistrict,
+                                onDistrictSelected = { currentDistrict = it },
+                                onTextChanged = { currentDistrict = it }
+                            )
+                        } else {
+                            Text(
+                                text = "District: $currentDistrict",
+                                modifier = Modifier.weight(1f),
+                                color = Color.White
+                            )
+                        }
+                        IconButton(onClick = { isEditingDistrict = !isEditingDistrict }) {
+                            Icon(
+                                imageVector = Icons.Default.Edit,
+                                contentDescription = "Edit District"
+                            )
+                        }
+                    }
+
+
+                    Box(modifier = Modifier.fillMaxSize()) {
+
+                        Button(
+                            onClick = {
+                                Log.d("DEBUG", "Update button clicked")
+                                val uid = FirebaseAuth.getInstance().currentUser?.uid
+                                val email = FirebaseAuth.getInstance().currentUser?.email
+                                isUploading = true
+                                if (uid != null) {
+                                    val storageRef = FirebaseStorage.getInstance().reference
+                                    val fileName = "$uid-profile.jpg"
+                                    val imageRef = storageRef.child("profileImages/$fileName")
+
+                                    val uploadAndSaveProfile: (String) -> Unit = { imageUrl ->
+                                        val profile = UserProfile(
+                                            uid = uid,
+                                            fullName = fullName,
+                                            userName = username,
+                                            email = email ?: "",
+                                            myKadOrPassport = myKadOrPassport,
+                                            gender = selectedGender,
+                                            birthOfDate = birthOfDate,
+                                            location = currentDistrict,
+                                            profilePictureUrl = imageUrl
+                                        )
+                                        viewModel.updateProfile(profile)
+                                        isUploading = false
+                                        navController.popBackStack()
+                                        navController.navigate("profile")
+                                    }
+
+                                    if (imageUri.value != null && imageUri.value.toString()
+                                            .startsWith("content://")
+                                    ) {
+                                        // A new image has been picked
+                                        imageRef.putFile(imageUri.value!!)
+                                            .addOnSuccessListener {
+                                                imageRef.downloadUrl.addOnSuccessListener { downloadUrl ->
+                                                    uploadAndSaveProfile(downloadUrl.toString())
+                                                }
+                                            }
+                                            .addOnFailureListener { e ->
+                                                Log.e(
+                                                    "Firebase",
+                                                    "Image upload failed: ${e.message}"
+                                                )
+                                                isUploading = false
+                                            }
+                                    } else {
+                                        // No new image selected, keep existing URL (or empty if null)
+                                        uploadAndSaveProfile(profileState?.profilePictureUrl ?: "")
+                                    }
+                                }
+
+
+                            },
+                            shape = MaterialTheme.shapes.large,
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                            modifier = Modifier
+                                .padding(bottom = 16.dp)
+                                .fillMaxWidth()
+                                .height(52.dp)
+                                .align(alignment = Alignment.BottomCenter),
+                            enabled = !isUploading && fullName.isNotBlank() && username.isNotBlank() && myKadOrPassport.isNotBlank()
+                                    && selectedGender.isNotBlank() && birthOfDate.isNotBlank() && currentDistrict.isNotBlank()
+                        ) {
+                            if (isUploading) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(22.dp),
+                                    strokeWidth = 2.dp,
                                     color = Color.White
                                 )
-                            )
+                            } else {
+                                Text(
+                                    "Update Profile",
+                                    style = TextStyle(
+                                        fontSize = 22.sp,
+                                        fontFamily = AlegreyaSansFontFamily,
+                                        fontWeight = FontWeight(500),
+                                        color = Color.White
+                                    )
+                                )
+                            }
                         }
                     }
                 }
