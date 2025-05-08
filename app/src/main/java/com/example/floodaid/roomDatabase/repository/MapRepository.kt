@@ -22,10 +22,6 @@ class MapRepository(
     suspend fun deleteAllStates() = dao.deleteAllStates()
 
     // District operations
-//    suspend fun getAllDistricts(): List<District> = dao.getAllDistricts()
-    suspend fun getAllDistricts(): List<District> {
-        return dao.getAllDistricts()
-    }
     suspend fun getDistrictsByState(stateId: Long) = dao.getDistrictsByState(stateId)
     suspend fun getDistrictsByID(districtId: Long) = dao.getDistrictsByID(districtId)
     suspend fun getDistrictsByName(districtName: String): District {
