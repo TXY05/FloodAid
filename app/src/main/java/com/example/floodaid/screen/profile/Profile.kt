@@ -423,7 +423,8 @@ fun Profile(
                         onTextChanged = { currentDistrict = it }
                     )
 
-                    Box(modifier = Modifier.fillMaxSize()) {
+                    Box(modifier = Modifier.fillMaxSize()
+                        .padding(top = 40.dp)) {
                         var isUploading by remember { mutableStateOf(false) }
 
                         Button(

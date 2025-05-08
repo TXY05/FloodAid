@@ -20,9 +20,14 @@ import com.example.floodaid.models.VolunteerEventHistory
 import com.example.floodaid.screen.profile.ProfileViewModel
 import com.example.floodaid.screen.volunteer.VolunteerHistory
 import com.example.floodaid.screen.volunteer.VolunteerViewModel
+import com.example.floodaid.screen.volunteer.checkIfUserIsVolunteer
 import com.example.floodaid.ui.theme.AlegreyaSansFontFamily
 import com.example.jetpackcomposeauthui.components.CButton
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 import java.text.SimpleDateFormat
 import java.util.Locale
 
@@ -47,6 +52,14 @@ fun VolunteerDetail(
 
     val history by viewModel.history.collectAsState()
     val alrApplied = history.any { it.eventId == eventId }
+
+    var userName by remember { mutableStateOf("") }
+
+    LaunchedEffect(eventState) {
+        eventState?.let {
+            userName = getUsername(it.userId)
+        }
+    }
 
     Scaffold(
         modifier = Modifier
@@ -86,7 +99,7 @@ fun VolunteerDetail(
 
                 val detailItems = listOf(
                     "Event ID" to event.firestoreId,
-                    "User ID" to event.userId,
+                    "User Name" to userName,
                     "Description" to event.description,
                     "District" to event.district,
                     "Date" to formattedDate,
@@ -242,5 +255,15 @@ fun EventDetailItem(label: String, value: String) {
     Column {
         Text(text = label, fontWeight = FontWeight.Bold, fontSize = 14.sp)
         Text(text = value, fontSize = 16.sp)
+    }
+}
+
+suspend fun getUsername(userId: String): String {
+    return try {
+        val db = FirebaseFirestore.getInstance()
+        val document = db.collection("users").document(userId).get().await()
+        document.getString("userName") ?: "Unknown"
+    } catch (e: Exception) {
+        "Unknown"
     }
 }

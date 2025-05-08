@@ -3,11 +3,14 @@ package com.example.floodaid.screen.volunteer
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.floodaid.models.UserProfile
 import com.example.floodaid.models.VolunteerEvent
 import com.example.floodaid.models.VolunteerEventHistory
 import com.example.floodaid.models.VolunteerProfile
+import com.example.floodaid.roomDatabase.dao.UserProfileDao
 import com.example.floodaid.roomDatabase.repository.VolunteerRepository
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -164,6 +167,20 @@ class VolunteerViewModel(
     // Validate
     fun validatePhoneNumber(phone: String): Boolean {
         return phone.length >= 10 && phone.all { it.isDigit() }
+    }
+
+    fun fetchUsernameFromFirestore(userId: String, onResult: (String) -> Unit) {
+        val db = FirebaseFirestore.getInstance()
+        db.collection("users")
+            .document(userId)
+            .get()
+            .addOnSuccessListener { document ->
+                val userName = document.getString("userName") ?: "Unknown"
+                onResult(userName)
+            }
+            .addOnFailureListener {
+                onResult("Unknown")
+            }
     }
 
     // For room and firebase sync

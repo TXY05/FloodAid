@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -14,11 +15,8 @@ import androidx.navigation.NavHostController
 import com.example.floodaid.composable.VButton
 import com.example.floodaid.composable.VTextField
 import com.example.floodaid.composable.VolunteerTopBar
-import com.example.floodaid.models.VolunteerEvent
 import com.example.floodaid.screen.login.datePickerFieldToModal
 import com.example.floodaid.screen.profile.ProfileViewModel
-import com.example.jetpackcomposeauthui.components.CButton
-import com.example.jetpackcomposeauthui.components.CTextField
 import com.google.firebase.auth.FirebaseAuth
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -37,11 +35,11 @@ fun EditVolunteerEvent(
         viewModel.getEvent(eventId)
     }.collectAsState()
 
-    var date by remember { mutableStateOf("") }
-    var startTime by remember { mutableStateOf("") }
-    var endTime by remember { mutableStateOf("") }
-    var description by remember { mutableStateOf("") }
-    var district by remember { mutableStateOf("") }
+    var date by rememberSaveable { mutableStateOf("") }
+    var startTime by rememberSaveable { mutableStateOf("") }
+    var endTime by rememberSaveable { mutableStateOf("") }
+    var description by rememberSaveable { mutableStateOf("") }
+    var district by rememberSaveable { mutableStateOf("") }
     val userId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
 
     Scaffold(

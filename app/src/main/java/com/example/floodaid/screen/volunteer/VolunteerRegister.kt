@@ -3,14 +3,20 @@ package com.example.floodaid.screen.volunteer
 import BottomBar
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.material3.MaterialTheme.colorScheme
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -34,6 +40,11 @@ fun VolunteerRegister(
     )
     val registration by viewModel.volunteer.collectAsState()
     val userId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
+
+    val focusManager = LocalFocusManager.current
+    val phoneFocusRequester = remember  { FocusRequester() }
+    val emgNameFocusRequester = remember  { FocusRequester() }
+    val emgNumFocusRequester = remember  { FocusRequester() }
 
     Scaffold(
         modifier = Modifier
@@ -80,8 +91,14 @@ fun VolunteerRegister(
                             fontFamily = AlegreyaSansFontFamily,
                             color = colorScheme.onSurface.copy(alpha = 0.6f)
                         )) },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
-                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone,
+                        imeAction = ImeAction.Next),
+                    keyboardActions = KeyboardActions(
+                        onNext = { emgNameFocusRequester.requestFocus() }
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .focusRequester(phoneFocusRequester),
                     isError = !viewModel.validatePhoneNumber(registration.phoneNum),
                     supportingText = {
                         if (!viewModel.validatePhoneNumber(registration.phoneNum)) {
@@ -115,7 +132,13 @@ fun VolunteerRegister(
                             fontFamily = AlegreyaSansFontFamily,
                             color = colorScheme.onSurface.copy(alpha = 0.6f)
                         )) },
-                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                    keyboardActions = KeyboardActions(
+                        onNext = { emgNumFocusRequester.requestFocus() }
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .focusRequester(emgNameFocusRequester),
                     colors = TextFieldDefaults.colors(
                         focusedContainerColor = Color.Transparent,
                         unfocusedContainerColor = Color.Transparent,
@@ -143,8 +166,14 @@ fun VolunteerRegister(
                             fontFamily = AlegreyaSansFontFamily,
                             color = colorScheme.onSurface.copy(alpha = 0.6f)
                         )) },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
-                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone,
+                        imeAction = ImeAction.Done),
+                    keyboardActions = KeyboardActions(
+                        onDone = { focusManager.clearFocus() }
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .focusRequester(emgNumFocusRequester),
                     colors = TextFieldDefaults.colors(
                         focusedContainerColor = Color.Transparent,
                         unfocusedContainerColor = Color.Transparent,
@@ -154,6 +183,11 @@ fun VolunteerRegister(
                         focusedLabelColor = colorScheme.primary,
                         unfocusedLabelColor = colorScheme.onSurface.copy(alpha = 0.6f),
                     ),
+                    supportingText = {
+                        if (!viewModel.validatePhoneNumber(registration.emgNum)) {
+                            Text("Please enter a valid phone number")
+                        }
+                    },
                     textStyle = TextStyle(
                         fontSize = 18.sp,
                         fontFamily = AlegreyaSansFontFamily,
