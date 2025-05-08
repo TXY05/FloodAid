@@ -16,18 +16,23 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import com.example.floodaid.composable.TopBar
+import com.example.floodaid.screen.profile.ProfileViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
 fun Notification(
     navController: NavHostController,
+    viewModel: ProfileViewModel
 ) {
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(
         state = rememberTopAppBarState()
     )
     Scaffold(
-        topBar = { TopBar(scrollBehavior = scrollBehavior) },
+        topBar = { TopBar(
+            scrollBehavior = scrollBehavior,
+            navController = navController,
+            viewModel = viewModel) },
         bottomBar = { BottomBar(navController = navController) }
     ) {
         Column(

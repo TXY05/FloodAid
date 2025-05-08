@@ -15,6 +15,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.compose.rememberNavController
 import com.example.floodaid.roomDatabase.Repository.FirestoreRepository
+import com.example.floodaid.roomDatabase.Repository.ProfileRepository
 import com.example.floodaid.roomDatabase.database.FloodAidDatabase
 import com.example.floodaid.roomDatabase.repository.MapRepository
 import com.example.floodaid.roomDatabase.repository.VolunteerRepository
@@ -23,6 +24,8 @@ import com.example.floodaid.screen.login.AuthRepository
 import com.example.floodaid.screen.login.AuthViewModelFactory
 import com.example.floodaid.screen.map_UI.MapViewModel
 import com.example.floodaid.screen.map_UI.MapViewModelFactory
+import com.example.floodaid.screen.profile.ProfileViewModel
+import com.example.floodaid.screen.profile.ProfileViewModelFactory
 import com.example.floodaid.screen.volunteer.VolunteerViewModel
 import com.example.floodaid.screen.volunteer.VolunteerViewModelFactory
 import com.example.floodaid.ui.theme.FloodAidTheme
@@ -72,6 +75,12 @@ class MainActivity : AppCompatActivity() {
         val factory = MapViewModelFactory(application, repository)
         val mapViewModel = ViewModelProvider(this, factory)[MapViewModel::class.java]
 
+        // UserProfile ViewModel
+        val profileRepository = ProfileRepository(floodAidDatabase.userProfileDao())
+        val profileViewModel: ProfileViewModel by viewModels {
+            ProfileViewModelFactory(profileRepository, firebaseAuth)
+        }
+
         setContent {
             val navController = rememberNavController()
 
@@ -82,7 +91,8 @@ class MainActivity : AppCompatActivity() {
                     authViewModel = authViewModel,
                     volunteerViewModel = volunteerViewModel,
                     forumViewModel = forumViewModel,
-                    mapViewModel = mapViewModel
+                    mapViewModel = mapViewModel,
+                    profileViewModel = profileViewModel
                 )
             }
         }

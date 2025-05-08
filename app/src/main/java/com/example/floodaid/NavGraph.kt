@@ -19,7 +19,6 @@ import com.example.floodaid.roomDatabase.Repository.FirestoreRepository
 import com.example.floodaid.screen.Dashboard
 import com.example.floodaid.screen.floodstatus.FloodStatus
 import com.example.floodaid.screen.Notification
-import com.example.floodaid.screen.Profile
 import com.example.floodaid.screen.floodstatus.FloodStatusRepository
 import com.example.floodaid.screen.floodstatus.FloodStatusViewModelFactory
 //import com.example.floodaid.screen.forum.CreateForumPost
@@ -36,6 +35,8 @@ import com.example.floodaid.screen.map_UI.MapViewModel
 import com.example.floodaid.screen.map_UI.SOSButton
 import com.example.floodaid.screen.map_UI.SOSButtonPlacement
 import com.example.floodaid.screen.map_UI.SOSViewModel
+import com.example.floodaid.screen.profile.Profile
+import com.example.floodaid.screen.profile.ProfileViewModel
 import com.example.floodaid.screen.volunteer.AddVolunteerEvent
 import com.example.floodaid.screen.volunteer.EditVolunteerEvent
 import com.example.floodaid.screen.volunteer.Volunteer
@@ -53,7 +54,8 @@ fun NavGraph(
     authViewModel: AuthViewModel,
     volunteerViewModel: VolunteerViewModel,
     forumViewModel: ForumViewModel,
-    mapViewModel: MapViewModel
+    mapViewModel: MapViewModel,
+    profileViewModel: ProfileViewModel
 ) {
     val sosViewModel: SOSViewModel = viewModel()
 
@@ -70,7 +72,8 @@ fun NavGraph(
                     authViewModel = authViewModel,
                     repository = repository,
                     dao = dao,
-                    firestoreRepository = firestoreRepository
+                    firestoreRepository = firestoreRepository,
+                    profileViewModel = profileViewModel
                 )
                 SOSButton(
                     viewModel = sosViewModel,
@@ -113,11 +116,13 @@ fun NavGraph(
         }
 
         composable(route = Screen.Notification.route) {
-            Notification(navController = navController)
+            Notification(navController = navController,
+                viewModel = profileViewModel)
         }
 
         composable(route = Screen.Profile.route) {
-            Profile(navController = navController)
+            Profile(navController = navController,
+                viewModel = profileViewModel)
         }
 
         composable(route = Screen.Signup.route) {

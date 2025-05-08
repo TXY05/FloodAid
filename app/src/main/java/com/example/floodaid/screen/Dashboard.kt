@@ -61,6 +61,8 @@ import com.example.floodaid.screen.floodstatus.FloodStatusViewModelFactory
 import com.example.floodaid.viewmodel.FloodStatusViewModel
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.lifecycle.SavedStateHandle
+import com.example.floodaid.composable.TopBar
+import com.example.floodaid.screen.profile.ProfileViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
@@ -70,7 +72,8 @@ fun Dashboard(
     authViewModel: AuthViewModel,
     repository: FloodStatusRepository,
     dao: FloodStatusDao,
-    firestoreRepository: FirestoreRepository
+    firestoreRepository: FirestoreRepository,
+    profileViewModel: ProfileViewModel
 ) {
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(
         state = rememberTopAppBarState()
@@ -83,7 +86,8 @@ fun Dashboard(
             authViewModel = authViewModel,
             repository = repository,
             dao = dao,
-            firestoreRepository = firestoreRepository
+            firestoreRepository = firestoreRepository,
+            profileViewModel = profileViewModel
         )
     }
 }
@@ -91,11 +95,12 @@ fun Dashboard(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(
-    navController: NavController,
+    navController: NavHostController,
     authViewModel: AuthViewModel,
     repository: FloodStatusRepository,
     dao: FloodStatusDao,
-    firestoreRepository: FirestoreRepository
+    firestoreRepository: FirestoreRepository,
+    profileViewModel: ProfileViewModel
 ) {
     val viewModel: FloodStatusViewModel = viewModel(
         factory = FloodStatusViewModelFactory(
@@ -109,10 +114,17 @@ fun DashboardScreen(
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
     val uiState by viewModel.uiState.collectAsState()
 
+    val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(
+        state = rememberTopAppBarState()
+    )
+
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text("Dashboard") })
-        }
+            TopBar(
+            scrollBehavior = scrollBehavior,
+            navController = navController,
+            viewModel = profileViewModel
+            ) },
     ) { paddingValues ->
         if (isLandscape) {
             // Landscape layout with fixed-size shortcuts
