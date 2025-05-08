@@ -44,12 +44,14 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -57,6 +59,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import coil.compose.AsyncImage
+import com.example.floodaid.R
 import com.example.floodaid.models.Screen
 import com.example.floodaid.ui.theme.AlegreyaSansFontFamily
 import com.example.floodaid.viewmodel.ForumViewModel
@@ -67,8 +70,6 @@ import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import java.util.UUID
-import androidx.compose.runtime.State
-import androidx.lifecycle.viewmodel.compose.viewModel
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -98,8 +99,8 @@ fun ForumPostEditorScreen(
 ) {
 
     // State for content in the TextField
-    var forumContent by remember { mutableStateOf(forumPostToEdit?.content ?: "") }
-    var currentDistrict by remember { mutableStateOf(forumPostToEdit?.region ?: "") }
+    var forumContent by rememberSaveable { mutableStateOf(forumPostToEdit?.content ?: "") }
+    var currentDistrict by rememberSaveable { mutableStateOf(forumPostToEdit?.region ?: "") }
 
     val userId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
 
@@ -251,8 +252,10 @@ fun ForumPostEditorScreen(
                 ) {
 
                     AsyncImage(
-                        model = imageUrl,
+                        model = if (imageUrl.isNullOrEmpty()) R.drawable.ic_user else imageUrl,
                         contentDescription = "User Profile Image",
+                        placeholder = painterResource(R.drawable.ic_user),
+                        error = painterResource(R.drawable.ic_user),
                         modifier = Modifier
                             .size(64.dp)
                             .clip(CircleShape)
@@ -469,7 +472,7 @@ suspend fun getUserName(uid: String): String? {
     val db = FirebaseFirestore.getInstance()
     return try {
         val doc = db.collection("users").document(uid).get().await()
-        doc.getString("fullName")
+        doc.getString("userName")
     } catch (e: Exception) {
         Log.e("Firestore", "Error fetching user name", e)
         null

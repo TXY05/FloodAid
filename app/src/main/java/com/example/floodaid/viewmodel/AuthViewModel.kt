@@ -5,14 +5,22 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.floodaid.screen.login.AuthRepository
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
 
 class AuthViewModel(private val authRepository: AuthRepository) : ViewModel() {
     private val _authState = MutableLiveData<AuthState>()
     val authState: LiveData<AuthState> = _authState
-
+    private val _toastMessages = MutableSharedFlow<String>()
+    val toastMessages = _toastMessages.asSharedFlow()
     init {
         checkAuthStatus()
+    }
+    fun emitToast(message: String) {
+        viewModelScope.launch {
+            _toastMessages.emit(message)
+        }
     }
 
     fun checkAuthStatus() {
@@ -24,14 +32,26 @@ class AuthViewModel(private val authRepository: AuthRepository) : ViewModel() {
     fun loginFunction(email: String, password: String) {
         if (email.isEmpty() || password.isEmpty()) {
             _authState.value = AuthState.Error("Email or Password Can't Be Empty")
+
+            viewModelScope.launch {
+                _toastMessages.emit("Email or Password can't be empty")
+            }
             return
         }
 
         _authState.value = AuthState.Loading
         authRepository.signInWithEmail(email, password) { authState ->
             _authState.value = authState
+
+            // Emit a toast if it's an error
+            if (authState is AuthState.Error) {
+                viewModelScope.launch {
+                    _toastMessages.emit(authState.message)
+                }
+            }
         }
     }
+
 
     fun signupFunction(email: String, password: String) {
         if (email.isEmpty() || password.isEmpty()) {

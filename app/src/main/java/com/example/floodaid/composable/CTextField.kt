@@ -1,5 +1,6 @@
 package com.example.jetpackcomposeauthui.components
 
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -20,35 +21,51 @@ fun CTextField(
     value: String,
     onValueChange: (String) -> Unit = {},
     hint: String,
+    error: String? = null // Make the error optional
 ) {
-    TextField(
-        value = value,
-        label = {
-            Text(
-                text = hint,
-                style = TextStyle(
-                    fontSize = 18.sp,
-                    fontFamily = AlegreyaSansFontFamily,
-                    color = Color(0xFFBEC2C2)
+    Column {
+        TextField(
+            value = value,
+            onValueChange = onValueChange,
+            label = {
+                Text(
+                    text = hint,
+                    style = TextStyle(
+                        fontSize = 18.sp,
+                        fontFamily = AlegreyaSansFontFamily,
+                        color = Color(0xFFBEC2C2)
+                    )
                 )
+            },
+            singleLine = true,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 8.dp),
+            colors = TextFieldDefaults.colors(
+                focusedContainerColor = Color.Transparent,
+                unfocusedContainerColor = Color.Transparent,
+                focusedIndicatorColor = Color(0xFFBEC2C2),
+                unfocusedIndicatorColor = Color(0xFFBEC2C2),
+                cursorColor = Color(0xFFBEC2C2)
+            ),
+            textStyle = TextStyle(
+                fontSize = 18.sp,
+                fontFamily = AlegreyaSansFontFamily,
+                color = Color.White
             )
-        },
-        singleLine = true,
-        onValueChange = onValueChange,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(bottom = 8.dp),
-        colors = TextFieldDefaults.colors(
-            focusedContainerColor = Color.Transparent,
-            unfocusedContainerColor = Color.Transparent,
-            focusedIndicatorColor = Color(0xFFBEC2C2),
-            unfocusedIndicatorColor = Color(0xFFBEC2C2),
-            cursorColor = Color(0xFFBEC2C2)
-        ),
-        textStyle = TextStyle(
-            fontSize = 18.sp,
-            fontFamily = AlegreyaSansFontFamily,
-            color = Color.White
         )
-    )
+
+        // Show error message if error is not null or empty
+        error?.let {
+            Text(
+                text = it,
+                style = TextStyle(
+                    fontSize = 14.sp,
+                    color = Color.Red
+                ),
+                modifier = Modifier.padding(top = 4.dp)
+            )
+        }
+    }
 }
+

@@ -48,6 +48,8 @@ fun ForumTopBar(
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 colors = TextFieldDefaults.colors(
+                    focusedContainerColor = Color.Transparent,
+                    unfocusedContainerColor = Color.Transparent,
                     focusedIndicatorColor = Color.Transparent, // Remove bottom line when focused
                     unfocusedIndicatorColor = Color.Transparent // Remove bottom line when unfocused
                 )

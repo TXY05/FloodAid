@@ -1,5 +1,6 @@
 package com.example.floodaid.composable
 
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -31,56 +32,72 @@ fun PasswordTextField(
     value: String,
     onValueChange: (String) -> Unit,
     hint: String,
+    error: String? = null // Add an optional error parameter
 ) {
     var isPasswordVisible by remember { mutableStateOf(false) }
 
-    TextField(
-        value = value,
-        onValueChange = onValueChange,
-        label = {
-            Text(
-                text = hint,
-                style = TextStyle(
-                    fontSize = 18.sp,
-                    fontFamily = AlegreyaSansFontFamily,
-                    color = Color(0xFFBEC2C2)
+    Column {
+        TextField(
+            value = value,
+            onValueChange = onValueChange,
+            label = {
+                Text(
+                    text = hint,
+                    style = TextStyle(
+                        fontSize = 18.sp,
+                        fontFamily = AlegreyaSansFontFamily,
+                        color = Color(0xFFBEC2C2)
+                    )
                 )
-            )
-        },
-        placeholder = {
-            Text(
-                text = hint,
-                style = TextStyle(
-                    fontSize = 18.sp,
-                    fontFamily = AlegreyaSansFontFamily,
-                    color = Color(0xFFBEC2C2)
+            },
+            placeholder = {
+                Text(
+                    text = hint,
+                    style = TextStyle(
+                        fontSize = 18.sp,
+                        fontFamily = AlegreyaSansFontFamily,
+                        color = Color(0xFFBEC2C2)
+                    )
                 )
+            },
+            singleLine = true,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 8.dp),
+            colors = TextFieldDefaults.colors(
+                focusedContainerColor = Color.Transparent,
+                unfocusedContainerColor = Color.Transparent,
+                focusedIndicatorColor = Color(0xFFBEC2C2),
+                unfocusedIndicatorColor = Color(0xFFBEC2C2),
+                cursorColor = Color(0xFFBEC2C2)
+            ),
+            textStyle = TextStyle(
+                fontSize = 18.sp,
+                fontFamily = AlegreyaSansFontFamily,
+                color = Color.White
+            ),
+            visualTransformation = if (isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+            trailingIcon = {
+                val icon =
+                    if (isPasswordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff
+                val description = if (isPasswordVisible) "Hide password" else "Show password"
+                IconButton(onClick = { isPasswordVisible = !isPasswordVisible }) {
+                    Icon(imageVector = icon, contentDescription = description, tint = Color.White)
+                }
+            },
+        )
+
+        // Display error message below the password field if there is an error
+        if (!error.isNullOrEmpty()) {
+            Text(
+                text = error,
+                style = TextStyle(
+                    fontSize = 14.sp,
+                    color = Color.Red
+                ),
+                modifier = Modifier.padding(top = 4.dp)
             )
-        },
-        singleLine = true,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(bottom = 8.dp),
-        colors = TextFieldDefaults.colors(
-            focusedContainerColor = Color.Transparent,
-            unfocusedContainerColor = Color.Transparent,
-            focusedIndicatorColor = Color(0xFFBEC2C2),
-            unfocusedIndicatorColor = Color(0xFFBEC2C2),
-            cursorColor = Color(0xFFBEC2C2)
-        ),
-        textStyle = TextStyle(
-            fontSize = 18.sp,
-            fontFamily = AlegreyaSansFontFamily,
-            color = Color.White
-        ),
-        visualTransformation = if (isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-        trailingIcon = {
-            val icon =
-                if (isPasswordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff
-            val description = if (isPasswordVisible) "Hide password" else "Show password"
-            IconButton(onClick = { isPasswordVisible = !isPasswordVisible }) {
-                Icon(imageVector = icon, contentDescription = description, tint = Color.White)
-            }
         }
-    )
+    }
 }
+

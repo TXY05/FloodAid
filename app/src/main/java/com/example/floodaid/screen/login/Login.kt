@@ -1,6 +1,5 @@
 package com.example.floodaid.screen.login
 
-import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -57,40 +56,69 @@ fun Login(
 ) {
     var password by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
+    var emailError by remember { mutableStateOf<String?>(null) }
+    var passwordError by remember { mutableStateOf<String?>(null) }
 
     val authState = authViewModel.authState.observeAsState()
     val context = LocalContext.current
 
-    val firestore = FirebaseFirestore.getInstance()
-
+    var hasNavigated by remember { mutableStateOf(false) }
 
     LaunchedEffect(authState.value) {
-        when (authState.value) {
-            is AuthState.Authenticated -> {
-                val uid = FirebaseAuth.getInstance().currentUser?.uid
-                if (uid != null) {
-                    firestore.collection("users").document(uid).get()
-                        .addOnSuccessListener { doc ->
-                            val isComplete = doc.exists() && doc.getString("fullName") != null
-                            if (isComplete) {
-                                navController.navigate(Screen.Dashboard.route)
-                            } else {
-                                navController.navigate(Screen.RegisterProfile.route)
+        val state = authState.value
+
+        if (!hasNavigated && state is AuthState.Authenticated) {
+            hasNavigated = true
+
+            val uid = FirebaseAuth.getInstance().currentUser?.uid
+            if (uid != null) {
+                FirebaseFirestore.getInstance().collection("users").document(uid).get()
+                    .addOnSuccessListener { doc ->
+                        val isComplete = doc.exists() && doc.getString("fullName") != null
+                        if (isComplete) {
+                            navController.navigate(Screen.Dashboard.route) {
+                                popUpTo(Screen.Login.route) { inclusive = true }
+                            }
+                        } else {
+                            navController.navigate(Screen.RegisterProfile.route) {
+                                popUpTo(Screen.Login.route) { inclusive = true }
                             }
                         }
-                        .addOnFailureListener {
-                            Toast.makeText(context, "Error loading profile", Toast.LENGTH_SHORT)
-                                .show()
-                        }
-                }
+                    }
+                    .addOnFailureListener {
+                        authViewModel.emitToast("Error loading profile")
+                        hasNavigated = false
+                    }
             }
-
-            is AuthState.Error -> Toast.makeText(
-                context, (authState.value as AuthState.Error).message, Toast.LENGTH_SHORT
-            ).show()
-
-            else -> Unit
+        } else if (state is AuthState.Error) {
+            authViewModel.emitToast(state.message)
+            hasNavigated = false
         }
+    }
+
+    // Validation function
+    fun validateInputs(): Boolean {
+        var isValid = true
+        emailError = null
+        passwordError = null
+
+        if (email.isEmpty()) {
+            emailError = "Email cannot be empty"
+            isValid = false
+        } else if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+            emailError = "Please enter a valid email address"
+            isValid = false
+        }
+
+        if (password.isEmpty()) {
+            passwordError = "Password cannot be empty"
+            isValid = false
+        } else if (password.length < 6) {
+            passwordError = "Password must be at least 6 characters long"
+            isValid = false
+        }
+
+        return isValid
     }
 
     Surface(
@@ -98,25 +126,17 @@ fun Login(
         modifier = Modifier.fillMaxSize()
     ) {
 
-
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(WindowInsets.statusBars.asPaddingValues())
         ) {
-            /// Background Image
             Image(
-                painter = painterResource(
-                    id = R.drawable.loginbackground
-                ),
+                painter = painterResource(id = R.drawable.loginbackground),
                 contentDescription = null,
-                modifier = Modifier
-                    .fillMaxSize(),
+                modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop
-
             )
-
-            /// Content
 
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -151,7 +171,6 @@ fun Login(
                             .padding(bottom = 10.dp)
                     )
 
-
                     Text(
                         "Welcome Back",
                         style = TextStyle(
@@ -165,17 +184,19 @@ fun Login(
                             .padding(bottom = 24.dp)
                     )
 
-
-                    // Text Field
+                    // Text Fields
                     CTextField(
                         hint = "Email Address",
                         value = email,
-                        onValueChange = { newValue -> email = newValue })
+                        onValueChange = { newValue -> email = newValue },
+                        error = emailError
+                    )
 
                     PasswordTextField(
                         hint = "Password",
                         value = password,
                         onValueChange = { newValue -> password = newValue },
+                        error = passwordError
                     )
                 }
 
@@ -186,8 +207,11 @@ fun Login(
                     CButton(
                         text = "Sign In",
                         onClick = {
-                            authViewModel.loginFunction(email, password)
-                        }, enabled = authState.value != AuthState.Loading
+                            if (validateInputs()) {
+                                authViewModel.loginFunction(email, password)
+                            }
+                        },
+                        enabled = authState.value != AuthState.Loading
                     )
 
                     LoginDivider(text = "or")
@@ -225,18 +249,12 @@ fun Login(
                     DontHaveAccountRow(
                         onSignupTap = {
                             navController.navigate(Screen.Signup.route) {
-                                popUpTo(Screen.Welcome.route) {
-                                    saveState = false
-                                }
+                                popUpTo(Screen.Welcome.route) { saveState = false }
                             }
                         }
                     )
-
-
                 }
-
             }
-
         }
     }
 }

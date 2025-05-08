@@ -221,9 +221,10 @@ fun SocialMediaPost(
         var offset by remember { mutableStateOf(Offset(0f, 0f)) }
         val userId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
 
+
         // Avatar
         AsyncImage(
-            model = forumPost.authorImageUrl,
+            model = if (forumPost.authorImageUrl.isEmpty()) R.drawable.ic_user else forumPost.authorImageUrl,
             contentDescription = "User Profile Image",
             modifier = Modifier
                 .padding(start = 16.dp)
@@ -451,7 +452,7 @@ fun SocialMediaPost(
                 onShowCommentSheetChanged(true)
             },
             modifier = Modifier
-                .size(24.dp)
+                .size(30.dp)
                 .constrainAs(comment) {
                     top.linkTo(image.bottom, margin = 16.dp)
                     start.linkTo(parent.start, margin = 16.dp)
@@ -466,7 +467,7 @@ fun SocialMediaPost(
         // Comments count
         Text(
             text = forumPost.commentsCount.toString(),
-            style = MaterialTheme.typography.titleSmall,
+            style = MaterialTheme.typography.titleLarge,
             color = Color.Black,
             modifier = Modifier.constrainAs(comments) {
                 top.linkTo(image.bottom, margin = 18.dp)
@@ -521,8 +522,9 @@ fun CommentModalBottomSheet(
                         modifier = Modifier
                             .padding(vertical = 8.dp)
                     ) {
+
                         AsyncImage(
-                            model = comment.authorImageUrl,
+                            model = if (comment.authorImageUrl.isNullOrEmpty()) R.drawable.ic_user else comment.authorImageUrl,
                             contentDescription = "User Profile Image",
                             modifier = Modifier
                                 .size(48.dp)

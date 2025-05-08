@@ -18,6 +18,7 @@ import com.example.floodaid.screen.forum.ForumEvent
 import com.example.floodaid.screen.forum.ForumPost
 import com.example.floodaid.screen.forum.ForumSortType
 import com.example.floodaid.screen.forum.ForumState
+import com.example.floodaid.screen.forum.getCurrentUserProfileImageUrl
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -72,6 +73,15 @@ class ForumViewModel(
 
     private val _comments = MutableStateFlow<List<ForumComment>>(emptyList())
     val comments: StateFlow<List<ForumComment>> = _comments
+
+    private val _profileImageUrl = mutableStateOf<String?>(null)
+    val profileImageUrl: State<String?> = _profileImageUrl
+
+    init {
+        viewModelScope.launch {
+            _profileImageUrl.value = getCurrentUserProfileImageUrl()
+        }
+    }
 
     fun fetchComments(postId: String) {
         FirebaseFirestore.getInstance().collection("forum_comments")
