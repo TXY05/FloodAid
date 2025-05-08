@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import com.example.floodaid.screen.map_UI.MapViewModel
 import com.example.floodaid.viewmodel.FloodStatusViewModel
 import com.example.floodaid.viewmodel.SaveState
+import kotlinx.coroutines.delay
 
 @Composable
 fun AddFloodStatusDialog(
@@ -45,10 +46,42 @@ fun AddFloodStatusDialog(
     var status by remember { mutableStateOf("Safe") }
     var isDropdownExpanded by remember { mutableStateOf(false) }
     val uiState by viewModel.uiState.collectAsState()
-
-    LaunchedEffect(uiState.saveState) {
-        if (uiState.saveState == SaveState.SUCCESS) {
-            // Dialog will be dismissed by the ViewModel
+    
+    // Add countdown timer state
+    var remainingSeconds by remember { mutableStateOf(0) }
+    
+    // Start countdown when dialog opens
+    LaunchedEffect(Unit) {
+        // Get the last update time for the selected location
+        val currentTime = System.currentTimeMillis()
+        val lastUpdateTime = viewModel.getLastUpdateTime(selectedLocation)
+        val timeSinceLastUpdate = currentTime - lastUpdateTime
+        val twoMinutesInMillis = 2 * 60 * 1000 // 2 minutes in milliseconds
+        
+        if (timeSinceLastUpdate < twoMinutesInMillis) {
+            remainingSeconds = ((twoMinutesInMillis - timeSinceLastUpdate) / 1000).toInt()
+            while (remainingSeconds > 0) {
+                delay(1000)
+                remainingSeconds--
+            }
+        }
+    }
+    
+    // Update countdown when location changes
+    LaunchedEffect(selectedLocation) {
+        val currentTime = System.currentTimeMillis()
+        val lastUpdateTime = viewModel.getLastUpdateTime(selectedLocation)
+        val timeSinceLastUpdate = currentTime - lastUpdateTime
+        val twoMinutesInMillis = 2 * 60 * 1000 // 2 minutes in milliseconds
+        
+        if (timeSinceLastUpdate < twoMinutesInMillis) {
+            remainingSeconds = ((twoMinutesInMillis - timeSinceLastUpdate) / 1000).toInt()
+            while (remainingSeconds > 0) {
+                delay(1000)
+                remainingSeconds--
+            }
+        } else {
+            remainingSeconds = 0
         }
     }
 
@@ -79,15 +112,6 @@ fun AddFloodStatusDialog(
                     }
                 }
 
-                if (uiState.errorMessage.isNotEmpty()) {
-                    Text(
-                        text = uiState.errorMessage,
-                        color = Color.Red,
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.padding(top = 8.dp)
-                    )
-                }
-
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Text("Select Status:")
@@ -106,6 +130,26 @@ fun AddFloodStatusDialog(
                         Spacer(modifier = Modifier.width(8.dp))
                     }
                 }
+
+                // Always show timer if there's remaining time
+                if (remainingSeconds > 0) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Please wait $remainingSeconds seconds before updating status again",
+                        color = Color.Red,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+
+                // Show other validation messages
+                if (uiState.validationMessage.isNotEmpty() && remainingSeconds == 0) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = uiState.validationMessage,
+                        color = Color.Red,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
             }
         },
         confirmButton = {
@@ -114,15 +158,10 @@ fun AddFloodStatusDialog(
                     if (selectedLocation.isEmpty()) {
                         viewModel.setErrorMessage("Please select a location.")
                     } else {
-                        // Use ViewModel's method with state management
-                        viewModel.saveFloodMarker(
-                            location = selectedLocation,
-                            status = status,
-                            mapViewModel = mapViewModel
-                        )
+                        viewModel.updateFloodStatus(selectedLocation, status)
                     }
                 },
-                enabled = uiState.saveState != SaveState.SAVING
+                enabled = uiState.saveState != SaveState.SAVING && remainingSeconds == 0
             ) {
                 if (uiState.saveState == SaveState.SAVING) {
                     CircularProgressIndicator(modifier = Modifier.size(16.dp))

@@ -41,7 +41,8 @@ data class FloodStatusUiState(
     val showDialog: Boolean = false,
     val currentStatus: String = "Unknown",
     val saveState: SaveState = SaveState.IDLE,
-    val errorMessage: String = ""
+    val errorMessage: String = "",
+    val validationMessage: String = ""
 )
 
 class FloodStatusViewModel(
@@ -50,6 +51,14 @@ class FloodStatusViewModel(
     private val firestoreRepository: FirestoreRepository,
     private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
+
+    // Add map to track last update times for each location
+    private val lastUpdateTimes = mutableMapOf<String, Long>()
+
+    // Function to get last update time for a location
+    fun getLastUpdateTime(location: String): Long {
+        return lastUpdateTimes[location] ?: 0L
+    }
 
     val locations = repository.getAllLocations().asLiveData()
     private val _uiState = MutableStateFlow(
@@ -105,11 +114,16 @@ class FloodStatusViewModel(
     }
 
     fun showDialog() {
-        _uiState.value = _uiState.value.copy(showDialog = true, saveState = SaveState.IDLE, errorMessage = "")
+        _uiState.value = _uiState.value.copy(showDialog = true, saveState = SaveState.IDLE, errorMessage = "", validationMessage = "")
     }
 
     fun dismissDialog() {
-        _uiState.value = _uiState.value.copy(showDialog = false, saveState = SaveState.IDLE, errorMessage = "")
+        _uiState.value = _uiState.value.copy(
+            showDialog = false,
+            saveState = SaveState.IDLE,
+            errorMessage = "",
+            validationMessage = ""
+        )
     }
 
     private val _snackbarMessage = MutableStateFlow<String?>(null)
@@ -124,19 +138,43 @@ class FloodStatusViewModel(
     }
 
     fun updateFloodStatus(location: String, status: String) {
+        val currentTime = System.currentTimeMillis()
+        val lastUpdateTime = lastUpdateTimes[location] ?: 0L
+        val timeSinceLastUpdate = currentTime - lastUpdateTime
+        val twoMinutesInMillis = 2 * 60 * 1000 // 2 minutes in milliseconds
+
+        if (timeSinceLastUpdate < twoMinutesInMillis) {
+            val remainingSeconds = (twoMinutesInMillis - timeSinceLastUpdate) / 1000
+            _uiState.value = _uiState.value.copy(
+                validationMessage = "Please wait ${remainingSeconds} seconds before updating status again",
+                saveState = SaveState.ERROR
+            )
+            return
+        }
+
         val currentDate = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date())
-        val currentTime = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
+        val currentTimeStr = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
 
         viewModelScope.launch {
             try {
-                repository.updateFloodStatus(location, status, currentDate, currentTime)
+                repository.updateFloodStatus(location, status, currentDate, currentTimeStr)
+                lastUpdateTimes[location] = currentTime
+                _uiState.value = _uiState.value.copy(
+                    saveState = SaveState.SUCCESS,
+                    validationMessage = ""
+                )
                 showSnackbar("Status updated successfully!")
+                // Close dialog after successful update
+                delay(500) // Small delay to ensure snackbar is visible
+                dismissDialog()
             } catch (e: Exception) {
-                showSnackbar("Failed to update status: ${e.message}")
+                _uiState.value = _uiState.value.copy(
+                    saveState = SaveState.ERROR,
+                    validationMessage = "Failed to update status: ${e.message}"
+                )
             }
         }
     }
-
 
     fun syncFromFirestore() {
         viewModelScope.launch {
@@ -170,13 +208,11 @@ class FloodStatusViewModel(
                 // Create flood marker with proper ID
                 val reportMarker = FloodMarker(
                     id = FloodMarker.TEMP_ID,
-                    floodStatus = status.lowercase(),
+                    floodStatus = if (status.lowercase() == "flood") "flooded" else "safe",
                     districtId = district.id,
-                    latitude = 4.2105,
-                    longitude = 101.9758,
-//                    latitude = district.latitude,
-//                    longitude = district.longitude,
-                    expiryTime = Instant.now().plus(2, ChronoUnit.MINUTES)
+                    latitude = district.latitude,
+                    longitude = district.longitude,
+                    expiryTime = Instant.now().plus(4, ChronoUnit.DAYS)
                 )
 
                 // Let MapViewModel handle the saving to both databases
@@ -192,9 +228,9 @@ class FloodStatusViewModel(
 
             } catch (e: Exception) {
                 Log.e("MapDebug", "Error saving flood status", e)
-            _uiState.value = _uiState.value.copy(
-                saveState = SaveState.ERROR,
-                errorMessage = "Error: ${e.message ?: "Unknown error"}"
+                _uiState.value = _uiState.value.copy(
+                    saveState = SaveState.ERROR,
+                    errorMessage = "Error: ${e.message ?: "Unknown error"}"
                 )
             }
         }

@@ -81,123 +81,128 @@ fun FloodStatus(navController: NavHostController, viewModel: FloodStatusViewMode
     ) { innerPadding ->
         Crossfade(targetState = uiState.selectedLocation) { selectedLocation ->
             if (selectedLocation == null) {
-                Column(
+                LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(innerPadding),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text(
-                        text = "Selangor's Flood Status",
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(top = 16.dp)
-                    )
-
-                    Text(
-                        text = "Tap a location below to view details or update status.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Color.Gray,
-                        modifier = Modifier
-                            .padding(horizontal = 16.dp, vertical = 8.dp)
-                            .fillMaxWidth()
-                            .wrapContentWidth(Alignment.CenterHorizontally)
-                    )
-
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 8.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.CheckCircle,
-                            contentDescription = "Safe",
-                            tint = Color.Green,
-                            modifier = Modifier.size(20.dp)
-                        )
+                    item {
                         Text(
-                            " Safe",
-                            color = Color.Gray,
+                            text = "Selangor's Flood Status",
+                            style = MaterialTheme.typography.headlineMedium,
                             fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(start = 4.dp)
-                        )
-
-                        Spacer(modifier = Modifier.width(24.dp))
-
-                        Icon(
-                            imageVector = Icons.Default.Warning,
-                            contentDescription = "Flooded",
-                            tint = Color.Red,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Text(
-                            " Flooded",
-                            color = Color.Gray,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(start = 4.dp)
+                            modifier = Modifier.padding(top = 16.dp)
                         )
                     }
 
-                    Button(onClick = { viewModel.showDialog() }) {
-                        Text("Update Flood Status")
+                    item {
+                        Text(
+                            text = "Tap a location below to view details or update status.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color.Gray,
+                            modifier = Modifier
+                                .padding(horizontal = 16.dp, vertical = 8.dp)
+                                .fillMaxWidth()
+                                .wrapContentWidth(Alignment.CenterHorizontally)
+                        )
                     }
 
-                    LazyColumn(
-                        modifier = Modifier
-                            .weight(1f)
-                            .padding(16.dp)
-                    ) {
-                        items(uiState.floodData) { locationStatus ->
-                            Card(
-                                shape = RoundedCornerShape(12.dp),
-                                elevation = CardDefaults.cardElevation(6.dp),
+                    item {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 8.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.CheckCircle,
+                                contentDescription = "Safe",
+                                tint = Color.Green,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Text(
+                                " Safe",
+                                color = Color.Gray,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(start = 4.dp)
+                            )
+
+                            Spacer(modifier = Modifier.width(24.dp))
+
+                            Icon(
+                                imageVector = Icons.Default.Warning,
+                                contentDescription = "Flooded",
+                                tint = Color.Red,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Text(
+                                " Flooded",
+                                color = Color.Gray,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(start = 4.dp)
+                            )
+                        }
+                    }
+
+                    item {
+                        Button(
+                            onClick = { viewModel.showDialog() },
+                            modifier = Modifier.padding(vertical = 8.dp)
+                        ) {
+                            Text("Update Flood Status")
+                        }
+                    }
+
+                    items(uiState.floodData) { locationStatus ->
+                        Card(
+                            shape = RoundedCornerShape(12.dp),
+                            elevation = CardDefaults.cardElevation(6.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 8.dp)
+                                .clickable { viewModel.selectLocation(locationStatus.location) }
+                        ) {
+                            Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(vertical = 8.dp)
-                                    .clickable { viewModel.selectLocation(locationStatus.location) }
+                                    .padding(16.dp),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(16.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        text = locationStatus.location,
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.SemiBold,
-                                        modifier = Modifier.weight(1f)
-                                    )
+                                Text(
+                                    text = locationStatus.location,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                    modifier = Modifier.weight(1f)
+                                )
 
-                                    Icon(
-                                        imageVector = when (locationStatus.status) {
-                                            "Flooded" -> Icons.Default.Warning
-                                            "Safe" -> Icons.Default.CheckCircle
-                                            else -> Icons.Default.Warning
-                                        },
-                                        contentDescription = locationStatus.status,
-                                        tint = when (locationStatus.status) {
-                                            "Flooded" -> Color.Red
-                                            "Safe" -> Color.Green
-                                            else -> Color.Gray
-                                        },
-                                        modifier = Modifier.size(24.dp)
-                                    )
+                                Icon(
+                                    imageVector = when (locationStatus.status) {
+                                        "Flooded" -> Icons.Default.Warning
+                                        "Safe" -> Icons.Default.CheckCircle
+                                        else -> Icons.Default.Warning
+                                    },
+                                    contentDescription = locationStatus.status,
+                                    tint = when (locationStatus.status) {
+                                        "Flooded" -> Color.Red
+                                        "Safe" -> Color.Green
+                                        else -> Color.Gray
+                                    },
+                                    modifier = Modifier.size(24.dp)
+                                )
 
-                                    Text(
-                                        text = locationStatus.status,
-                                        fontWeight = FontWeight.Bold,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = when (locationStatus.status) {
-                                            "Flooded" -> Color.Red
-                                            "Safe" -> Color.Green
-                                            else -> Color.Gray
-                                        },
-                                        modifier = Modifier.padding(start = 8.dp)
-                                    )
-                                }
+                                Text(
+                                    text = locationStatus.status,
+                                    fontWeight = FontWeight.Bold,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = when (locationStatus.status) {
+                                        "Flooded" -> Color.Red
+                                        "Safe" -> Color.Green
+                                        else -> Color.Gray
+                                    },
+                                    modifier = Modifier.padding(start = 8.dp)
+                                )
                             }
                         }
                     }
