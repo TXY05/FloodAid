@@ -1,5 +1,6 @@
 package com.example.floodaid.screen.login
 
+import android.content.res.Configuration
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -14,6 +15,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
@@ -24,11 +27,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
@@ -54,8 +59,8 @@ fun Login(
     navController: NavHostController,
     authViewModel: AuthViewModel,
 ) {
-    var password by remember { mutableStateOf("") }
-    var email by remember { mutableStateOf("") }
+    var password by rememberSaveable { mutableStateOf("") }
+    var email by rememberSaveable { mutableStateOf("") }
     var emailError by remember { mutableStateOf<String?>(null) }
     var passwordError by remember { mutableStateOf<String?>(null) }
 
@@ -63,6 +68,10 @@ fun Login(
     val context = LocalContext.current
 
     var hasNavigated by remember { mutableStateOf(false) }
+
+
+    val configuration = LocalConfiguration.current
+    val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
 
     LaunchedEffect(authState.value) {
         val state = authState.value
@@ -120,139 +129,283 @@ fun Login(
 
         return isValid
     }
-
-    Surface(
-        color = Color(0xFF253334),
-        modifier = Modifier.fillMaxSize()
-    ) {
-
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(WindowInsets.statusBars.asPaddingValues())
+    if (isLandscape) {
+        Surface(
+            color = Color(0xFF253334),
+            modifier = Modifier.fillMaxSize()
+                .verticalScroll(rememberScrollState()),
         ) {
-            Image(
-                painter = painterResource(id = R.drawable.loginbackground),
-                contentDescription = null,
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop
-            )
 
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.SpaceBetween,
+            Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 24.dp),
+                    .padding(WindowInsets.statusBars.asPaddingValues())
             ) {
+                Image(
+                    painter = painterResource(id = R.drawable.loginbackground),
+                    contentDescription = null,
+                    modifier = Modifier.height(800.dp)
+                    .fillMaxWidth(),
+                    contentScale = ContentScale.FillBounds
+                )
+
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.fillMaxWidth()
+                    verticalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 6.dp),
                 ) {
-                    // Logo
-                    Image(
-                        painter = painterResource(id = R.drawable.logo),
-                        contentDescription = null,
-                        modifier = Modifier
-                            .padding(top = 10.dp)
-                            .height(150.dp)
-                            .align(Alignment.CenterHorizontally)
-                    )
-
-                    Text(
-                        text = "Hey there,",
-                        style = TextStyle(
-                            fontSize = 20.sp,
-                            fontFamily = AlegreyaSansFontFamily,
-                            color = Color.White
-                        ),
-                        modifier = Modifier
-                            .align(Alignment.CenterHorizontally)
-                            .padding(bottom = 10.dp)
-                    )
-
-                    Text(
-                        "Welcome Back",
-                        style = TextStyle(
-                            fontSize = 28.sp,
-                            fontFamily = AlegreyaFontFamily,
-                            fontWeight = FontWeight(500),
-                            color = Color.White
-                        ),
-                        modifier = Modifier
-                            .align(Alignment.CenterHorizontally)
-                            .padding(bottom = 24.dp)
-                    )
-
-                    // Text Fields
-                    CTextField(
-                        hint = "Email Address",
-                        value = email,
-                        onValueChange = { newValue -> email = newValue },
-                        error = emailError
-                    )
-
-                    PasswordTextField(
-                        hint = "Password",
-                        value = password,
-                        onValueChange = { newValue -> password = newValue },
-                        error = passwordError
-                    )
-                }
-
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    CButton(
-                        text = "Sign In",
-                        onClick = {
-                            if (validateInputs()) {
-                                authViewModel.loginFunction(email, password)
-                            }
-                        },
-                        enabled = authState.value != AuthState.Loading
-                    )
-
-                    LoginDivider(text = "or")
-
-                    OutlinedButton(
-                        onClick = {
-                            authViewModel.signInWithGoogle()
-                        },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color.White
-                        ),
-                        modifier = Modifier
-                            .height(52.dp)
-                            .fillMaxWidth()
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.fillMaxWidth()
                     ) {
+                        // Logo
                         Image(
-                            painter = painterResource(R.drawable.google_icon),
+                            painter = painterResource(id = R.drawable.logo),
                             contentDescription = null,
-                            modifier = Modifier.size(36.dp)
+                            modifier = Modifier
+                                .padding(top = 10.dp)
+                                .height(150.dp)
+                                .align(Alignment.CenterHorizontally)
                         )
 
-                        Spacer(modifier = Modifier.width(16.dp))
-
                         Text(
-                            text = "Sign-in with Google",
+                            text = "Hey there,",
                             style = TextStyle(
                                 fontSize = 20.sp,
                                 fontFamily = AlegreyaSansFontFamily,
+                                color = Color.White
+                            ),
+                            modifier = Modifier
+                                .align(Alignment.CenterHorizontally)
+                                .padding(bottom = 10.dp)
+                        )
+
+                        Text(
+                            "Welcome Back",
+                            style = TextStyle(
+                                fontSize = 28.sp,
+                                fontFamily = AlegreyaFontFamily,
                                 fontWeight = FontWeight(500),
-                                color = Color.Black
-                            )
+                                color = Color.White
+                            ),
+                            modifier = Modifier
+                                .align(Alignment.CenterHorizontally)
+                                .padding(bottom = 24.dp)
+                        )
+
+                        // Text Fields
+                        CTextField(
+                            hint = "Email Address",
+                            value = email,
+                            onValueChange = { newValue -> email = newValue },
+                            error = emailError,
+                            scaleDown = 0.5f
+                        )
+
+                        PasswordTextField(
+                            hint = "Password",
+                            value = password,
+                            onValueChange = { newValue -> password = newValue },
+                            error = passwordError,
+                            scaleDown = 0.5f
                         )
                     }
 
-                    DontHaveAccountRow(
-                        onSignupTap = {
-                            navController.navigate(Screen.Signup.route) {
-                                popUpTo(Screen.Welcome.route) { saveState = false }
-                            }
+                    Spacer(modifier = Modifier.height(50.dp))
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        CButton(
+                            text = "Sign In",
+                            onClick = {
+                                if (validateInputs()) {
+                                    authViewModel.loginFunction(email, password)
+                                }
+                            },
+                            enabled = authState.value != AuthState.Loading,
+                            scaleDown = 0.5f
+                        )
+
+                        LoginDivider(text = "or", scaleDown = 0.5f)
+
+                        OutlinedButton(
+                            onClick = {
+                                authViewModel.signInWithGoogle()
+                            },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color.White
+                            ),
+                            modifier = Modifier
+                                .height(52.dp)
+                                .fillMaxWidth(0.5f)
+                        ) {
+                            Image(
+                                painter = painterResource(R.drawable.google_icon),
+                                contentDescription = null,
+                                modifier = Modifier.size(36.dp)
+                            )
+
+                            Spacer(modifier = Modifier.width(16.dp))
+
+                            Text(
+                                text = "Sign-in with Google",
+                                style = TextStyle(
+                                    fontSize = 20.sp,
+                                    fontFamily = AlegreyaSansFontFamily,
+                                    fontWeight = FontWeight(500),
+                                    color = Color.Black
+                                )
+                            )
                         }
-                    )
+
+                        DontHaveAccountRow(
+                            onSignupTap = {
+                                navController.navigate(Screen.Signup.route) {
+                                    popUpTo(Screen.Welcome.route) { saveState = false }
+                                }
+                            }
+                        )
+                    }
+                }
+            }
+        }
+    } else {
+        Surface(
+            color = Color(0xFF253334),
+            modifier = Modifier.fillMaxSize()
+        ) {
+
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(WindowInsets.statusBars.asPaddingValues())
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.loginbackground),
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 24.dp),
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        // Logo
+                        Image(
+                            painter = painterResource(id = R.drawable.logo),
+                            contentDescription = null,
+                            modifier = Modifier
+                                .padding(top = 10.dp)
+                                .height(150.dp)
+                                .align(Alignment.CenterHorizontally)
+                        )
+
+                        Text(
+                            text = "Hey there,",
+                            style = TextStyle(
+                                fontSize = 20.sp,
+                                fontFamily = AlegreyaSansFontFamily,
+                                color = Color.White
+                            ),
+                            modifier = Modifier
+                                .align(Alignment.CenterHorizontally)
+                                .padding(bottom = 10.dp)
+                        )
+
+                        Text(
+                            "Welcome Back",
+                            style = TextStyle(
+                                fontSize = 28.sp,
+                                fontFamily = AlegreyaFontFamily,
+                                fontWeight = FontWeight(500),
+                                color = Color.White
+                            ),
+                            modifier = Modifier
+                                .align(Alignment.CenterHorizontally)
+                                .padding(bottom = 24.dp)
+                        )
+
+                        // Text Fields
+                        CTextField(
+                            hint = "Email Address",
+                            value = email,
+                            onValueChange = { newValue -> email = newValue },
+                            error = emailError
+                        )
+
+                        PasswordTextField(
+                            hint = "Password",
+                            value = password,
+                            onValueChange = { newValue -> password = newValue },
+                            error = passwordError
+                        )
+                    }
+
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        CButton(
+                            text = "Sign In",
+                            onClick = {
+                                if (validateInputs()) {
+                                    authViewModel.loginFunction(email, password)
+                                }
+                            },
+                            enabled = authState.value != AuthState.Loading
+                        )
+
+                        LoginDivider(text = "or")
+
+                        OutlinedButton(
+                            onClick = {
+                                authViewModel.signInWithGoogle()
+                            },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color.White
+                            ),
+                            modifier = Modifier
+                                .height(52.dp)
+                                .fillMaxWidth()
+                        ) {
+                            Image(
+                                painter = painterResource(R.drawable.google_icon),
+                                contentDescription = null,
+                                modifier = Modifier.size(36.dp)
+                            )
+
+                            Spacer(modifier = Modifier.width(16.dp))
+
+                            Text(
+                                text = "Sign-in with Google",
+                                style = TextStyle(
+                                    fontSize = 20.sp,
+                                    fontFamily = AlegreyaSansFontFamily,
+                                    fontWeight = FontWeight(500),
+                                    color = Color.Black
+                                )
+                            )
+                        }
+
+                        DontHaveAccountRow(
+                            onSignupTap = {
+                                navController.navigate(Screen.Signup.route) {
+                                    popUpTo(Screen.Welcome.route) { saveState = false }
+                                }
+                            }
+                        )
+                    }
                 }
             }
         }

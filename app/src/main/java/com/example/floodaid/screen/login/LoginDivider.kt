@@ -13,25 +13,29 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 @Composable
-fun LoginDivider(text: String) {
+fun LoginDivider(text: String, scaleDown: Float = 1f) {
     Row(
-        modifier= Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth(scaleDown),
         verticalAlignment = Alignment.CenterVertically
-    ){
+    ) {
         HorizontalDivider(
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
                 .weight(1f),
             thickness = 1.dp,
             color = Color.Gray
         )
 
-        Text(text=text,
-            modifier= Modifier.padding(8.dp),
+        Text(
+            text = text,
+            modifier = Modifier.padding(8.dp),
             fontSize = 18.sp,
-            color = Color.White)
+            color = Color.White
+        )
 
         HorizontalDivider(
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
                 .weight(1f),
             thickness = 1.dp,
             color = Color.Gray

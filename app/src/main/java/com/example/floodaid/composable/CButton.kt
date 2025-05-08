@@ -18,7 +18,8 @@ import com.example.floodaid.ui.theme.AlegreyaSansFontFamily
 fun CButton(
     onClick: () -> Unit = {},
     text: String,
-    enabled: Boolean = true
+    enabled: Boolean = true,
+    scaleDown:Float=1f
 ) {
     Button(
         onClick = onClick,
@@ -26,7 +27,7 @@ fun CButton(
             containerColor = Color(0xFF7C9A92)
         ),
         modifier = Modifier
-            .fillMaxWidth()
+            .fillMaxWidth(scaleDown)
             .height(52.dp)
     ) {
 

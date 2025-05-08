@@ -21,7 +21,8 @@ fun CTextField(
     value: String,
     onValueChange: (String) -> Unit = {},
     hint: String,
-    error: String? = null // Make the error optional
+    error: String? = null,
+    scaleDown: Float = 1f,
 ) {
     Column {
         TextField(
@@ -39,7 +40,7 @@ fun CTextField(
             },
             singleLine = true,
             modifier = Modifier
-                .fillMaxWidth()
+                .fillMaxWidth(scaleDown)
                 .padding(bottom = 8.dp),
             colors = TextFieldDefaults.colors(
                 focusedContainerColor = Color.Transparent,

@@ -281,7 +281,10 @@ fun Profile(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     if (isEditingBirthDate) {
-                        birthOfDate = datePickerFieldToModal()
+                        datePickerFieldToModal(
+                            birthOfDate = birthOfDate,
+                            onDateSelected = { birthOfDate = it }
+                        )
                     } else {
                         Text(
                             text = "Date: $birthOfDate",

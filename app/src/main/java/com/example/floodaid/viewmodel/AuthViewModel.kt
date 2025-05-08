@@ -13,7 +13,6 @@ class AuthViewModel(private val authRepository: AuthRepository) : ViewModel() {
     private val _authState = MutableLiveData<AuthState>()
     val authState: LiveData<AuthState> = _authState
     private val _toastMessages = MutableSharedFlow<String>()
-    val toastMessages = _toastMessages.asSharedFlow()
     init {
         checkAuthStatus()
     }

@@ -3,6 +3,8 @@ package com.example.floodaid.composable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
@@ -19,12 +21,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.floodaid.ui.theme.AlegreyaSansFontFamily
+import kotlinx.coroutines.flow.Flow
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -32,7 +38,8 @@ fun PasswordTextField(
     value: String,
     onValueChange: (String) -> Unit,
     hint: String,
-    error: String? = null // Add an optional error parameter
+    error: String? = null,
+    scaleDown: Float = 1f
 ) {
     var isPasswordVisible by remember { mutableStateOf(false) }
 
@@ -62,7 +69,7 @@ fun PasswordTextField(
             },
             singleLine = true,
             modifier = Modifier
-                .fillMaxWidth()
+                .fillMaxWidth(scaleDown)
                 .padding(bottom = 8.dp),
             colors = TextFieldDefaults.colors(
                 focusedContainerColor = Color.Transparent,
@@ -85,6 +92,10 @@ fun PasswordTextField(
                     Icon(imageVector = icon, contentDescription = description, tint = Color.White)
                 }
             },
+            keyboardOptions = KeyboardOptions.Default.copy(
+                keyboardType = KeyboardType.Password,
+                imeAction = ImeAction.Done
+            ),
         )
 
         // Display error message below the password field if there is an error

@@ -22,7 +22,7 @@ import com.google.firebase.auth.FirebaseAuth
 fun EditVolunteerEvent(
     eventId: String,
     navController: NavHostController,
-    viewModel: VolunteerViewModel = viewModel()
+    viewModel: VolunteerViewModel = viewModel(),
 ) {
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(
         state = rememberTopAppBarState()
@@ -73,14 +73,33 @@ fun EditVolunteerEvent(
                     text = "Date: ${event.date}",
                     style = MaterialTheme.typography.bodyMedium
                 )
-                val pickedDate = datePickerFieldToModal()
+
+                var pickedDate by remember { mutableStateOf("") }
+
+                datePickerFieldToModal(
+                    birthOfDate = pickedDate,
+                    onDateSelected = { pickedDate = it }
+                )
+
                 if (pickedDate.isNotEmpty()) {
                     date = pickedDate
                 }
-                CTextField(hint = "Start Time (HH:MM): ${event.startTime}", value = startTime, onValueChange = { startTime = it })
-                CTextField(hint = "End Time (HH:MM): ${event.endTime}", value = endTime, onValueChange = { endTime = it })
-                CTextField(hint = "Description: ${event.description}", value = description, onValueChange = { description = it })
-                CTextField(hint = "District: ${event.district}", value = district, onValueChange = { district = it })
+                CTextField(
+                    hint = "Start Time (HH:MM): ${event.startTime}",
+                    value = startTime,
+                    onValueChange = { startTime = it })
+                CTextField(
+                    hint = "End Time (HH:MM): ${event.endTime}",
+                    value = endTime,
+                    onValueChange = { endTime = it })
+                CTextField(
+                    hint = "Description: ${event.description}",
+                    value = description,
+                    onValueChange = { description = it })
+                CTextField(
+                    hint = "District: ${event.district}",
+                    value = district,
+                    onValueChange = { district = it })
 
                 CButton(
                     onClick = {

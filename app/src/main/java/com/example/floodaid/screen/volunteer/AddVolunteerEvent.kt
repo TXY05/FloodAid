@@ -33,6 +33,7 @@ fun AddVolunteerEvent(
     var district by remember { mutableStateOf("") }
     val userId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
 
+
     Scaffold(
         modifier = Modifier
             .nestedScroll(scrollBehavior.nestedScrollConnection),
@@ -56,7 +57,10 @@ fun AddVolunteerEvent(
                 style = MaterialTheme.typography.headlineMedium
             )
 
-            date = datePickerFieldToModal()
+            datePickerFieldToModal(
+                birthOfDate = date,
+                onDateSelected = { date = it }
+            )
             CTextField(hint = "Start Time (HH:MM)", value = startTime, onValueChange = { startTime = it })
             CTextField(hint = "End Time (HH:MM)", value = endTime, onValueChange = { endTime = it })
             CTextField(hint = "Description", value = description, onValueChange = { description = it })
