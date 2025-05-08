@@ -43,8 +43,8 @@ interface VolunteerEventHistoryDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(eventHistory: VolunteerEventHistory)
 
-    @Delete
-    suspend fun delete(eventHistory: VolunteerEventHistory)
+    @Query("DELETE FROM event_history WHERE eventId = :eventId")
+    fun deleteEventHistory(eventId: String)
 
     // For room and firebase sync
     @Query("""

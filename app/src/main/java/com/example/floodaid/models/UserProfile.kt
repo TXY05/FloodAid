@@ -16,3 +16,13 @@ data class UserProfile(
     val location: String = "",
     val profilePictureUrl: String = "",
 )
+
+@Entity(tableName = "user_location")
+data class UserLocation(
+    @PrimaryKey
+    val uid: String,
+    val latitude: Double,
+    val longitude: Double,
+    val timestamp: Long,
+    val isSOSActive: Boolean = true
+)

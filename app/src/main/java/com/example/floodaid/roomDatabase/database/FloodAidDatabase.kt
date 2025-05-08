@@ -5,6 +5,7 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
+import com.example.floodaid.models.UserLocation
 import com.example.floodaid.models.UserProfile
 import com.example.floodaid.models.VolunteerEvent
 import com.example.floodaid.models.VolunteerEventHistory
@@ -37,9 +38,10 @@ import com.example.floodaid.screen.forum.ForumPost
         LocationStatusEntity::class,
         FloodHistoryEntity::class,
         UserProfile::class,
+        UserLocation::class,
         ForumPost::class
     ],
-    version = 12, // Increment this number by 1
+    version = 13, // Increment this number by 1
     exportSchema = true
 )
 @TypeConverters(Converter::class)

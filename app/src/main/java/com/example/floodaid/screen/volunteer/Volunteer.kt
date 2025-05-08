@@ -7,8 +7,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -40,8 +42,10 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.navigation.NavHostController
+import com.example.floodaid.composable.VButton
 import com.example.floodaid.composable.VolunteerTopBar
 import com.example.floodaid.models.VolunteerEvent
+import com.example.floodaid.screen.profile.ProfileViewModel
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.launch
@@ -50,11 +54,12 @@ import java.text.SimpleDateFormat
 import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
-@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
+@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter", "UnusedBoxWithConstraintsScope")
 @Composable
 fun Volunteer(
     navController: NavHostController,
     viewModel: VolunteerViewModel,
+    profileViewModel: ProfileViewModel
 ) {
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(
         state = rememberTopAppBarState()
@@ -81,7 +86,8 @@ fun Volunteer(
             VolunteerTopBar(
                 scrollBehavior = scrollBehavior,
                 navController = navController,
-                onHistoryClick = { navController.navigate("volunteerHistory") }
+                onHistoryClick = { navController.navigate("volunteerHistory") },
+                viewModel = profileViewModel
             )
         },
         bottomBar = { BottomBar(navController = navController) },
@@ -90,50 +96,61 @@ fun Volunteer(
                 onClick = { navController.navigate("addVolunteerEvent") },
                 containerColor = MaterialTheme.colorScheme.primary
             ) {
-                Text("+") // Or use Icon(Icons.Default.Add, contentDescription = null)
+                Text("+")
             }
         }
     ) { innerPadding ->
-
-//        val minCalSize = 0
-//        val maxCalSize = 370
-//
-//        var currentCalSize by remember { mutableStateOf(maxCalSize) }
-//
-//        val nestedScrollConnection = remember {
-//            object : NestedScrollConnection {
-//                override fun onPreScroll(
-//                    available: Offset,
-//                    source: NestedScrollSource
-//                ): Offset {
-//                    val delta = available.y.toInt()
-//
-//                    val newCalSize = currentCalSize + delta
-//                    val previousCalSize = currentCalSize
-//                    currentCalSize =
-//                        newCalSize.coerceIn(minCalSize, maxCalSize)
-//                    val consumed = currentCalSize - previousCalSize
-//
-//                    return Offset(0f, consumed.toFloat())
-//                }
-//            }
-//        }
-
-        Column(
+        BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-//                .nestedScroll(nestedScrollConnection)
         ) {
-            EventListScreen(
-                viewModel = viewModel,
-                onEventClick = { event ->
-                    navController.navigate("volunteerDetail/${event.firestoreId}")
-                },
-                listState = listState,
-//                modifier = Modifier.offset { IntOffset(0, currentCalSize) }
-//                calendarHeight = currentCalSize.dp
-            )
+            val isWideScreen = maxWidth > 600.dp
+
+            if (isWideScreen) {
+                Row(
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(8.dp)
+                    ) {
+                        CalendarScreen(viewModel = viewModel)
+                    }
+                    Box(
+                        modifier = Modifier
+                            .weight(2f)
+                            .padding(8.dp)
+                    ) {
+                        EventListScreen(
+                            viewModel = viewModel,
+                            onEventClick = { event ->
+                                navController.navigate("volunteerDetail/${event.firestoreId}")
+                            },
+                            listState = listState,
+                            modifier = Modifier.fillMaxSize(),
+                            showCalendar = false
+                        )
+                    }
+                }
+            } else {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 10.dp)
+                ) {
+                    EventListScreen(
+                        viewModel = viewModel,
+                        onEventClick = { event ->
+                            navController.navigate("volunteerDetail/${event.firestoreId}")
+                        },
+                        listState = listState,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
+            }
         }
     }
 }
@@ -169,9 +186,7 @@ fun CalendarScreen(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Color.White)
-            .clip(RoundedCornerShape(50.dp)),
-//            .height(size),
+            .background(Color.White),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         CalendarViewComposable(viewModel = viewModel)
@@ -179,15 +194,6 @@ fun CalendarScreen(
             text = selectedDate?.let { "Selected Date: $it" } ?: "No Date Selected",
             style = MaterialTheme.typography.bodyLarge
         )
-
-        if (selectedDate != null) {
-            Button(
-                onClick = { viewModel.clearDateFilter() },
-                modifier = Modifier.padding(top = 8.dp)
-            ) {
-                Text("Show All Events")
-            }
-        }
     }
 }
 
@@ -197,6 +203,7 @@ fun EventListScreen(
     onEventClick: (VolunteerEvent) -> Unit,
     listState: LazyListState,
     modifier: Modifier = Modifier,
+    showCalendar: Boolean = true
 ) {
     val filteredEvents by viewModel.filteredEvents.collectAsState()
     val selectedDate by viewModel.selectedDate.collectAsState()
@@ -208,8 +215,18 @@ fun EventListScreen(
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        item {
-            CalendarScreen(viewModel = viewModel)
+        if (showCalendar) {
+            item {
+                CalendarScreen(viewModel = viewModel)
+            }
+        }
+        item{
+            if (selectedDate != null) {
+                VButton(
+                    onClick = { viewModel.clearDateFilter() },
+                    text = "Show All Events"
+                )
+            }
         }
         if (filteredEvents.isEmpty()) {
             item {

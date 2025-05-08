@@ -1,6 +1,7 @@
 package com.example.floodaid
 
 import VolunteerDetail
+import android.app.Application
 import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -16,6 +17,7 @@ import androidx.navigation.navArgument
 import com.example.floodaid.models.Screen
 import com.example.floodaid.roomDatabase.database.FloodAidDatabase
 import com.example.floodaid.roomDatabase.Repository.FirestoreRepository
+import com.example.floodaid.roomDatabase.Repository.ProfileRepository
 import com.example.floodaid.screen.Dashboard
 import com.example.floodaid.screen.floodstatus.FloodStatus
 import com.example.floodaid.screen.Notification
@@ -35,6 +37,7 @@ import com.example.floodaid.screen.map_UI.MapViewModel
 import com.example.floodaid.screen.map_UI.SOSButton
 import com.example.floodaid.screen.map_UI.SOSButtonPlacement
 import com.example.floodaid.screen.map_UI.SOSViewModel
+import com.example.floodaid.screen.map_UI.SOSViewModelFactory
 import com.example.floodaid.screen.profile.Profile
 import com.example.floodaid.screen.profile.ProfileViewModel
 import com.example.floodaid.screen.volunteer.AddVolunteerEvent
@@ -57,11 +60,29 @@ fun NavGraph(
     mapViewModel: MapViewModel,
     profileViewModel: ProfileViewModel
 ) {
-    val sosViewModel: SOSViewModel = viewModel()
+    val context = LocalContext.current
+    val database = FloodAidDatabase.getInstance(context)
+
+    // Create ProfileRepository for location tracking
+    val userProfileDao = database.userProfileDao()
+    val profileRepository = ProfileRepository(userProfileDao)
+
+    val sosViewModel: SOSViewModel = viewModel(
+        factory = SOSViewModelFactory(
+            context.applicationContext as Application,
+            profileRepository
+        )
+    )
+
+    // Connect the location data from MapViewModel to SOSViewModel to avoid duplicate tracking
+    LaunchedEffect(Unit) {
+        // Use the MapViewModel's location data in SOSViewModel to avoid duplicate tracking
+        sosViewModel.useExternalLocationSource(mapViewModel.currentLocation)
+        sosViewModel.setMapViewModel(mapViewModel)
+    }
 
     NavHost(navController = navController, startDestination = Screen.WelcomeLoading.route) {
         composable(route = Screen.Dashboard.route) {
-            val context = LocalContext.current
             val database = FloodAidDatabase.getInstance(context)
             val dao = database.floodStatusDao()
             val repository = FloodStatusRepository(dao, FirestoreRepository())
@@ -82,7 +103,6 @@ fun NavGraph(
             }
         }
         composable(route = Screen.FloodStatus.route) {
-            val context = LocalContext.current
             val database = FloodAidDatabase.getInstance(context)
             val dao = database.floodStatusDao()
             val repository = FloodStatusRepository(dao, FirestoreRepository())
@@ -106,7 +126,11 @@ fun NavGraph(
         composable(route = Screen.Map.route) {
             key("persistent_map") {
                 Box {
-                    Map(navController = navController, mapViewModel)
+                    Map(
+                        navController = navController,
+                        viewModel = mapViewModel,
+                        sosViewModel = sosViewModel
+                    )
                     SOSButton(
                         viewModel = sosViewModel,
                         placement = SOSButtonPlacement.MAP
@@ -134,7 +158,8 @@ fun NavGraph(
 
         composable(route = Screen.Volunteer.route) {
             Volunteer(navController = navController,
-                viewModel = volunteerViewModel
+                viewModel = volunteerViewModel,
+                profileViewModel = profileViewModel
             )
         }
 
@@ -150,20 +175,24 @@ fun NavGraph(
             VolunteerDetail(
                 eventId = eventId,
                 navController = navController,
-                viewModel = volunteerViewModel
+                viewModel = volunteerViewModel,
+                profileViewModel = profileViewModel
             )
         }
 
         composable("volunteer_main") {
             Volunteer(
                 navController = navController,
-                viewModel = volunteerViewModel
+                viewModel = volunteerViewModel,
+                profileViewModel = profileViewModel
             )
         }
 
         composable("addVolunteerEvent") {
             AddVolunteerEvent(navController = navController,
-                viewModel = volunteerViewModel)
+                viewModel = volunteerViewModel,
+                profileViewModel = profileViewModel
+            )
         }
 
         composable(
@@ -178,18 +207,23 @@ fun NavGraph(
             EditVolunteerEvent(
                 eventId = eventId,
                 navController = navController,
-                viewModel = volunteerViewModel
+                viewModel = volunteerViewModel,
+                profileViewModel = profileViewModel
             )
         }
 
         composable("volunteerHistory") {
             VolunteerHistory(navController = navController,
-                viewModel = volunteerViewModel)
+                viewModel = volunteerViewModel,
+                profileViewModel = profileViewModel
+            )
         }
 
         composable("volunteerRegister") {
             VolunteerRegister(navController = navController,
-                viewModel = volunteerViewModel)
+                viewModel = volunteerViewModel,
+                profileViewModel = profileViewModel
+            )
         }
 
         composable(route = Screen.Welcome.route) {

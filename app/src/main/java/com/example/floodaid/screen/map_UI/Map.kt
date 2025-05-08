@@ -70,6 +70,8 @@ import com.google.android.gms.maps.GoogleMapOptions
 import com.google.android.gms.maps.MapView
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.CameraPosition
+import com.google.android.gms.maps.model.Circle
+import com.google.android.gms.maps.model.CircleOptions
 import com.google.android.gms.maps.model.Dash
 import com.google.android.gms.maps.model.Gap
 import com.google.android.gms.maps.model.LatLng
@@ -81,6 +83,10 @@ import com.google.maps.android.clustering.ClusterManager
 import com.google.maps.android.clustering.view.DefaultClusterRenderer
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.isActive
+import com.example.floodaid.screen.map_UI.SOSViewModel
 
 // Cluster and Maintain Marker ratio
 //// Marker size and zoom limit constants
@@ -121,7 +127,8 @@ val CameraPositionSaver = run {
 @Composable
 fun Map(
     navController: NavHostController,
-    viewModel: MapViewModel
+    viewModel: MapViewModel,
+    sosViewModel: SOSViewModel? = null
 ) {
     // State and References
     val drawerState = rememberDrawerState(DrawerValue.Closed)
@@ -131,9 +138,12 @@ fun Map(
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
     val currentLocation by viewModel.currentLocation.collectAsState()
+    val isSOSActive = sosViewModel?.isSOSActive?.collectAsState()?.value ?: false
 
     var map by remember { mutableStateOf<GoogleMap?>(null) }
     var currentPolygon by remember { mutableStateOf<Polygon?>(null) }
+    var sosCircle by remember { mutableStateOf<Circle?>(null) }
+    var sosCircleAnimationJob by remember { mutableStateOf<Job?>(null) }
 
     var markerMap = remember { mutableStateMapOf<Long, Marker>() }
     var currentZoom by remember { mutableFloatStateOf(7f) } // Default zoom
@@ -189,6 +199,7 @@ fun Map(
         locationPermissionGranted = isGranted
         if (isGranted) {
             viewModel.startLocationUpdates()
+            // We'll handle map updates in LaunchedEffect
         }
     }
 
@@ -200,6 +211,7 @@ fun Map(
             viewModel.startLocationUpdates()
         }
 
+        // Load states but don't restore district yet (we'll do it when map is ready)
         if (savedDistrict == null) {
             viewModel.loadStates()
         }
@@ -371,7 +383,7 @@ fun Map(
                             if (item.getFloodStatus() == "flooded")
                                 Color.Blue.copy(alpha = 0.8f).toArgb() // Increased alpha for better visibility
                             else
-                                Color(0xFF4CAF50).copy(alpha = 0.8f).toArgb() // Increased alpha for better visibility
+                                Color.Green.copy(alpha = 0.8f).toArgb() // Increased alpha for better visibility
                         )
                         markerOptions.icon(BitmapDescriptorFactory.fromBitmap(floodIcon))
                     }
@@ -496,11 +508,64 @@ fun Map(
         }
     }
 
+    // SOS Circle Animation Effect
+    LaunchedEffect(isSOSActive, map, currentLocation) {
+        // Clean up existing animation if running
+        sosCircleAnimationJob?.cancel()
+        sosCircle?.remove()
+        sosCircle = null
+
+        // If SOS is active and we have map and location, show animation
+        if (isSOSActive && map != null && currentLocation != null) {
+            sosCircleAnimationJob = scope.launch {
+                // Animation parameters
+                val minRadius = 30.0  // meters
+                val maxRadius = 150.0 // meters
+                val animationDuration = 1500 // milliseconds
+
+                while (isActive) {
+                    // Create initial circle
+                    sosCircle?.remove()
+                    sosCircle = map?.addCircle(
+                        CircleOptions()
+                            .center(currentLocation!!)
+                            .radius(minRadius)
+                            .strokeWidth(4f)
+                            .strokeColor(Color.Red.copy(alpha = 0.8f).toArgb())
+                            .fillColor(Color.Red.copy(alpha = 0.3f).toArgb())
+                    )
+
+                    // Animate radius expansion
+                    val startTime = System.currentTimeMillis()
+                    while (System.currentTimeMillis() - startTime < animationDuration) {
+                        val progress = (System.currentTimeMillis() - startTime).toFloat() / animationDuration
+                        val currentRadius = minRadius + (maxRadius - minRadius) * progress
+                        val currentAlpha = 0.8f * (1f - progress)
+                        val currentFillAlpha = 0.3f * (1f - progress)
+
+                        sosCircle?.radius = currentRadius
+                        sosCircle?.strokeColor = Color.Red.copy(alpha = currentAlpha).toArgb()
+                        sosCircle?.fillColor = Color.Red.copy(alpha = currentFillAlpha).toArgb()
+
+                        delay(16) // roughly 60fps
+                    }
+
+                    // Remove circle at end of animation
+                    sosCircle?.remove()
+                    sosCircle = null
+                    delay(100) // small pause between animations
+                }
+            }
+        }
+    }
+
     // Handle proper cleanup of map resources
     DisposableEffect(lifecycleOwner) {
         onDispose {
             Log.d("MapDebug", "Disposing map resources")
             // Don't clear the map - just destroy mapView
+            sosCircleAnimationJob?.cancel()
+            sosCircle?.remove()
             mapView?.onDestroy()
             viewModel.stopLocationUpdates()
 
@@ -532,7 +597,7 @@ fun Map(
                         items(uiState.states.distinctBy { it.id }) { state ->
                             TextButton(
                                 onClick = {
-                                        viewModel.onStateSelected(state)
+                                    viewModel.onStateSelected(state)
                                 },
                                 modifier = Modifier.fillMaxWidth()
                             ) {
