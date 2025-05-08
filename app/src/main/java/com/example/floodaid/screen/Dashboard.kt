@@ -150,7 +150,7 @@ fun DashboardScreen(
                         modifier = Modifier
                             .wrapContentHeight()
                             .clip(RoundedCornerShape(16.dp))
-                            .background(Color(0xFFD6EAF8))
+                            .background(Color(0xFFFFF9C4))
                             .padding(8.dp)
                     ) {
                         DashboardGrid(navController, isLandscape = isLandscape)
@@ -192,7 +192,7 @@ fun DashboardScreen(
                         .fillMaxWidth()
                         .wrapContentHeight()
                         .clip(RoundedCornerShape(16.dp))
-                        .background(Color(0xFFD6EAF8))
+                        .background(Color(0xFFFFF9C4))
                         .padding(8.dp)
                 ) {
                     Column(
