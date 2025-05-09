@@ -75,6 +75,10 @@ fun Profile(
     viewModel: ProfileViewModel,
 ) {
     val imageUri = rememberSaveable { mutableStateOf<Uri?>(null) }
+    val painter = rememberAsyncImagePainter(
+        model = imageUri.value ?: R.drawable.ic_user,
+        error = painterResource(R.drawable.ic_user)
+    )
     val launcher = rememberLauncherForActivityResult(
         ActivityResultContracts.GetContent()
     ) { uri: Uri? -> imageUri.value = uri }
