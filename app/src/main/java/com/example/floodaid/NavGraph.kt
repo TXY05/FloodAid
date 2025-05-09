@@ -255,7 +255,8 @@ fun NavGraph(
         composable(route = Screen.Forum.route) {
             Forum(
                 navController = navController,
-                viewModel = forumViewModel
+                viewModel = forumViewModel,
+                profileViewModel = profileViewModel
             )
         }
 

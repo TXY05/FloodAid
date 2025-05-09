@@ -50,38 +50,32 @@ fun TopBar(
         ),
         windowInsets = WindowInsets(top = 0.dp),
         title = {
-            Row(
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(
-                    text = "FloodAid",
-                    color = MaterialTheme.colorScheme.onBackground.copy(0.7f),
+            Text(
+                text = "FloodAid",
+                color = MaterialTheme.colorScheme.onBackground.copy(0.7f)
+            )
+        },
+        actions = {
+            val imageUrl = profileState?.profilePictureUrl
+
+            if (!imageUrl.isNullOrEmpty()) {
+                AsyncImage(
+                    model = imageUrl,
+                    contentDescription = "Profile Picture",
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .clickable { navController.navigate("profile") },
+                    error = painterResource(R.drawable.ic_user)
                 )
-
-                Spacer(modifier = Modifier.weight(1f))
-
-                val imageUrl = profileState?.profilePictureUrl
-
-                if (!imageUrl.isNullOrEmpty()) {
-                    AsyncImage(
-                        model = imageUrl,
-                        contentDescription = "Profile Picture",
-                        modifier = Modifier
-                            .size(36.dp)
-                            .clip(CircleShape)
-                            .clickable { navController.navigate("profile") },
-                        error = painterResource(R.drawable.ic_user)
-                    )
-                } else {
-                    Icon(
-                        imageVector = Icons.Default.AccountCircle,
-                        contentDescription = "Default Profile",
-                        modifier = Modifier
-                            .size(36.dp)
-                            .clickable { navController.navigate("profile") }
-                    )
-                }
+            } else {
+                Icon(
+                    imageVector = Icons.Default.AccountCircle,
+                    contentDescription = "Default Profile",
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clickable { navController.navigate("profile") }
+                )
             }
         }
     )

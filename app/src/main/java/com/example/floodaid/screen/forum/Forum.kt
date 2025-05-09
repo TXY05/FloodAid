@@ -77,6 +77,7 @@ import coil.compose.AsyncImage
 import com.example.floodaid.R
 import com.example.floodaid.composable.ForumTopBar
 import com.example.floodaid.models.Screen
+import com.example.floodaid.screen.profile.ProfileViewModel
 import com.example.floodaid.ui.theme.AlegreyaFontFamily
 import com.example.floodaid.ui.theme.AlegreyaSansFontFamily
 import com.example.floodaid.viewmodel.ForumViewModel
@@ -93,13 +94,14 @@ import kotlin.math.roundToInt
 fun Forum(
     navController: NavHostController,
     viewModel: ForumViewModel,
+    profileViewModel: ProfileViewModel
 ) {
 
     Scaffold(
         bottomBar = { BottomBar(navController = navController) }
     ) { paddingValues ->
         ForumScreen(
-            modifier = Modifier.padding(paddingValues), navController, viewModel
+            modifier = Modifier.padding(paddingValues), navController, viewModel, profileViewModel
         )
     }
 }
@@ -110,6 +112,7 @@ fun ForumScreen(
     modifier: Modifier = Modifier,
     navController: NavHostController,
     viewModel: ForumViewModel,
+    profileViewModel: ProfileViewModel
 ) {
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(
         state = rememberTopAppBarState()
@@ -151,7 +154,9 @@ fun ForumScreen(
             ForumTopBar(
                 scrollBehavior = scrollBehavior,
                 searchQuery = searchQuery,
-                onSearchQueryChanged = { searchQuery = it }
+                onSearchQueryChanged = { searchQuery = it },
+                navController = navController,
+                viewModel = profileViewModel
             )
         }
     ) { paddingValues ->

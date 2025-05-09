@@ -3,6 +3,7 @@ package com.example.floodaid.screen.volunteer
 import BottomBar
 import android.R.attr.onClick
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -63,6 +64,7 @@ fun VolunteerHistory(
         Column(
             modifier = Modifier
             .padding(innerPadding)
+                .padding(top = 20.dp)
             ) {
             when {
                 history.isEmpty() -> {
@@ -76,7 +78,8 @@ fun VolunteerHistory(
                 }
                 else -> {
                     LazyColumn(
-                        modifier = Modifier
+                        modifier = Modifier,
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         items(history) { historyItem ->
                             HistoryItemCard(historyItem, onClick = { navController.navigate( "volunteerDetail/${historyItem.eventId}") })
@@ -92,14 +95,13 @@ fun VolunteerHistory(
 fun HistoryItemCard(history: VolunteerEventHistory, onClick: () -> Unit) {
     Card(
         modifier = Modifier
-            .fillMaxWidth()
-            .padding(8.dp)
+            .fillMaxSize().padding(horizontal = 40.dp)
             .clickable { onClick() },
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                text = "Event ID: ${history.eventId}",
+                text = "Title: ${history.description}",
                 style = MaterialTheme.typography.titleMedium
             )
             Spacer(modifier = Modifier.height(8.dp))
@@ -112,7 +114,7 @@ fun HistoryItemCard(history: VolunteerEventHistory, onClick: () -> Unit) {
                 SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()).format(it)
             } ?: history.date
             Text(
-                text = "Participated on: $formattedDate",
+                text = "Date: $formattedDate",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
             )

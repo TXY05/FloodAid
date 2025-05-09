@@ -11,19 +11,26 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -211,7 +218,7 @@ fun EventListScreen(
     LazyColumn(
         state = listState,
         modifier = modifier
-            .padding(horizontal = 10.dp),
+            .padding(horizontal = 20.dp),
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
@@ -255,7 +262,9 @@ fun EventListScreen(
 }
 
 @Composable
-fun EventCard(event: VolunteerEvent, onClick: () -> Unit) {
+fun EventCard(
+    event: VolunteerEvent,
+    onClick: () -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -265,18 +274,54 @@ fun EventCard(event: VolunteerEvent, onClick: () -> Unit) {
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(text = event.description, style = MaterialTheme.typography.titleLarge)
-            val parsedDate = try {
-                SimpleDateFormat("MM/dd/yyyy", Locale.getDefault()).parse(event.date)
-            } catch (e: Exception) {
-                null
+        Column (
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ){
+            Row (
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ){
+                Text(text = event.description, style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.primary)
             }
-            val formattedDate = parsedDate?.let {
-                SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()).format(it)
-            } ?: event.date
-            Text(text = formattedDate, style = MaterialTheme.typography.bodyMedium)
-            Text(text = event.district, style = MaterialTheme.typography.bodySmall)
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Row (
+                verticalAlignment = Alignment.CenterVertically
+            ){
+                Icon(imageVector = Icons.Default.CalendarToday, contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary)
+
+                Spacer(modifier = Modifier
+                    .width(8.dp)
+                    .padding(end = 10.dp))
+
+                Column {
+                    val parsedDate = try {
+                        SimpleDateFormat("MM/dd/yyyy", Locale.getDefault()).parse(event.date)
+                    } catch (e: Exception) {
+                        null
+                    }
+                    val formattedDate = parsedDate?.let {
+                        SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()).format(it)
+                    } ?: event.date
+                    Text(text = formattedDate, style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface)
+
+                    Text(text = "${event.startTime} - ${event.endTime}", style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Row{
+                Text(text = event.district, style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.secondary)
+            }
         }
     }
 }

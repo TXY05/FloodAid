@@ -1,11 +1,21 @@
 import android.annotation.SuppressLint
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccessTime
+import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Place
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.*
 import androidx.compose.material3.MaterialTheme.colorScheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -16,20 +26,12 @@ import androidx.navigation.NavHostController
 import com.example.floodaid.composable.VButton
 import com.example.floodaid.composable.VolunteerTopBar
 import com.example.floodaid.models.VolunteerEvent
-import com.example.floodaid.models.VolunteerEventHistory
 import com.example.floodaid.screen.profile.ProfileViewModel
-import com.example.floodaid.screen.volunteer.VolunteerHistory
 import com.example.floodaid.screen.volunteer.VolunteerViewModel
-import com.example.floodaid.screen.volunteer.checkIfUserIsVolunteer
 import com.example.floodaid.ui.theme.AlegreyaSansFontFamily
-import com.example.jetpackcomposeauthui.components.CButton
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FirebaseFirestore
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
 import java.text.SimpleDateFormat
-import java.util.Locale
+import java.util.*
 
 @SuppressLint("UnusedBoxWithConstraintsScope")
 @OptIn(ExperimentalMaterial3Api::class)
@@ -40,9 +42,7 @@ fun VolunteerDetail(
     viewModel: VolunteerViewModel,
     profileViewModel: ProfileViewModel
 ) {
-    val eventState by remember(eventId) {
-        viewModel.getEvent(eventId)
-    }.collectAsState()
+    val eventState by viewModel.getEvent(eventId).collectAsState(initial = null)
 
     val userId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
 
@@ -53,17 +53,8 @@ fun VolunteerDetail(
     val history by viewModel.history.collectAsState()
     val alrApplied = history.any { it.eventId == eventId }
 
-    var userName by remember { mutableStateOf("") }
-
-    LaunchedEffect(eventState) {
-        eventState?.let {
-            userName = getUsername(it.userId)
-        }
-    }
-
     Scaffold(
-        modifier = Modifier
-            .nestedScroll(scrollBehavior.nestedScrollConnection),
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             VolunteerTopBar(
                 scrollBehavior = scrollBehavior,
@@ -78,6 +69,7 @@ fun VolunteerDetail(
             modifier = Modifier
                 .padding(innerPadding)
                 .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
                 .padding(16.dp)
         ) {
             val isWideScreen = maxWidth > 600.dp
@@ -97,16 +89,6 @@ fun VolunteerDetail(
                     SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()).format(it)
                 } ?: event.date
 
-                val detailItems = listOf(
-                    "Event ID" to event.firestoreId,
-                    "User Name" to userName,
-                    "Description" to event.description,
-                    "District" to event.district,
-                    "Date" to formattedDate,
-                    "Start Time" to event.startTime,
-                    "End Time" to event.endTime
-                )
-
                 if (isWideScreen) {
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(32.dp),
@@ -125,33 +107,105 @@ fun VolunteerDetail(
                             ActionButtons(event, userId, alrApplied, navController, viewModel)
                         }
 
-                        LazyColumn(
+                        EventDetail(
+                            event = event,
+                            formattedDate = formattedDate,
+                            userId = userId,
+                            alrApplied = alrApplied,
+                            navController = navController,
+                            viewModel = viewModel,
                             modifier = Modifier
                                 .weight(2f)
                                 .fillMaxHeight()
                                 .padding(start = 150.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            detailItems.forEach { (label, value) ->
-                                item {
-                                    EventDetailItem(label = label, value = value)
-                                }
-                            }
-                        }
+                        )
                     }
-                } else {
-                    Column(
-                        modifier = Modifier.fillMaxSize(),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        detailItems.forEach { (label, value) ->
-                            EventDetailItem(label = label, value = value)
-                        }
-
-                        ActionButtons(event, userId, alrApplied, navController, viewModel)
+                }else {
+                    Column{
+                        EventDetail(
+                            event = event,
+                            formattedDate = formattedDate,
+                            userId = userId,
+                            alrApplied = alrApplied,
+                            navController = navController,
+                            viewModel = viewModel,
+                            isShow = true,
+                            modifier = Modifier
+                                .fillMaxSize().padding(horizontal = 40.dp)
+                        )
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun EventDetail(
+    event: VolunteerEvent,
+    formattedDate: String,
+    userId: String,
+    alrApplied: Boolean,
+    navController: NavHostController,
+    viewModel: VolunteerViewModel,
+    isShow: Boolean = false,
+    modifier: Modifier = Modifier
+) {
+    LazyColumn(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        item {
+            DisplayField(label = "Description", value = event.description, icon = Icons.Default.Description)
+        }
+        item {
+            DisplayField(label = "District", value = event.district, icon = Icons.Default.Place)
+        }
+        item {
+            DisplayField(label = "Date", value = formattedDate, icon = Icons.Default.CalendarToday)
+        }
+        item {
+            DisplayField(label = "Start Time", value = event.startTime, icon = Icons.Default.AccessTime)
+        }
+        item {
+            DisplayField(label = "End Time", value = event.endTime, icon = Icons.Default.Schedule)
+        }
+
+        if (isShow) {
+            item {
+                ActionButtons(event, userId, alrApplied, navController, viewModel)
+            }
+        }
+    }
+}
+
+@Composable
+fun DisplayField(label: String, value: String, icon: ImageVector) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = label,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier
+                .size(24.dp)
+                .padding(end = 8.dp)
+        )
+        Column {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Text(
+                text = value,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface
+            )
         }
     }
 }
@@ -183,7 +237,7 @@ private fun ActionButtons(
                 modifier = Modifier.weight(1f)) {
                 Text("Edit Event",
                     style = TextStyle(
-                        fontSize = 22.sp,
+                        fontSize = 15.sp,
                         fontFamily = AlegreyaSansFontFamily,
                         fontWeight = FontWeight.Medium,
                         color = colorScheme.onPrimary.copy(alpha = 0.4f) // optional, reinforces disabled look
@@ -200,7 +254,7 @@ private fun ActionButtons(
                 modifier = Modifier.weight(1f)) {
                 Text("Delete Event",
                     style = TextStyle(
-                        fontSize = 22.sp,
+                        fontSize = 15.sp,
                         fontFamily = AlegreyaSansFontFamily,
                         fontWeight = FontWeight.Medium,
                         color = colorScheme.onSecondary.copy(alpha = 0.4f)
@@ -235,6 +289,7 @@ private fun ActionButtons(
                 }
             )
         }
+        Spacer(modifier = Modifier.height(12.dp))
     }
 
     if (alrApplied) {
@@ -247,23 +302,5 @@ private fun ActionButtons(
             },
             text = "Apply Event"
         )
-    }
-}
-
-@Composable
-fun EventDetailItem(label: String, value: String) {
-    Column {
-        Text(text = label, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-        Text(text = value, fontSize = 16.sp)
-    }
-}
-
-suspend fun getUsername(userId: String): String {
-    return try {
-        val db = FirebaseFirestore.getInstance()
-        val document = db.collection("users").document(userId).get().await()
-        document.getString("userName") ?: "Unknown"
-    } catch (e: Exception) {
-        "Unknown"
     }
 }

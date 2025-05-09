@@ -169,20 +169,6 @@ class VolunteerViewModel(
         return phone.length >= 10 && phone.all { it.isDigit() }
     }
 
-    fun fetchUsernameFromFirestore(userId: String, onResult: (String) -> Unit) {
-        val db = FirebaseFirestore.getInstance()
-        db.collection("users")
-            .document(userId)
-            .get()
-            .addOnSuccessListener { document ->
-                val userName = document.getString("userName") ?: "Unknown"
-                onResult(userName)
-            }
-            .addOnFailureListener {
-                onResult("Unknown")
-            }
-    }
-
     // For room and firebase sync
     fun getEventHistory(userId: String) {
         viewModelScope.launch {

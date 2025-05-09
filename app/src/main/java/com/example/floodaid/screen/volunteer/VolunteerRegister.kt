@@ -71,7 +71,8 @@ fun VolunteerRegister(
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize().padding(horizontal = 40.dp)
-                .padding(innerPadding),
+                .padding(innerPadding)
+                .padding(top = 20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             item{
