@@ -187,7 +187,7 @@ fun DashboardScreen(
                     Button(
                         onClick = {
                             authViewModel.signoutFunction()
-                            navController.navigate("welcomeloading")
+                            navController.navigate("welcome")
                         },
                         modifier = Modifier.fillMaxWidth(),
                         shape = MaterialTheme.shapes.medium,
