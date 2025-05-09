@@ -169,6 +169,11 @@ class VolunteerViewModel(
         return phone.length >= 10 && phone.all { it.isDigit() }
     }
 
+    fun isValidTimeFormat(time: String): Boolean {
+        val timeRegex = Regex("^([01]?\\d|2[0-3]):[0-5]\\d$")
+        return timeRegex.matches(time)
+    }
+
     // For room and firebase sync
     fun getEventHistory(userId: String) {
         viewModelScope.launch {

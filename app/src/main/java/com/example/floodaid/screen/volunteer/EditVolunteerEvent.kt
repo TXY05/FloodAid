@@ -42,6 +42,8 @@ fun EditVolunteerEvent(
     var district by rememberSaveable { mutableStateOf("") }
     val userId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
 
+    var showError by remember { mutableStateOf(false) }
+
     Scaffold(
         modifier = Modifier
             .nestedScroll(scrollBehavior.nestedScrollConnection),
@@ -118,11 +120,29 @@ fun EditVolunteerEvent(
                         VTextField(hint = "Start Time (HH:MM): ${event.startTime}", value = startTime, onValueChange = { startTime = it }, modifier = Modifier.weight(1f))
                         VTextField(hint = "End Time (HH:MM): ${event.endTime}", value = endTime, onValueChange = { endTime = it }, modifier = Modifier.weight(1f))
                     }
+
+                    if (showError) {
+                        Text(
+                            text = "Start/End Time must be in HH:MM format (e.g., 09:30)",
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.padding(top = 4.dp)
+                        )
+                    }
                 }
 
                 item{
                     VButton(
                         onClick = {
+                            val finalStartTime = if (startTime.isEmpty()) event.startTime else startTime
+                            val finalEndTime = if (endTime.isEmpty()) event.endTime else endTime
+
+                            val isStartValid = viewModel.isValidTimeFormat(finalStartTime)
+                            val isEndValid = viewModel.isValidTimeFormat(finalEndTime)
+
+                            showError = !isStartValid || !isEndValid
+                            if (showError) return@VButton
+
                             if (date.isEmpty()) date = event.date
                             if (startTime.isEmpty()) startTime = event.startTime
                             if (endTime.isEmpty()) endTime = event.endTime

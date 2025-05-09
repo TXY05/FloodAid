@@ -56,6 +56,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
+import coil.compose.rememberAsyncImagePainter
 import com.example.floodaid.R
 import com.example.floodaid.models.UserProfile
 import com.example.floodaid.screen.login.GenderSelector
