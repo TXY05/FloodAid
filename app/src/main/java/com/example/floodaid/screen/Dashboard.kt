@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -21,7 +22,6 @@ import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
@@ -72,6 +72,8 @@ import com.example.floodaid.screen.profile.ProfileViewModel
 import com.example.floodaid.ui.theme.FloodAidTheme
 import com.example.floodaid.viewmodel.AuthViewModel
 import com.example.floodaid.viewmodel.FloodStatusViewModel
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 
 @OptIn(ExperimentalMaterial3Api::class)
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
@@ -145,16 +147,17 @@ fun DashboardScreen(
             Row(
                 modifier = Modifier
                     .padding(paddingValues)
-                    .fillMaxSize()
+                    .fillMaxWidth()
+                    .fillMaxHeight()
             ) {
-                // Left side - Additional content
+                // Left side - scrollable if needed, but NOT containing a lazy/grid
                 Column(
                     modifier = Modifier
                         .weight(1f)
-                        .padding(16.dp),
+                        .padding(16.dp)
+                        .verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.Center
                 ) {
-                    // Flood status information
                     FloodStatusHeader(
                         status = uiState.currentStatus,
                         locations = uiState.floodData.map { it.location },
@@ -165,7 +168,7 @@ fun DashboardScreen(
                     Spacer(modifier = Modifier.height(24.dp))
                 }
 
-                // Right side - Features grid (same size as portrait)
+                // Right side - NO verticalScroll, let the grid handle scrolling
                 Column(
                     modifier = Modifier
                         .weight(1f)
@@ -174,7 +177,8 @@ fun DashboardScreen(
                 ) {
                     Box(
                         modifier = Modifier
-                            .wrapContentHeight()
+                            .fillMaxWidth()
+                            .weight(1f) // Let the grid take available space
                             .clip(RoundedCornerShape(16.dp))
                             .background(Color(0xFFFFF9C4))
                             .padding(8.dp)
@@ -252,7 +256,6 @@ fun FloodStatusHeader(
     onLocationSelected: (String) -> Unit,
     selectedLocation: String,
 ) {
-    val (showLegendDialog, setShowLegendDialog) = remember { mutableStateOf(false) }
     var isDropdownExpanded by remember { mutableStateOf(false) }
 
     val (iconColor, textColor, message) = when (status) {
@@ -348,30 +351,6 @@ fun FloodStatusHeader(
             color = Color.Gray
         )
 
-    }
-}
-
-@Composable
-fun LegendItem(color: Color, label: String, logo: ImageVector) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.padding(8.dp)
-    ) {
-        Icon(
-            imageVector = logo,
-            contentDescription = "$label Logo",
-            modifier = Modifier.size(24.dp),
-            tint = color
-        )
-        Spacer(modifier = Modifier.width(8.dp))
-        Box(
-            modifier = Modifier
-                .size(16.dp)
-                .clip(CircleShape)
-                .background(color)
-        )
-        Spacer(modifier = Modifier.width(8.dp))
-        Text(text = label, style = MaterialTheme.typography.bodyMedium)
     }
 }
 
