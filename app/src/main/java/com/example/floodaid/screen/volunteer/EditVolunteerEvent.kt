@@ -160,7 +160,8 @@ fun EditVolunteerEvent(
                             viewModel.updateEvent(newEvent)
                             navController.popBackStack()
                         },
-                        text = "Update Event"
+                        text = "Update Event",
+                        enabled = !showError
                     )
                 }
             }

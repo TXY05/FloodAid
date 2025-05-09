@@ -146,7 +146,8 @@ fun NavGraph(
 
         composable(route = Screen.Profile.route) {
             Profile(navController = navController,
-                viewModel = profileViewModel)
+                viewModel = profileViewModel,
+                volunteerViewModel = volunteerViewModel)
         }
 
         composable(route = Screen.Signup.route) {

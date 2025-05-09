@@ -37,6 +37,14 @@ fun AddVolunteerEvent(
     var district by rememberSaveable { mutableStateOf("") }
     val userId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
 
+    var showError by remember { mutableStateOf(false) }
+
+    val allFieldsFilled = description.isNotBlank() &&
+            district.isNotBlank() &&
+            date.isNotBlank() &&
+            startTime.isNotBlank() &&
+            endTime.isNotBlank()
+
     Scaffold(
         modifier = Modifier
             .nestedScroll(scrollBehavior.nestedScrollConnection),
@@ -87,11 +95,28 @@ fun AddVolunteerEvent(
                     VTextField(hint = "Start Time (HH:MM)", value = startTime, onValueChange = { startTime = it }, modifier = Modifier.weight(1f))
                     VTextField(hint = "End Time (HH:MM)", value = endTime, onValueChange = { endTime = it }, modifier = Modifier.weight(1f))
                 }
+
+                if (showError) {
+                    Text(
+                        text = "Start/End Time must be in HH:MM format (e.g., 09:30)",
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
+                }
             }
 
             item{
                 VButton(
                     onClick = {
+                        val isStartValid = viewModel.isValidTimeFormat(startTime)
+                        val isEndValid = viewModel.isValidTimeFormat(endTime)
+
+                        showError = !isStartValid || !isEndValid
+                        if (showError) return@VButton
+
+                        if (!allFieldsFilled) return@VButton
+
                         val newEvent = VolunteerEvent(
                             date = date,
                             startTime = startTime,
@@ -103,8 +128,16 @@ fun AddVolunteerEvent(
                         viewModel.insertEvent(newEvent)
                         navController.popBackStack()
                     },
-                    text = "Create Event"
+                    text = "Create Event",
+                    enabled = !showError && allFieldsFilled
                 )
+                if (!allFieldsFilled) {
+                    Text(
+                        text = "All fields are required.",
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
             }
         }
     }
