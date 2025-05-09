@@ -159,6 +159,7 @@ fun AddFloodStatusDialog(
                         viewModel.setErrorMessage("Please select a location.")
                     } else {
                         viewModel.updateFloodStatus(selectedLocation, status)
+                        viewModel.saveFloodMarker(selectedLocation, status, mapViewModel)
                     }
                 },
                 enabled = uiState.saveState != SaveState.SAVING && remainingSeconds == 0

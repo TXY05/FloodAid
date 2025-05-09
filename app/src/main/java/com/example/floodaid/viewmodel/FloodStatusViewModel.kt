@@ -21,6 +21,7 @@ import java.time.Instant
 import java.time.temporal.ChronoUnit
 import java.util.Date
 import java.util.Locale
+import kotlin.random.Random
 
 // Add a SaveState enum to track saving status
 enum class SaveState {
@@ -190,6 +191,66 @@ class FloodStatusViewModel(
         }
     }
 
+    // Function to generate random coordinates based on district ID
+    private fun generateRandomCoordinates(districtId: Int): Pair<Double, Double> {
+        // Define coordinate ranges for each district
+        // These ranges should be adjusted based on your specific district boundaries
+        return when (districtId) {
+            1 -> { // For district ID 1
+                val lat = Random.nextDouble(3.236296, 3.328371) // Example range for latitude
+                val lon = Random.nextDouble(101.543151, 101.697791) // Example range for longitude
+                Pair(lat, lon)
+
+            }
+            2 -> { // For district ID 2
+                val lat = Random.nextDouble(2.968620, 3.078295)
+                val lon = Random.nextDouble(101.766041, 101.823200)
+                Pair(lat, lon)
+            }
+            3 -> { // For district ID 3
+                val lat = Random.nextDouble(3.391313, 3.595826)
+                val lon = Random.nextDouble(101.505285, 101.636378)
+                Pair(lat, lon)
+            }
+            4 -> { // For district ID 4
+                val lat = Random.nextDouble(2.994287, 3.108926)
+                val lon = Random.nextDouble(101.359604, 101.537993)
+                Pair(lat, lon)
+            }
+            5 -> { // For district ID 5
+                val lat = Random.nextDouble(2.733001, 2.926007)
+                val lon = Random.nextDouble(101.420031, 101.670565)
+                Pair(lat, lon)
+            }
+            6 -> { // For district ID 6
+                val lat = Random.nextDouble(3.376203, 3.511508)
+                val lon = Random.nextDouble(101.173302, 101.379076)
+                Pair(lat, lon)
+            }
+            7 -> { // For district ID 7
+                val lat = Random.nextDouble(3.048491, 3.162642)
+                val lon = Random.nextDouble(101.514357, 101.603362)
+                Pair(lat, lon)
+            }
+            8 -> { // For district ID 8
+                val lat = Random.nextDouble(3.645089, 3.776877)
+                val lon = Random.nextDouble(101.016436, 101.161125)
+                Pair(lat, lon)
+            }
+            9 -> { // For district ID 9
+                val lat = Random.nextDouble(2.664606, 2.782942)
+                val lon = Random.nextDouble(101.681773, 101.725471)
+                Pair(lat, lon)
+            }
+            // Add more cases for other district IDs
+            else -> { // Default case if district ID is not recognized
+                val lat = Random.nextDouble(3.0, 3.5) // Wider default range
+                val lon = Random.nextDouble(101.5, 102.0)
+                Pair(lat, lon)
+            }
+        }
+    }
+
     // Changed to use state management instead of callbacks
     fun saveFloodMarker(location: String, status: String, mapViewModel: MapViewModel) {
         // Update state to saving
@@ -205,13 +266,16 @@ class FloodStatusViewModel(
                 val district = mapViewModel.getDistrictsByName(location)
                 Log.d("MapDebug", "Fetched district: $district")
 
+                // Generate random coordinates based on district ID
+                val (randomLat, randomLon) = generateRandomCoordinates(district.id.toInt())
+
                 // Create flood marker with proper ID
                 val reportMarker = FloodMarker(
                     id = FloodMarker.TEMP_ID,
                     floodStatus = if (status.lowercase() == "flood") "flooded" else "safe",
                     districtId = district.id,
-                    latitude = district.latitude,
-                    longitude = district.longitude,
+                    latitude = randomLat,
+                    longitude = randomLon,
                     expiryTime = Instant.now().plus(4, ChronoUnit.DAYS)
                 )
 
